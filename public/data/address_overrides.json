@@ -1,0 +1,17 @@
+{
+  "_comment": "Manual Google-Maps-verified address overrides. Key = OSM way id as string. These take priority over the composed addr:* output. Used for famous landmarks where OSM data is sparse or incorrect.",
+  "_format_js": "Japan, 〒POSTCODE Prefecture, Ward City, Quarter, N Chome−B−H [Building Name]",
+  "_format_kr": "NUMBER Road-name, District-gu, City, South Korea POSTCODE",
+  "_format_us": "NUMBER Street, City, State POSTCODE, USA",
+
+  "overrides": {
+    "852000385": "Japan, 〒160-0021 Tokyo, Shinjuku City, Kabukicho, 1 Chome−29−1 東急歌舞伎町タワー",
+
+    "_shinjuku_note": "Shinjuku famous buildings",
+    "_shibuya_note": "Shibuya famous buildings",
+    "_manhattan_note": "Manhattan famous buildings (most already have full addr:*)",
+    "_gangnam_note": "Gangnam famous buildings",
+    "_itaewon_note": "Itaewon famous buildings",
+    "_la_note": "LA famous buildings"
+  }
+}

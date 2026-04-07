@@ -42,14 +42,15 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
   float sy = (d00 + 2.0*d10 + d20 - d02 - 2.0*d12 - d22) * inv;
   float edge = sqrt(sx*sx + sy*sy);
 
-  // Fade edges with distance — thin out far edges
-  float distFade = 1.0 - smoothstep(400.0, 1200.0, dc);
-  // Hard cutoff: only show edges with strong depth discontinuity (buildings)
-  edge = smoothstep(uThreshold * 0.8, uThreshold, edge) * uStrength * distFade;
+  // Aggressive distance fade — kill far-field edges entirely to prevent flicker
+  float distFade = 1.0 - smoothstep(200.0, 600.0, dc);
+  // Very wide smoothstep band — eliminates sub-pixel edge pop-in/out
+  edge = smoothstep(uThreshold * 0.4, uThreshold * 2.0, edge) * uStrength * distFade;
+  // Clamp to prevent overbrightening
+  edge = min(edge, 0.6);
 
-  // Subtle white glow on building edges
-  vec3 edgeCol = uColor * (1.0 + edge * 0.3);
-  outputColor = vec4(mix(inputColor.rgb, edgeCol, min(edge, 1.0)), inputColor.a);
+  // Subtle edge overlay (additive blend to avoid darkening artifacts)
+  outputColor = vec4(inputColor.rgb + uColor * edge * 0.15, inputColor.a);
 }
 `;
 
@@ -86,8 +87,8 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
 
   float d = smoothstep(uFogNear, uFogFar, linearDist);
   float fog = 1.0 - exp(-pow(d * 2.5, uFogExponent));
-  // When zoomed out / top-down, completely remove fog
-  fog *= clamp(1.0 - uVertical * 1.5, 0.0, 1.0);
+  // When looking straight down, gently reduce fog (keep some depth cue)
+  fog *= mix(1.0, 0.15, uVertical);
   outputColor = vec4(mix(inputColor.rgb, uFogColor, fog), inputColor.a);
 }
 `;
@@ -95,9 +96,9 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, const in float depth,
 export class GradientFogEffect extends Effect {
   constructor({
     color = new Vector3(1.0, 1.0, 1.0),
-    near = 800.0,
-    far = 3000.0,
-    exponent = 1.4,
+    near = 1200.0,
+    far = 4000.0,
+    exponent = 1.2,
   } = {}) {
     super('GradientFogEffect', fogFragment, {
       attributes: EffectAttribute.DEPTH,

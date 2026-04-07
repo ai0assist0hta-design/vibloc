@@ -1,0 +1,75 @@
+{
+  "items": [
+    {
+      "id": "Q12586441",
+      "wiki_title": "금동신묘명삼존불입상",
+      "wiki_url": "https://ko.wikipedia.org/wiki/%EA%B8%88%EB%8F%99%EC%8B%A0%EB%AC%98%EB%AA%85%EC%82%BC%EC%A1%B4%EB%B6%88%EC%9E%85%EC%83%81",
+      "wiki_lang": "ko",
+      "references_count": 1,
+      "verified": true
+    },
+    {
+      "id": "Q5594665",
+      "wiki_title": "Grand Hyatt Seoul",
+      "wiki_url": "https://en.wikipedia.org/wiki/Grand_Hyatt_Seoul",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "floors": "20",
+      "address": "Yongsan, Seoul, South Korea"
+    },
+    {
+      "id": "Q28686716",
+      "wiki_title": "해밀톤관광",
+      "wiki_url": "https://ko.wikipedia.org/wiki/%ED%95%B4%EB%B0%80%ED%86%A4%EA%B4%80%EA%B4%91",
+      "wiki_lang": "ko",
+      "references_count": 8,
+      "verified": true
+    },
+    {
+      "id": "Q278103",
+      "wiki_title": "Hangangjin station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hangangjin_station",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "operator": [
+        "Seoul Metro"
+      ],
+      "address": "10-33 Hannam-dong,, 287 Itaewonno Jiha,, Yongsan-gu, Seoul"
+    },
+    {
+      "id": "Q490082",
+      "wiki_title": "Itaewon station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Itaewon_station",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "operator": [
+        "Seoul Metro"
+      ],
+      "address": "127 Itaewon-dong,, 177 Itaewonno Jiha,, Yongsan-gu, Seoul"
+    },
+    {
+      "id": "Q129677598",
+      "wiki_title": "Mosu (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Mosu_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "address": "4 Hoenamu-ro 41-gil, Yongsan District"
+    },
+    {
+      "id": "Q490005",
+      "wiki_title": "Noksapyeong station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Noksapyeong_station",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "operator": [
+        "Seoul Metro"
+      ],
+      "address": "4 Yongsan-dong 4-ga,, 195 Noksaypyeongdaero Jiha,, Yongsan-gu, Seoul"
+    }
+  ]
+}

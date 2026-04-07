@@ -1,0 +1,6151 @@
+{
+  "items": [
+    {
+      "id": "Q20004122",
+      "wiki_title": "1 Park Lane",
+      "wiki_url": "https://en.wikipedia.org/wiki/1_Park_Lane",
+      "wiki_lang": "en",
+      "references_count": 33,
+      "verified": true,
+      "owner": [
+        "Qatar Investment Authority"
+      ],
+      "architect": [
+        "Emery Roth & Sons"
+      ],
+      "developer": [
+        "Harry Helmsley"
+      ],
+      "floors": "46"
+    },
+    {
+      "id": "Q46996804",
+      "wiki_title": "1 Rockefeller Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/1_Rockefeller_Plaza",
+      "wiki_lang": "en",
+      "references_count": 42,
+      "verified": true
+    },
+    {
+      "id": "Q3756931",
+      "wiki_title": "10 East 40th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/10_East_40th_Street",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "floors": "48",
+      "height": "632 ft",
+      "built": "1929",
+      "style": "Renaissance Revival"
+    },
+    {
+      "id": "Q107055455",
+      "wiki_title": "10 West 56th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/10_West_56th_Street",
+      "wiki_lang": "en",
+      "references_count": 116,
+      "verified": true,
+      "owner": [
+        "Carlos Slim"
+      ],
+      "current_tenants": [
+        "The Elizabeth Collective"
+      ],
+      "architect": [
+        "Warren and Wetmore"
+      ],
+      "floors": "6",
+      "built": "1903",
+      "style": "French Renaissance Revival"
+    },
+    {
+      "id": "Q129816529",
+      "wiki_title": "100 West 37th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/100_West_37th_Street",
+      "wiki_lang": "en",
+      "references_count": 46,
+      "verified": true,
+      "architect": [
+        "C3D Architecture"
+      ],
+      "developer": [
+        "Sioni Group"
+      ],
+      "floors": "70",
+      "height": "785 ft"
+    },
+    {
+      "id": "Q2782432",
+      "wiki_title": "101 Park Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/101_Park_Avenue",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "owner": [
+        "H. J. Kalikow & Company"
+      ],
+      "architect": [
+        "Eli Attia Architects"
+      ],
+      "floors": "49",
+      "built": "1982",
+      "style": "Modernism"
+    },
+    {
+      "id": "Q21088668",
+      "wiki_title": "1065 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1065_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "owner": [
+        "Savanna"
+      ],
+      "architect": [
+        "Sidney Goldstone and Kahn & Jacobs"
+      ],
+      "floors": "38",
+      "built": "1957",
+      "style": "International style"
+    },
+    {
+      "id": "Q3286566",
+      "wiki_title": "1095 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1095_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true,
+      "owner": [
+        "Ivanhoé Cambridge, Real Summit Investment"
+      ],
+      "architect": [
+        "Kahn & Jacobs"
+      ],
+      "floors": "41",
+      "built": "1973"
+    },
+    {
+      "id": "Q4547779",
+      "wiki_title": "Eleven Times Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/Eleven_Times_Square",
+      "wiki_lang": "en",
+      "references_count": 25,
+      "verified": true,
+      "architect": [
+        "Dan Kaplan (FXFOWLE)"
+      ],
+      "developer": [
+        "SJP Properties"
+      ],
+      "floors": "40",
+      "built": "2010",
+      "cost": "$950 million"
+    },
+    {
+      "id": "Q106977642",
+      "wiki_title": "11 West 54th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/11_West_54th_Street",
+      "wiki_lang": "en",
+      "references_count": 133,
+      "verified": true,
+      "architect": [
+        "McKim, Mead & White"
+      ]
+    },
+    {
+      "id": "Q72941532",
+      "wiki_title": "110 East 42nd Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/110_East_42nd_Street",
+      "wiki_lang": "en",
+      "references_count": 218,
+      "verified": true,
+      "owner": [
+        "SL Green"
+      ],
+      "developer": [
+        "Bowery Savings Bank"
+      ],
+      "floors": "18",
+      "built": "1923",
+      "style": "Italian Romanesque Revival style"
+    },
+    {
+      "id": "Q2631268",
+      "wiki_title": "111 West 57th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/111_West_57th_Street",
+      "wiki_lang": "en",
+      "references_count": 611,
+      "verified": true,
+      "architect": [
+        "SHoP Architects (Steinway Hall conversion and residential tower)",
+        "Warren and Wetmore (Steinway Hall)"
+      ],
+      "developer": [
+        "JDS Development Group and Property Markets Group"
+      ],
+      "floors": "84",
+      "built": "2022 (residential tower)",
+      "cost": "$2 billion"
+    },
+    {
+      "id": "Q2119193",
+      "wiki_title": "1166 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1166_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "owner": [
+        "Marsh & McLennan Companies and Edward J. Minskoff Equities"
+      ],
+      "architect": [
+        "Skidmore, Owings & Merrill"
+      ],
+      "floors": "44",
+      "built": "1974"
+    },
+    {
+      "id": "Q107264191",
+      "wiki_title": "12 East 53rd Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/12_East_53rd_Street",
+      "wiki_lang": "en",
+      "references_count": 117,
+      "verified": true,
+      "current_tenants": [
+        "Dimitry Goncharov"
+      ],
+      "architect": [
+        "Griffith Thomas"
+      ],
+      "floors": "6",
+      "built": "1871"
+    },
+    {
+      "id": "Q2943880",
+      "wiki_title": "1211 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1211_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true,
+      "owner": [
+        "Ivanhoé Cambridge"
+      ],
+      "architect": [
+        "Wallace Harrison (Harrison, Abramovitz & Harris)"
+      ],
+      "developer": [
+        "Rockefeller Group Development Corporation"
+      ],
+      "floors": "45",
+      "built": "1971",
+      "style": "International Style"
+    },
+    {
+      "id": "Q172811",
+      "wiki_title": "1221 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1221_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 22,
+      "verified": true,
+      "owner": [
+        "Rockefeller Group (Mitsubishi Estate)"
+      ],
+      "architect": [
+        "Wallace Harrison"
+      ],
+      "floors": "51",
+      "built": "1969",
+      "style": "International style"
+    },
+    {
+      "id": "Q4548429",
+      "wiki_title": "125 West 55th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/125_West_55th_Street",
+      "wiki_lang": "en",
+      "references_count": 35,
+      "verified": true,
+      "owner": [
+        "J.P. Morgan Asset Management"
+      ],
+      "architect": [
+        "Edward Larrabee Barnes and John MY Lee Architects"
+      ],
+      "developer": [
+        "Macklowe Properties"
+      ],
+      "floors": "22",
+      "height": "100.6 m (330 ft)",
+      "built": "1990",
+      "style": "Modernist"
+    },
+    {
+      "id": "Q3528913",
+      "wiki_title": "1271 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1271_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 337,
+      "verified": true,
+      "owner": [
+        "Rockefeller Group",
+        "(Mitsubishi Group)"
+      ],
+      "operator": [
+        "Rockefeller Group"
+      ],
+      "architect": [
+        "Wallace Harrison of Harrison, Abramovitz, and Harris"
+      ],
+      "floors": "48",
+      "built": "1960",
+      "cost": "$70&nbsp;million"
+    },
+    {
+      "id": "Q106977692",
+      "wiki_title": "13 and 15 West 54th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/13_and_15_West_54th_Street",
+      "wiki_lang": "en",
+      "references_count": 128,
+      "verified": true,
+      "architect": [
+        "Henry Janeway Hardenbergh"
+      ]
+    },
+    {
+      "id": "Q102117236",
+      "wiki_title": "130 West 57th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/130_West_57th_Street",
+      "wiki_lang": "en",
+      "references_count": 75,
+      "verified": true,
+      "owner": [
+        "130 West 57 Company"
+      ],
+      "architect": [
+        "Pollard and Steinam"
+      ],
+      "developer": [
+        "130 West 57th Street Corporation"
+      ],
+      "floors": "15"
+    },
+    {
+      "id": "Q3750408",
+      "wiki_title": "1345 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1345_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "owner": [
+        "Fisher Brothers"
+      ],
+      "architect": [
+        "Emery Roth & Sons"
+      ],
+      "developer": [
+        "Fisher Brothers"
+      ],
+      "floors": "50",
+      "built": "1969"
+    },
+    {
+      "id": "Q102117239",
+      "wiki_title": "140 West 57th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/140_West_57th_Street",
+      "wiki_lang": "en",
+      "references_count": 85,
+      "verified": true,
+      "owner": [
+        "The Feil Organization"
+      ],
+      "architect": [
+        "Pollard and Steinam"
+      ],
+      "developer": [
+        "136 West 57th Street Corporation"
+      ],
+      "floors": "15"
+    },
+    {
+      "id": "Q5755385",
+      "wiki_title": "146 East 38th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/146_East_38th_Street",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "built": "1860–61"
+    },
+    {
+      "id": "Q194347",
+      "wiki_title": "15 Penn Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/15_Penn_Plaza",
+      "wiki_lang": "en",
+      "references_count": 36,
+      "verified": true,
+      "architect": [
+        "Foster & Partners"
+      ],
+      "developer": [
+        "Vornado Realty Trust"
+      ],
+      "floors": "50"
+    },
+    {
+      "id": "Q4550139",
+      "wiki_title": "1500 Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/1500_Broadway",
+      "wiki_lang": "en",
+      "references_count": 172,
+      "verified": true,
+      "owner": [
+        "Tamares Group"
+      ],
+      "architect": [
+        "Leo Kornblath"
+      ],
+      "developer": [
+        "Arlen Realty and Development Corporation"
+      ],
+      "built": "1972",
+      "style": "Modernism"
+    },
+    {
+      "id": "Q3363532",
+      "wiki_title": "1501 Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/1501_Broadway",
+      "wiki_lang": "en",
+      "references_count": 453,
+      "verified": true,
+      "owner": [
+        "Paramount Leasehold"
+      ],
+      "current_tenants": [
+        "Multiple including Hard Rock Café"
+      ],
+      "architect": [
+        "C.W. and George L. Rapp"
+      ],
+      "developer": [
+        "Famous Players–Lasky"
+      ],
+      "floors": "33",
+      "built": "1927",
+      "style": "Beaux-Arts",
+      "cost": "$13.5 million"
+    },
+    {
+      "id": "Q122452202",
+      "wiki_title": "152 East 38th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/152_East_38th_Street",
+      "wiki_lang": "en",
+      "references_count": 38,
+      "verified": true,
+      "built": "1858",
+      "style": "Federal"
+    },
+    {
+      "id": "Q109974674",
+      "wiki_title": "1552 Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/1552_Broadway",
+      "wiki_lang": "en",
+      "references_count": 158,
+      "verified": true,
+      "architect": [
+        "Louis H. Friedland"
+      ],
+      "floors": "3",
+      "built": "December 1926",
+      "style": "Modern classical"
+    },
+    {
+      "id": "Q107171942",
+      "wiki_title": "165 West 57th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/165_West_57th_Street",
+      "wiki_lang": "en",
+      "references_count": 152,
+      "verified": true,
+      "current_tenants": [
+        "IESE Business School"
+      ],
+      "architect": [
+        "George A. and Henry Boehm"
+      ],
+      "floors": "5",
+      "built": "1916"
+    },
+    {
+      "id": "Q198238",
+      "wiki_title": "1717 Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/1717_Broadway",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "owner": [
+        "Granite Broadway LLC"
+      ],
+      "architect": [
+        "Nobutaka Ashihara"
+      ],
+      "developer": [
+        "Granite Broadway LLC"
+      ],
+      "floors": "68",
+      "built": "2013"
+    },
+    {
+      "id": "Q4552732",
+      "wiki_title": "1740 Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/1740_Broadway",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "owner": [
+        "EQ Office"
+      ],
+      "architect": [
+        "Shreve, Lamb & Harmon Associates"
+      ],
+      "floors": "26",
+      "built": "1950"
+    },
+    {
+      "id": "Q126888535",
+      "wiki_title": "175 Park Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/175_Park_Avenue",
+      "wiki_lang": "en",
+      "references_count": 39,
+      "verified": true,
+      "architect": [
+        "Skidmore, Owings & Merrill"
+      ],
+      "developer": [
+        "RXR Realty",
+        "TF Cornerstone"
+      ],
+      "floors": "83",
+      "height": "1,581 ft"
+    },
+    {
+      "id": "Q106292360",
+      "wiki_title": "18 East 50th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/18_East_50th_Street",
+      "wiki_lang": "en",
+      "references_count": 105,
+      "verified": true,
+      "architect": [
+        "Rouse & Goldstone and Joseph L. Steinam"
+      ],
+      "floors": "11",
+      "built": "1916",
+      "style": "Neo-Gothic or Perpendicular Gothic"
+    },
+    {
+      "id": "Q106824196",
+      "wiki_title": "19 East 54th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/19_East_54th_Street",
+      "wiki_lang": "en",
+      "references_count": 119,
+      "verified": true,
+      "current_tenants": [
+        "Interaudi Bank"
+      ],
+      "architect": [
+        "Hiss and Weekes"
+      ],
+      "floors": "6",
+      "built": "1900"
+    },
+    {
+      "id": "Q1434082",
+      "wiki_title": "1945 Empire State Building B-25 crash",
+      "wiki_url": "https://en.wikipedia.org/wiki/1945_Empire_State_Building_B-25_crash",
+      "wiki_lang": "en",
+      "references_count": 24,
+      "verified": true,
+      "occupants": [
+        "3"
+      ],
+      "operator": [
+        "United States Army Air Forces"
+      ]
+    },
+    {
+      "id": "Q4633310",
+      "wiki_title": "2 Columbus Circle",
+      "wiki_url": "https://en.wikipedia.org/wiki/2_Columbus_Circle",
+      "wiki_lang": "en",
+      "references_count": 450,
+      "verified": true,
+      "current_tenants": [
+        "Museum of Arts and Design"
+      ],
+      "architect": [
+        "Edward Durell Stone",
+        "Brad Cloepfil (new facade)"
+      ]
+    },
+    {
+      "id": "Q2631694",
+      "wiki_title": "20 Times Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/20_Times_Square",
+      "wiki_lang": "en",
+      "references_count": 32,
+      "verified": true,
+      "owner": [
+        "701 Seventh Property Owner LLC"
+      ],
+      "architect": [
+        "Platt Byard Dovell White Architects"
+      ],
+      "developer": [
+        "The Witkoff Group and Maefield Development"
+      ],
+      "floors": "42",
+      "built": "February 2019"
+    },
+    {
+      "id": "Q111692501",
+      "wiki_title": "200 Madison Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/200_Madison_Avenue",
+      "wiki_lang": "en",
+      "references_count": 185,
+      "verified": true,
+      "architect": [
+        "Warren and Wetmore"
+      ],
+      "floors": "25",
+      "built": "1926"
+    },
+    {
+      "id": "Q618114",
+      "wiki_title": "21 Club",
+      "wiki_url": "https://en.wikipedia.org/wiki/21_Club",
+      "wiki_lang": "en",
+      "references_count": 35,
+      "verified": true
+    },
+    {
+      "id": "Q15781036",
+      "wiki_title": "220 Central Park South",
+      "wiki_url": "https://en.wikipedia.org/wiki/220_Central_Park_South",
+      "wiki_lang": "en",
+      "references_count": 270,
+      "verified": true,
+      "owner": [
+        "Vornado Realty Trust"
+      ],
+      "architect": [
+        "Robert A.M. Stern Architects & Thierry Despont",
+        "SLCE Architects (architect of record)"
+      ],
+      "floors": "70",
+      "built": "2019",
+      "style": "New Classical",
+      "cost": "$1.4 billion"
+    },
+    {
+      "id": "Q59356336",
+      "wiki_title": "224 West 57th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/224_West_57th_Street",
+      "wiki_lang": "en",
+      "references_count": 131,
+      "verified": true,
+      "architect": [
+        "Francis H. Kimball"
+      ],
+      "floors": "12",
+      "height": "132.91 ft",
+      "style": "Gothic Revival, Romanesque Revival"
+    },
+    {
+      "id": "Q2289692",
+      "wiki_title": "245 Park Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/245_Park_Avenue",
+      "wiki_lang": "en",
+      "references_count": 21,
+      "verified": true,
+      "owner": [
+        "SL Green Realty and Mori Trust"
+      ],
+      "architect": [
+        "Shreve, Lamb and Harmon"
+      ],
+      "developer": [
+        "Uris Buildings Corporation"
+      ],
+      "floors": "48",
+      "built": "1967"
+    },
+    {
+      "id": "Q1676687",
+      "wiki_title": "270 Park Avenue (1960–2021)",
+      "wiki_url": "https://en.wikipedia.org/wiki/270_Park_Avenue_%281960%E2%80%932021%29",
+      "wiki_lang": "en",
+      "references_count": 390,
+      "verified": true,
+      "floors": "52",
+      "built": "1960",
+      "style": "International"
+    },
+    {
+      "id": "Q109648853",
+      "wiki_title": "270 Park Avenue (2025–present)",
+      "wiki_url": "https://en.wikipedia.org/wiki/270_Park_Avenue_%282025%E2%80%93present%29",
+      "wiki_lang": "en",
+      "references_count": 133,
+      "verified": true,
+      "architect": [
+        "Foster + Partners"
+      ],
+      "floors": "60",
+      "height": "1388 ft",
+      "built": "August 25, 2025",
+      "style": "Neo-Art Deco]]"
+    },
+    {
+      "id": "Q108098815",
+      "wiki_title": "275 Madison Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/275_Madison_Avenue",
+      "wiki_lang": "en",
+      "references_count": 235,
+      "verified": true,
+      "architect": [
+        "Kenneth Franzheim"
+      ],
+      "developer": [
+        "Houston Properties"
+      ],
+      "floors": "43",
+      "built": "1931",
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q219984",
+      "wiki_title": "277 Park Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/277_Park_Avenue",
+      "wiki_lang": "en",
+      "references_count": 33,
+      "verified": true,
+      "owner": [
+        "Stahl Organization"
+      ],
+      "operator": [
+        "Stahl Organization"
+      ],
+      "architect": [
+        "Emery Roth & Sons"
+      ],
+      "developer": [
+        "Stanley Stahl"
+      ],
+      "floors": "50",
+      "built": "1964",
+      "style": "International"
+    },
+    {
+      "id": "Q4632875",
+      "wiki_title": "299 Park Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/299_Park_Avenue",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true,
+      "owner": [
+        "Fisher Brothers (50.5%)",
+        "Rockpoint Group (49.5%)"
+      ],
+      "architect": [
+        "Emery Roth & Sons"
+      ],
+      "developer": [
+        "Fisher Brothers"
+      ],
+      "floors": "42"
+    },
+    {
+      "id": "Q4636552",
+      "wiki_title": "3 Times Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/3_Times_Square",
+      "wiki_lang": "en",
+      "references_count": 258,
+      "verified": true,
+      "owner": [
+        "New York City Economic Development Corporation"
+      ],
+      "architect": [
+        "Fox & Fowle"
+      ],
+      "developer": [
+        "Rudin Management, Reuters"
+      ],
+      "floors": "30"
+    },
+    {
+      "id": "Q680614",
+      "wiki_title": "30 Rockefeller Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/30_Rockefeller_Plaza",
+      "wiki_lang": "en",
+      "references_count": 597,
+      "verified": true,
+      "owner": [
+        "NBCUniversal (floors 2–16)",
+        "Tishman Speyer (all other floors)"
+      ],
+      "architect": [
+        "Raymond Hood"
+      ],
+      "developer": [
+        "John D. Rockefeller Jr."
+      ],
+      "floors": "66",
+      "built": "1933"
+    },
+    {
+      "id": "Q115056538",
+      "wiki_title": "30 West 44th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/30_West_44th_Street",
+      "wiki_lang": "en",
+      "references_count": 260,
+      "verified": true,
+      "owner": [
+        "University of Pennsylvania trustees"
+      ],
+      "current_tenants": [
+        "Penn Club of New York"
+      ],
+      "architect": [
+        "Evarts Tracy and Egerton Swartwout"
+      ],
+      "developer": [
+        "The Yale Club of New York City"
+      ],
+      "floors": "14",
+      "built": "May 1, 1901",
+      "style": "Beaux-Arts",
+      "cost": "$250,000 ()"
+    },
+    {
+      "id": "Q3303658",
+      "wiki_title": "330 West 42nd Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/330_West_42nd_Street",
+      "wiki_lang": "en",
+      "references_count": 333,
+      "verified": true,
+      "architect": [
+        "Raymond Hood, Frederick Godley, and J. André Fouilhoux"
+      ],
+      "built": "1931"
+    },
+    {
+      "id": "Q1031991",
+      "wiki_title": "33rd Street station (PATH)",
+      "wiki_url": "https://en.wikipedia.org/wiki/33rd_Street_station_%28PATH%29",
+      "wiki_lang": "en",
+      "references_count": 27,
+      "verified": true,
+      "style": "PATH"
+    },
+    {
+      "id": "Q14706144",
+      "wiki_title": "33rd Street station (IRT Sixth Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/33rd_Street_station_%28IRT_Sixth_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q2982193",
+      "wiki_title": "34th Street–Herald Square station",
+      "wiki_url": "https://en.wikipedia.org/wiki/34th_Street%E2%80%93Herald_Square_station",
+      "wiki_lang": "en",
+      "references_count": 141,
+      "verified": true
+    },
+    {
+      "id": "Q2399529",
+      "wiki_title": "34th Street–Penn Station (IRT Broadway–Seventh Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/34th_Street%E2%80%93Penn_Station_%28IRT_Broadway%E2%80%93Seventh_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 58,
+      "verified": true
+    },
+    {
+      "id": "Q127603452",
+      "wiki_title": "350 Park Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/350_Park_Avenue",
+      "wiki_lang": "en",
+      "references_count": 29,
+      "verified": true,
+      "architect": [
+        "Foster and Partners, AAI Architects, P.C. (as architect of record)"
+      ],
+      "developer": [
+        "Vornado Realty Trust",
+        "Rudin Management"
+      ],
+      "floors": "62",
+      "height": "1600 ft",
+      "style": "Modernism, Neo-Futurism"
+    },
+    {
+      "id": "Q228242",
+      "wiki_title": "383 Madison Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/383_Madison_Avenue",
+      "wiki_lang": "en",
+      "references_count": 301,
+      "verified": true,
+      "owner": [
+        "JPMorgan Chase"
+      ],
+      "architect": [
+        "David Childs (Skidmore, Owings & Merrill)"
+      ],
+      "floors": "47",
+      "built": "2001"
+    },
+    {
+      "id": "Q4636046",
+      "wiki_title": "38th Street station (IRT Sixth Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/38th_Street_station_%28IRT_Sixth_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q687413",
+      "wiki_title": "4 Times Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/4_Times_Square",
+      "wiki_lang": "en",
+      "references_count": 504,
+      "verified": true,
+      "owner": [
+        "New York City Economic Development Corporation"
+      ],
+      "operator": [
+        "Durst Organization"
+      ],
+      "architect": [
+        "Fox & Fowle Architects"
+      ],
+      "developer": [
+        "Durst Organization"
+      ],
+      "floors": "48 (usable stories only)",
+      "built": "1999"
+    },
+    {
+      "id": "Q106251296",
+      "wiki_title": "400 Madison Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/400_Madison_Avenue",
+      "wiki_lang": "en",
+      "references_count": 127,
+      "verified": true,
+      "architect": [
+        "H. Craig Severance"
+      ],
+      "floors": "22",
+      "built": "1930"
+    },
+    {
+      "id": "Q132190128",
+      "wiki_title": "404 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/404_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 116,
+      "verified": true,
+      "architect": [
+        "Warren and Wetmore"
+      ],
+      "floors": "8",
+      "built": "December 27, 1914"
+    },
+    {
+      "id": "Q2781067",
+      "wiki_title": "425 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/425_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "owner": [
+        "RFR Realty LLC"
+      ],
+      "architect": [
+        "Michael Graves"
+      ],
+      "developer": [
+        "Davis and Partners, LLP"
+      ],
+      "floors": "55",
+      "built": "2003"
+    },
+    {
+      "id": "Q4637816",
+      "wiki_title": "42nd Street station (IRT Ninth Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/42nd_Street_station_%28IRT_Ninth_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q4637821",
+      "wiki_title": "42nd Street station (IRT Third Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/42nd_Street_station_%28IRT_Third_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company",
+        "City of New York (1940-1953)",
+        "New York City Transit Authority"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q4637819",
+      "wiki_title": "42nd Street station (IRT Sixth Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/42nd_Street_station_%28IRT_Sixth_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q65121367",
+      "wiki_title": "42nd Street Airlines Terminal",
+      "wiki_url": "https://en.wikipedia.org/wiki/42nd_Street_Airlines_Terminal",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "architect": [
+        "John B. Peterkin"
+      ],
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q3498505",
+      "wiki_title": "42nd Street–Port Authority Bus Terminal station",
+      "wiki_url": "https://en.wikipedia.org/wiki/42nd_Street%E2%80%93Port_Authority_Bus_Terminal_station",
+      "wiki_lang": "en",
+      "references_count": 102,
+      "verified": true
+    },
+    {
+      "id": "Q2982388",
+      "wiki_title": "42nd Street–Bryant Park/Fifth Avenue station",
+      "wiki_url": "https://en.wikipedia.org/wiki/42nd_Street%E2%80%93Bryant_Park/Fifth_Avenue_station",
+      "wiki_lang": "en",
+      "references_count": 246,
+      "verified": true
+    },
+    {
+      "id": "Q4638095",
+      "wiki_title": "44th Street Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/44th_Street_Theatre",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true,
+      "owner": [
+        "Shubert Organization"
+      ],
+      "architect": [
+        "William A. Swansea"
+      ]
+    },
+    {
+      "id": "Q110588933",
+      "wiki_title": "45 Wine and Whiskey",
+      "wiki_url": "https://en.wikipedia.org/wiki/45_Wine_and_Whiskey",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q23907606",
+      "wiki_title": "450 Lexington Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/450_Lexington_Avenue",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "owner": [
+        "RXR Realty"
+      ],
+      "architect": [
+        "Warren and Wetmore (Original structure)",
+        "Skidmore, Owings, and Merrill (New tower)"
+      ],
+      "floors": "38",
+      "height": "173 m",
+      "built": "1992"
+    },
+    {
+      "id": "Q24192513",
+      "wiki_title": "452 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/452_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 259,
+      "verified": true,
+      "owner": [
+        "Property & Building Corporation"
+      ],
+      "architect": [
+        "Eli Attia Architects"
+      ],
+      "floors": "30",
+      "built": "1985",
+      "style": "Modernism"
+    },
+    {
+      "id": "Q107183358",
+      "wiki_title": "46 West 55th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/46_West_55th_Street",
+      "wiki_lang": "en",
+      "references_count": 69,
+      "verified": true
+    },
+    {
+      "id": "Q952714",
+      "wiki_title": "461 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/461_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 19,
+      "verified": true,
+      "owner": [
+        "SL Green Realty"
+      ],
+      "architect": [
+        "Skidmore, Owings & Merrill"
+      ],
+      "developer": [
+        "Mitsui Fudosan, London & New York Estates Corporation, and Colonial Property Group"
+      ],
+      "floors": "28",
+      "built": "1989"
+    },
+    {
+      "id": "Q39046798",
+      "wiki_title": "47th Street Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/47th_Street_Theatre",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q2555226",
+      "wiki_title": "47th–50th Streets–Rockefeller Center station",
+      "wiki_url": "https://en.wikipedia.org/wiki/47th%E2%80%9350th_Streets%E2%80%93Rockefeller_Center_station",
+      "wiki_lang": "en",
+      "references_count": 94,
+      "verified": true
+    },
+    {
+      "id": "Q106422421",
+      "wiki_title": "488 Madison Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/488_Madison_Avenue",
+      "wiki_lang": "en",
+      "references_count": 150,
+      "verified": true,
+      "owner": [
+        "The Feil Organization"
+      ],
+      "floors": "25",
+      "style": "International Style"
+    },
+    {
+      "id": "Q4638707",
+      "wiki_title": "48th Street Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/48th_Street_Theatre",
+      "wiki_lang": "en",
+      "references_count": 35,
+      "verified": true,
+      "architect": [
+        "William Albert Swasey"
+      ]
+    },
+    {
+      "id": "Q605495",
+      "wiki_title": "49th Street station (BMT Broadway Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/49th_Street_station_%28BMT_Broadway_Line%29",
+      "wiki_lang": "en",
+      "references_count": 42,
+      "verified": true
+    },
+    {
+      "id": "Q101171807",
+      "wiki_title": "5 Columbus Circle",
+      "wiki_url": "https://en.wikipedia.org/wiki/5_Columbus_Circle",
+      "wiki_lang": "en",
+      "references_count": 130,
+      "verified": true,
+      "architect": [
+        "Carrère and Hastings"
+      ],
+      "floors": "20",
+      "height": "286 ft",
+      "style": "Beaux-Arts"
+    },
+    {
+      "id": "Q43866590",
+      "wiki_title": "5 Times Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/5_Times_Square",
+      "wiki_lang": "en",
+      "references_count": 235,
+      "verified": true,
+      "owner": [
+        "New York City Economic Development Corporation"
+      ],
+      "operator": [
+        "David Werner/RXR Realty"
+      ],
+      "architect": [
+        "Kohn Pedersen Fox"
+      ],
+      "developer": [
+        "Boston Properties"
+      ],
+      "floors": "38",
+      "built": "2002"
+    },
+    {
+      "id": "Q106977200",
+      "wiki_title": "5 West 54th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/5_West_54th_Street",
+      "wiki_lang": "en",
+      "references_count": 89,
+      "verified": true,
+      "architect": [
+        "R. H. Robertson"
+      ]
+    },
+    {
+      "id": "Q133599",
+      "wiki_title": "500 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/500_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 144,
+      "verified": true,
+      "owner": [
+        "1472 Broadway, Inc."
+      ],
+      "architect": [
+        "Shreve, Lamb & Harmon"
+      ],
+      "developer": [
+        "Walter J. Salmon Sr."
+      ],
+      "floors": "60",
+      "built": "1931",
+      "style": "Art Deco",
+      "cost": "$4 million ()"
+    },
+    {
+      "id": "Q4639965",
+      "wiki_title": "50th Street station (IRT Ninth Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/50th_Street_station_%28IRT_Ninth_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q4639967",
+      "wiki_title": "50th Street station (IRT Sixth Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/50th_Street_station_%28IRT_Sixth_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q2198512",
+      "wiki_title": "50th Street station (IRT Broadway–Seventh Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/50th_Street_station_%28IRT_Broadway%E2%80%93Seventh_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 71,
+      "verified": true
+    },
+    {
+      "id": "Q2612907",
+      "wiki_title": "50th Street station (IND lines)",
+      "wiki_url": "https://en.wikipedia.org/wiki/50th_Street_station_%28IND_lines%29",
+      "wiki_lang": "en",
+      "references_count": 29,
+      "verified": true
+    },
+    {
+      "id": "Q113298165",
+      "wiki_title": "520 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/520_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 119,
+      "verified": true,
+      "architect": [
+        "Kohn Pedersen Fox"
+      ],
+      "developer": [
+        "Mickey Rabina"
+      ],
+      "floors": "76",
+      "height": "1001 ft"
+    },
+    {
+      "id": "Q2446907",
+      "wiki_title": "53W53",
+      "wiki_url": "https://en.wikipedia.org/wiki/53W53",
+      "wiki_lang": "en",
+      "references_count": 254,
+      "verified": true,
+      "architect": [
+        "Jean Nouvel, AAI Architects, P.C. (as architect of record)"
+      ],
+      "developer": [
+        "Hines, Pontiac Land Group, Goldman Sachs"
+      ],
+      "floors": "77",
+      "built": "2019",
+      "style": "Postmodern"
+    },
+    {
+      "id": "Q69968765",
+      "wiki_title": "53rd Street Library",
+      "wiki_url": "https://en.wikipedia.org/wiki/53rd_Street_Library",
+      "wiki_lang": "en",
+      "references_count": 16,
+      "verified": true
+    },
+    {
+      "id": "Q1477826",
+      "wiki_title": "550 Madison Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/550_Madison_Avenue",
+      "wiki_lang": "en",
+      "references_count": 544,
+      "verified": true,
+      "owner": [
+        "Olayan Group (Olayan America)"
+      ],
+      "architect": [
+        "Philip Johnson and John Burgee (main architects)",
+        "Simmons Architects (associate architect)"
+      ],
+      "developer": [
+        "AT&T Corp."
+      ],
+      "floors": "37",
+      "built": "1984",
+      "style": "Postmodern",
+      "cost": "$200 million"
+    },
+    {
+      "id": "Q2612366",
+      "wiki_title": "57th Street station (IND Sixth Avenue Line)",
+      "wiki_url": "https://en.wikipedia.org/wiki/57th_Street_station_%28IND_Sixth_Avenue_Line%29",
+      "wiki_lang": "en",
+      "references_count": 90,
+      "verified": true
+    },
+    {
+      "id": "Q2614058",
+      "wiki_title": "57th Street–Seventh Avenue station",
+      "wiki_url": "https://en.wikipedia.org/wiki/57th_Street%E2%80%93Seventh_Avenue_station",
+      "wiki_lang": "en",
+      "references_count": 43,
+      "verified": true
+    },
+    {
+      "id": "Q4640940",
+      "wiki_title": "58th Street Terminal",
+      "wiki_url": "https://en.wikipedia.org/wiki/58th_Street_Terminal",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q80838395",
+      "wiki_title": "608 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/608_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 173,
+      "verified": true,
+      "architect": [
+        "Victor L.S. Hafner"
+      ],
+      "floors": "10",
+      "height": "132 ft",
+      "built": "1932",
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q4642078",
+      "wiki_title": "650 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/650_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "floors": "36",
+      "height": "490 ft"
+    },
+    {
+      "id": "Q2818016",
+      "wiki_title": "660 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/660_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 429,
+      "verified": true,
+      "owner": [
+        "Brookfield Properties"
+      ],
+      "architect": [
+        "Carson & Lundin"
+      ],
+      "developer": [
+        "Tishman Realty & Construction"
+      ],
+      "floors": "41",
+      "built": "1957",
+      "cost": "$40 million"
+    },
+    {
+      "id": "Q106891090",
+      "wiki_title": "689 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/689_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 159,
+      "verified": true,
+      "architect": [
+        "Warren and Wetmore"
+      ],
+      "floors": "15",
+      "built": "1927"
+    },
+    {
+      "id": "Q106977204",
+      "wiki_title": "7 West 54th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/7_West_54th_Street",
+      "wiki_lang": "en",
+      "references_count": 98,
+      "verified": true,
+      "architect": [
+        "John H. Duncan"
+      ]
+    },
+    {
+      "id": "Q2606176",
+      "wiki_title": "712 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/712_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 197,
+      "verified": true,
+      "owner": [
+        "Bannister Trust"
+      ],
+      "operator": [
+        "Paramount Group"
+      ],
+      "architect": [
+        "SLCE Architects, Kohn Pedersen Fox Associates"
+      ],
+      "floors": "52",
+      "built": "1989",
+      "style": "Postmodern",
+      "cost": "$399 million"
+    },
+    {
+      "id": "Q125457851",
+      "wiki_title": "740 Eighth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/740_Eighth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "architect": [
+        "ODA Architecture"
+      ],
+      "developer": [
+        "Extell Development Company"
+      ],
+      "floors": "52",
+      "height": "1,067 ft"
+    },
+    {
+      "id": "Q136352197",
+      "wiki_title": "745 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/745_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 182,
+      "verified": true,
+      "owner": [
+        "Paramount Group"
+      ],
+      "current_tenants": [
+        "Bergdorf Goodman (1990–present)"
+      ],
+      "floors": "32",
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q3528910",
+      "wiki_title": "75 Rockefeller Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/75_Rockefeller_Plaza",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "owner": [
+        "Mohamed Al Fayed"
+      ],
+      "current_tenants": [
+        "BasePoint Capital, NCH Capital, Guidehouse, Pallas LLP, Convene"
+      ],
+      "architect": [
+        "Carson & Lundin; Wallace K. Harrison"
+      ],
+      "developer": [
+        "The Rockefeller Group"
+      ],
+      "floors": "33",
+      "height": "424 ft",
+      "built": "September 1947"
+    },
+    {
+      "id": "Q2451328",
+      "wiki_title": "750 Seventh Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/750_Seventh_Avenue",
+      "wiki_lang": "en",
+      "references_count": 162,
+      "verified": true,
+      "owner": [
+        "Fosterlane Management"
+      ],
+      "architect": [
+        "Kevin Roche"
+      ],
+      "developer": [
+        "Solomon Equities"
+      ],
+      "floors": "36",
+      "built": "1989"
+    },
+    {
+      "id": "Q4644474",
+      "wiki_title": "810 Seventh Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/810_Seventh_Avenue",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "architect": [
+        "Kahn & Jacobs"
+      ],
+      "floors": "41",
+      "height": "525 ft"
+    },
+    {
+      "id": "Q111730940",
+      "wiki_title": "811 Tenth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/811_Tenth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q942504",
+      "wiki_title": "888 Seventh Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/888_Seventh_Avenue",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "owner": [
+        "Vornado Realty Trust"
+      ],
+      "architect": [
+        "Emery Roth & Sons"
+      ],
+      "floors": "46",
+      "built": "1969"
+    },
+    {
+      "id": "Q137739224",
+      "wiki_title": "929 (bar)",
+      "wiki_url": "https://en.wikipedia.org/wiki/929_%28bar%29",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true
+    },
+    {
+      "id": "Q15032136",
+      "wiki_title": "Empire Theatre (42nd Street)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Empire_Theatre_%2842nd_Street%29",
+      "wiki_lang": "en",
+      "references_count": 428,
+      "verified": true,
+      "tenants": [
+        "New 42nd Street"
+      ],
+      "owner": [
+        "City and State of New York"
+      ],
+      "operator": [
+        "AMC Theatres"
+      ],
+      "architect": [
+        "Thomas W. Lamb"
+      ]
+    },
+    {
+      "id": "Q23091493",
+      "wiki_title": "AMT Theater",
+      "wiki_url": "https://en.wikipedia.org/wiki/AMT_Theater",
+      "wiki_lang": "en",
+      "references_count": 19,
+      "verified": true
+    },
+    {
+      "id": "Q300254",
+      "wiki_title": "Axa Equitable Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Axa_Equitable_Center",
+      "wiki_lang": "en",
+      "references_count": 330,
+      "verified": true,
+      "architect": [
+        "Edward Larrabee Barnes"
+      ],
+      "developer": [
+        "Equitable Life Assurance Society"
+      ],
+      "floors": "54",
+      "built": "1986"
+    },
+    {
+      "id": "Q4674739",
+      "wiki_title": "Acoustiguide",
+      "wiki_url": "https://en.wikipedia.org/wiki/Acoustiguide",
+      "wiki_lang": "en",
+      "references_count": 34,
+      "verified": true
+    },
+    {
+      "id": "Q380974",
+      "wiki_title": "Aeolian Building (42nd Street)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Aeolian_Building_%2842nd_Street%29",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "architect": [
+        "Warren and Wetmore"
+      ],
+      "floors": "17",
+      "height": "260 feet (79 m)"
+    },
+    {
+      "id": "Q27877129",
+      "wiki_title": "Agern",
+      "wiki_url": "https://en.wikipedia.org/wiki/Agern",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true
+    },
+    {
+      "id": "Q121989161",
+      "wiki_title": "Ai Fiori",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ai_Fiori",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true
+    },
+    {
+      "id": "Q2829346",
+      "wiki_title": "Al Hirschfeld Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Al_Hirschfeld_Theatre",
+      "wiki_lang": "en",
+      "references_count": 696,
+      "verified": true,
+      "owner": [
+        "ATG Entertainment"
+      ],
+      "operator": [
+        "ATG Entertainment"
+      ],
+      "architect": [
+        "G. Albert Lansburgh",
+        "Albert Herter (interior)"
+      ]
+    },
+    {
+      "id": "Q689447",
+      "wiki_title": "Algonquin Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Algonquin_Hotel",
+      "wiki_lang": "en",
+      "references_count": 579,
+      "verified": true,
+      "owner": [
+        "Cornerstone Real Estate Advisors"
+      ],
+      "architect": [
+        "Goldwin Starrett"
+      ],
+      "developer": [
+        "Puritan Realty Company"
+      ],
+      "floors": "12",
+      "height": "136 ft",
+      "style": "Renaissance Revival, Beaux-Arts"
+    },
+    {
+      "id": "Q124135292",
+      "wiki_title": "Allerton 39th Street House",
+      "wiki_url": "https://en.wikipedia.org/wiki/Allerton_39th_Street_House",
+      "wiki_lang": "en",
+      "references_count": 84,
+      "verified": true,
+      "architect": [
+        "Arthur Loomis Harmon"
+      ],
+      "style": "Renaissance Revival architecture"
+    },
+    {
+      "id": "Q121744843",
+      "wiki_title": "Alto (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Alto_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true
+    },
+    {
+      "id": "Q4744541",
+      "wiki_title": "American Music Hall",
+      "wiki_url": "https://en.wikipedia.org/wiki/American_Music_Hall",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q466979",
+      "wiki_title": "American Radiator Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/American_Radiator_Building",
+      "wiki_lang": "en",
+      "references_count": 298,
+      "verified": true,
+      "owner": [
+        "Bryant Park Hotel (original)",
+        "City University of New York (annex)"
+      ],
+      "architect": [
+        "Raymond Hood and André Fouilhoux"
+      ],
+      "floors": "23",
+      "built": "1924",
+      "style": "Neo-Gothic, Art Deco"
+    },
+    {
+      "id": "Q467467",
+      "wiki_title": "Americas Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Americas_Tower",
+      "wiki_lang": "en",
+      "references_count": 31,
+      "verified": true,
+      "owner": [
+        "Norges Bank Investment Management"
+      ],
+      "architect": [
+        "Swanke Hayden Connell Architects"
+      ],
+      "developer": [
+        "Americas Tower Partners"
+      ],
+      "floors": "50",
+      "built": "1992"
+    },
+    {
+      "id": "Q110092094",
+      "wiki_title": "Anco Cinema",
+      "wiki_url": "https://en.wikipedia.org/wiki/Anco_Cinema",
+      "wiki_lang": "en",
+      "references_count": 145,
+      "verified": true
+    },
+    {
+      "id": "Q122143164",
+      "wiki_title": "Anthos (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Anthos_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true
+    },
+    {
+      "id": "Q4780357",
+      "wiki_title": "Apollo Theatre (42nd Street)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Apollo_Theatre_%2842nd_Street%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "architect": [
+        "Eugene De Rosa"
+      ]
+    },
+    {
+      "id": "Q4806832",
+      "wiki_title": "Asiate",
+      "wiki_url": "https://en.wikipedia.org/wiki/Asiate",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true
+    },
+    {
+      "id": "Q4811082",
+      "wiki_title": "Astor Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Astor_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "architect": [
+        "George Keister"
+      ]
+    },
+    {
+      "id": "Q85743436",
+      "wiki_title": "Astor Trust Company",
+      "wiki_url": "https://en.wikipedia.org/wiki/Astor_Trust_Company",
+      "wiki_lang": "en",
+      "references_count": 75,
+      "verified": true
+    },
+    {
+      "id": "Q2869431",
+      "wiki_title": "Atlas (statue)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Atlas_%28statue%29",
+      "wiki_lang": "en",
+      "references_count": 26,
+      "verified": true
+    },
+    {
+      "id": "Q12053066",
+      "wiki_title": "August Wilson Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/August_Wilson_Theatre",
+      "wiki_lang": "en",
+      "references_count": 796,
+      "verified": true,
+      "owner": [
+        "ATG Entertainment"
+      ],
+      "operator": [
+        "ATG Entertainment"
+      ],
+      "architect": [
+        "C. Howard Crane and Kenneth Franzheim"
+      ]
+    },
+    {
+      "id": "Q122451848",
+      "wiki_title": "Aureole (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Aureole_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true
+    },
+    {
+      "id": "Q293298",
+      "wiki_title": "Austrian Cultural Forum New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/Austrian_Cultural_Forum_New_York",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true
+    },
+    {
+      "id": "Q99295970",
+      "wiki_title": "B. Altman and Company Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/B._Altman_and_Company_Building",
+      "wiki_lang": "en",
+      "references_count": 229,
+      "verified": true,
+      "current_tenants": [
+        "City University of New York"
+      ],
+      "architect": [
+        "Trowbridge & Livingston"
+      ],
+      "floors": "13",
+      "built": "1914",
+      "style": "Italian Renaissance Revival"
+    },
+    {
+      "id": "Q328505",
+      "wiki_title": "Bank of America Tower (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bank_of_America_Tower_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 422,
+      "verified": true,
+      "architect": [
+        "Cookfox",
+        "Adamson Associates"
+      ],
+      "developer": [
+        "Durst Organization"
+      ],
+      "floors": "55 (7 mechanical) +3 basement floors",
+      "built": "2009"
+    },
+    {
+      "id": "Q4859644",
+      "wiki_title": "Barbetta",
+      "wiki_url": "https://en.wikipedia.org/wiki/Barbetta",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q815278",
+      "wiki_title": "Belasco Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Belasco_Theatre",
+      "wiki_lang": "en",
+      "references_count": 640,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "George Keister"
+      ]
+    },
+    {
+      "id": "Q128601545",
+      "wiki_title": "Bergdorf Goodman Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bergdorf_Goodman_Building",
+      "wiki_lang": "en",
+      "references_count": 442,
+      "verified": true,
+      "owner": [
+        "Saks Global"
+      ],
+      "style": "French classical"
+    },
+    {
+      "id": "Q4892910",
+      "wiki_title": "Bernard B. Jacobs Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bernard_B._Jacobs_Theatre",
+      "wiki_lang": "en",
+      "references_count": 627,
+      "verified": true,
+      "owner": [
+        "Jacobs Theatre LLC"
+      ],
+      "operator": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q827638",
+      "wiki_title": "1540 Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/1540_Broadway",
+      "wiki_lang": "en",
+      "references_count": 338,
+      "verified": true,
+      "owner": [
+        "HSBC",
+        "Edge Funds"
+      ],
+      "operator": [
+        "Edge Funds"
+      ],
+      "architect": [
+        "David Childs of Skidmore, Owings and Merrill"
+      ],
+      "developer": [
+        "Ian Bruce Eichner"
+      ],
+      "floors": "44",
+      "built": "1990"
+    },
+    {
+      "id": "Q121608689",
+      "wiki_title": "Betony (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Betony_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q15032096",
+      "wiki_title": "BiCE Ristorante",
+      "wiki_url": "https://en.wikipedia.org/wiki/BiCE_Ristorante",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q3527434",
+      "wiki_title": "Booth Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Booth_Theatre",
+      "wiki_lang": "en",
+      "references_count": 776,
+      "verified": true,
+      "owner": [
+        "Shubert and Booth Theatre, LLC"
+      ],
+      "operator": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Henry Beaumont Herts"
+      ]
+    },
+    {
+      "id": "Q917034",
+      "wiki_title": "Brill Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Brill_Building",
+      "wiki_lang": "en",
+      "references_count": 33,
+      "verified": true,
+      "developer": [
+        "Victor Bark Jr."
+      ],
+      "floors": "11"
+    },
+    {
+      "id": "Q4972203",
+      "wiki_title": "Broadhurst Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Broadhurst_Theatre",
+      "wiki_lang": "en",
+      "references_count": 736,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q2925870",
+      "wiki_title": "Broadway Theatre (53rd Street)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Broadway_Theatre_%2853rd_Street%29",
+      "wiki_lang": "en",
+      "references_count": 532,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Eugene De Rosa"
+      ]
+    },
+    {
+      "id": "Q22021911",
+      "wiki_title": "Browne's Chop House",
+      "wiki_url": "https://en.wikipedia.org/wiki/Browne%27s_Chop_House",
+      "wiki_lang": "en",
+      "references_count": 20,
+      "verified": true
+    },
+    {
+      "id": "Q108824667",
+      "wiki_title": "Bryant Park Studios",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bryant_Park_Studios",
+      "wiki_lang": "en",
+      "references_count": 195,
+      "verified": true,
+      "owner": [
+        "80 West 40th Street Associates"
+      ],
+      "architect": [
+        "Charles A. Rich"
+      ],
+      "floors": "10",
+      "style": "French Beaux-Arts"
+    },
+    {
+      "id": "Q4998536",
+      "wiki_title": "Burger Heaven",
+      "wiki_url": "https://en.wikipedia.org/wiki/Burger_Heaven",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q3647546",
+      "wiki_title": "Bush Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bush_Tower",
+      "wiki_lang": "en",
+      "references_count": 264,
+      "verified": true,
+      "owner": [
+        "China Vanke"
+      ],
+      "architect": [
+        "Frank J. Helmle and Harvey Wiley Corbett"
+      ],
+      "developer": [
+        "Irving T. Bush"
+      ],
+      "floors": "30",
+      "built": "December 1918",
+      "cost": "$ million ()"
+    },
+    {
+      "id": "Q118874631",
+      "wiki_title": "Butter Restaurant",
+      "wiki_url": "https://en.wikipedia.org/wiki/Butter_Restaurant",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q2640560",
+      "wiki_title": "CBS Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/CBS_Building",
+      "wiki_lang": "en",
+      "references_count": 347,
+      "verified": true,
+      "owner": [
+        "Harbor Group International"
+      ],
+      "current_tenants": [
+        "CBS"
+      ],
+      "architect": [
+        "Eero Saarinen (main architect)",
+        "Kevin Roche (associate)",
+        "John Dinkeloo (associate)",
+        "Florence Knoll",
+        "Florence Knoll Bassett (furnishings)"
+      ],
+      "floors": "38",
+      "height": "491 ft",
+      "built": "1965",
+      "style": "Modernist"
+    },
+    {
+      "id": "Q5009275",
+      "wiki_title": "CBS Studio Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/CBS_Studio_Building",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "architect": [
+        "Warren & Wetmore"
+      ],
+      "floors": "7",
+      "built": "1908"
+    },
+    {
+      "id": "Q5009641",
+      "wiki_title": "CCMP Capital",
+      "wiki_url": "https://en.wikipedia.org/wiki/CCMP_Capital",
+      "wiki_lang": "en",
+      "references_count": 32,
+      "verified": true
+    },
+    {
+      "id": "Q5017092",
+      "wiki_title": "Cafe Chambord",
+      "wiki_url": "https://en.wikipedia.org/wiki/Cafe_Chambord",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true
+    },
+    {
+      "id": "Q122166638",
+      "wiki_title": "Café China",
+      "wiki_url": "https://en.wikipedia.org/wiki/Caf%C3%A9_China",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q5031982",
+      "wiki_title": "Candler Building (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Candler_Building_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 257,
+      "verified": true,
+      "architect": [
+        "Willauer, Shape, & Bready"
+      ],
+      "built": "1913"
+    },
+    {
+      "id": "Q200959",
+      "wiki_title": "Carnegie Hall",
+      "wiki_url": "https://en.wikipedia.org/wiki/Carnegie_Hall",
+      "wiki_lang": "en",
+      "references_count": 475,
+      "verified": true,
+      "owner": [
+        "Government of New York City"
+      ],
+      "operator": [
+        "Carnegie Hall Corporation"
+      ],
+      "architect": [
+        "William Tuthill"
+      ]
+    },
+    {
+      "id": "Q1043966",
+      "wiki_title": "Carnegie Hall Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Carnegie_Hall_Tower",
+      "wiki_lang": "en",
+      "references_count": 194,
+      "verified": true,
+      "owner": [
+        "TF Cornerstone"
+      ],
+      "architect": [
+        "César Pelli"
+      ],
+      "floors": "60",
+      "built": "1991"
+    },
+    {
+      "id": "Q6914847",
+      "wiki_title": "Cartier Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Cartier_Building",
+      "wiki_lang": "en",
+      "references_count": 239,
+      "verified": true,
+      "architect": [
+        "Robert W. Gibson (651 Fifth Avenue)",
+        "Charles P. H. Gilbert (4 East 52nd Street)"
+      ],
+      "floors": "5",
+      "style": "Neoclassical"
+    },
+    {
+      "id": "Q5048879",
+      "wiki_title": "Casino Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Casino_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 21,
+      "verified": true,
+      "architect": [
+        "Francis Hatch Kimball and Thomas Wisedell"
+      ],
+      "style": "Moorish Revival"
+    },
+    {
+      "id": "Q5049203",
+      "wiki_title": "Cassa Hotel & Residences",
+      "wiki_url": "https://en.wikipedia.org/wiki/Cassa_Hotel_%26_Residences",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "architect": [
+        "Enrique Norten"
+      ],
+      "developer": [
+        "Assa Properties"
+      ],
+      "floors": "48",
+      "height": "157 m",
+      "built": "2010"
+    },
+    {
+      "id": "Q121988537",
+      "wiki_title": "Caviar Russe",
+      "wiki_url": "https://en.wikipedia.org/wiki/Caviar_Russe",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true
+    },
+    {
+      "id": "Q5059357",
+      "wiki_title": "Center Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Center_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "owner": [
+        "Rockefeller Center"
+      ],
+      "architect": [
+        "Edward Durrell Stone"
+      ]
+    },
+    {
+      "id": "Q2944433",
+      "wiki_title": "Central Park Place",
+      "wiki_url": "https://en.wikipedia.org/wiki/Central_Park_Place",
+      "wiki_lang": "en",
+      "references_count": 49,
+      "verified": true,
+      "architect": [
+        "Davis Brody Bond"
+      ],
+      "developer": [
+        "William Zeckendorf Jr."
+      ],
+      "floors": "56",
+      "built": "1988"
+    },
+    {
+      "id": "Q5061914",
+      "wiki_title": "Central Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Central_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true
+    },
+    {
+      "id": "Q2956104",
+      "wiki_title": "Chanin Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Chanin_Building",
+      "wiki_lang": "en",
+      "references_count": 203,
+      "verified": true,
+      "architect": [
+        "Sloan & Robertson",
+        "Rene Chambellan"
+      ],
+      "built": "1927–1929"
+    },
+    {
+      "id": "Q3897252",
+      "wiki_title": "Charles Scribner's Sons Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Charles_Scribner%27s_Sons_Building",
+      "wiki_lang": "en",
+      "references_count": 186,
+      "verified": true,
+      "architect": [
+        "Ernest Flagg"
+      ],
+      "floors": "10",
+      "built": "1913",
+      "style": "Beaux-Arts"
+    },
+    {
+      "id": "Q48744138",
+      "wiki_title": "Chase Manhattan Bank Money Museum",
+      "wiki_url": "https://en.wikipedia.org/wiki/Chase_Manhattan_Bank_Money_Museum",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q4741073",
+      "wiki_title": "Ambassador Theatre (Broadway)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ambassador_Theatre_%28Broadway%29",
+      "wiki_lang": "en",
+      "references_count": 444,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q132573303",
+      "wiki_title": "China Grill",
+      "wiki_url": "https://en.wikipedia.org/wiki/China_Grill",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q11274",
+      "wiki_title": "Chrysler Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Chrysler_Building",
+      "wiki_lang": "en",
+      "references_count": 666,
+      "verified": true,
+      "owner": [
+        "Cooper Union"
+      ],
+      "architect": [
+        "William Van Alen"
+      ],
+      "floors": "77",
+      "built": "1930",
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q2973328",
+      "wiki_title": "Circle in the Square Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Circle_in_the_Square_Theatre",
+      "wiki_lang": "en",
+      "references_count": 624,
+      "verified": true,
+      "owner": [
+        "Paramount Group"
+      ],
+      "operator": [
+        "Circle in the Square"
+      ],
+      "architect": [
+        "Alan Sayles, Jules Fisher (consultant)"
+      ],
+      "built": "1969–1972"
+    },
+    {
+      "id": "Q910101",
+      "wiki_title": "CitySpire",
+      "wiki_url": "https://en.wikipedia.org/wiki/CitySpire",
+      "wiki_lang": "en",
+      "references_count": 301,
+      "verified": true,
+      "owner": [
+        "Tishman Speyer"
+      ],
+      "architect": [
+        "Murphy/Jahn"
+      ],
+      "developer": [
+        "Ian Bruce Eichner"
+      ],
+      "floors": "73",
+      "built": "1990"
+    },
+    {
+      "id": "Q5149610",
+      "wiki_title": "Columbia Artists Management",
+      "wiki_url": "https://en.wikipedia.org/wiki/Columbia_Artists_Management",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q17150055",
+      "wiki_title": "Columbia Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Columbia_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 35,
+      "verified": true
+    },
+    {
+      "id": "Q20858210",
+      "wiki_title": "Comedy Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Comedy_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 54,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "D. G. Malcolm"
+      ]
+    },
+    {
+      "id": "Q5173222",
+      "wiki_title": "Cortec Group",
+      "wiki_url": "https://en.wikipedia.org/wiki/Cortec_Group",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q96144122",
+      "wiki_title": "Coty Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Coty_Building",
+      "wiki_lang": "en",
+      "references_count": 67,
+      "verified": true,
+      "architect": [
+        "Woodruff Leeming"
+      ],
+      "floors": "6"
+    },
+    {
+      "id": "Q2603784",
+      "wiki_title": "1301 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1301_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true,
+      "owner": [
+        "Paramount Group"
+      ],
+      "architect": [
+        "Shreve, Lamb & Harmon"
+      ],
+      "floors": "45",
+      "built": "1964"
+    },
+    {
+      "id": "Q21680456",
+      "wiki_title": "Crown Building (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Crown_Building_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 543,
+      "verified": true,
+      "architect": [
+        "Charles D. Wetmore"
+      ],
+      "developer": [
+        "August Heckscher"
+      ],
+      "floors": "25",
+      "built": "1921",
+      "style": "French Renaissance"
+    },
+    {
+      "id": "Q5189543",
+      "wiki_title": "Hyatt Regency Times Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hyatt_Regency_Times_Square",
+      "wiki_lang": "en",
+      "references_count": 197,
+      "verified": true,
+      "owner": [
+        "Argent Ventures"
+      ],
+      "operator": [
+        "Hyatt"
+      ],
+      "architect": [
+        "Alan Lapidus"
+      ],
+      "developer": [
+        "KG Crowne Corp"
+      ],
+      "floors": "46",
+      "height": "480 ft"
+    },
+    {
+      "id": "Q2070225",
+      "wiki_title": "Daily News Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Daily_News_Building",
+      "wiki_lang": "en",
+      "references_count": 394,
+      "verified": true,
+      "owner": [
+        "SL Green (51%), Meritz Alternative Investment Management (49%)"
+      ],
+      "architect": [
+        "Raymond Hood and John Mead Howells (original)",
+        "Harrison & Abramovitz (annex)"
+      ],
+      "floors": "36",
+      "built": "July 23, 1930",
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q121294687",
+      "wiki_title": "Danji",
+      "wiki_url": "https://en.wikipedia.org/wiki/Danji",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q133461797",
+      "wiki_title": "Db Bistro Moderne",
+      "wiki_url": "https://en.wikipedia.org/wiki/Db_Bistro_Moderne",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q104481260",
+      "wiki_title": "Deerfield Management",
+      "wiki_url": "https://en.wikipedia.org/wiki/Deerfield_Management",
+      "wiki_lang": "en",
+      "references_count": 36,
+      "verified": true
+    },
+    {
+      "id": "Q5252964",
+      "wiki_title": "Del Pezzo Restaurant",
+      "wiki_url": "https://en.wikipedia.org/wiki/Del_Pezzo_Restaurant",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q5296573",
+      "wiki_title": "Donnell Library Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Donnell_Library_Center",
+      "wiki_lang": "en",
+      "references_count": 16,
+      "verified": true
+    },
+    {
+      "id": "Q5309993",
+      "wiki_title": "DuMont Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/DuMont_Building",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "owner": [
+        "Newmark & Co."
+      ],
+      "operator": [
+        "Newmark & Co."
+      ],
+      "architect": [
+        "J.E.R. Carpenter"
+      ],
+      "developer": [
+        "John H. Carpenter"
+      ],
+      "floors": "42",
+      "built": "1931"
+    },
+    {
+      "id": "Q901251",
+      "wiki_title": "Duffy Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/Duffy_Square",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "architect": [
+        "Charles Keck"
+      ],
+      "built": "1937"
+    },
+    {
+      "id": "Q5325782",
+      "wiki_title": "Earl Carroll Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Earl_Carroll_Theatre",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q3268242",
+      "wiki_title": "Ed Sullivan Theater",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ed_Sullivan_Theater",
+      "wiki_lang": "en",
+      "references_count": 479,
+      "verified": true,
+      "tenants": [
+        "The Late Show"
+      ],
+      "owner": [
+        "Paramount Skydance Corporation"
+      ]
+    },
+    {
+      "id": "Q5338430",
+      "wiki_title": "Edison Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Edison_Theatre",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "owner": [
+        "Hotel Edison"
+      ]
+    },
+    {
+      "id": "Q5349091",
+      "wiki_title": "53rd Street and Eighth Avenue station",
+      "wiki_url": "https://en.wikipedia.org/wiki/53rd_Street_and_Eighth_Avenue_station",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q5364708",
+      "wiki_title": "Ellen's Stardust Diner",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ellen%27s_Stardust_Diner",
+      "wiki_lang": "en",
+      "references_count": 16,
+      "verified": true
+    },
+    {
+      "id": "Q110414102",
+      "wiki_title": "Embassy Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Embassy_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 243,
+      "verified": true,
+      "owner": [
+        "GFP"
+      ],
+      "operator": [
+        "SL Green"
+      ],
+      "architect": [
+        "Thomas W. Lamb"
+      ]
+    },
+    {
+      "id": "Q9188",
+      "wiki_title": "Empire State Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Empire_State_Building",
+      "wiki_lang": "en",
+      "references_count": 780,
+      "verified": true,
+      "owner": [
+        "Empire State Realty Trust"
+      ],
+      "architect": [
+        "Shreve, Lamb and Harmon"
+      ],
+      "developer": [
+        "Empire State Inc., including John J. Raskob and Al Smith"
+      ],
+      "floors": "102",
+      "built": "1931",
+      "style": "Art Deco",
+      "cost": "$40,948,900"
+    },
+    {
+      "id": "Q15032135",
+      "wiki_title": "Empire Theatre (40th Street)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Empire_Theatre_%2840th_Street%29",
+      "wiki_lang": "en",
+      "references_count": 28,
+      "verified": true,
+      "owner": [
+        "Charles Frohman, Al Hayman"
+      ],
+      "architect": [
+        "J. B. McElfatrick"
+      ]
+    },
+    {
+      "id": "Q5377858",
+      "wiki_title": "Engineering Societies' Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Engineering_Societies%27_Building",
+      "wiki_lang": "en",
+      "references_count": 286,
+      "verified": true,
+      "architect": [
+        "Hale & Morse"
+      ],
+      "floors": "16",
+      "style": "Neoclassical"
+    },
+    {
+      "id": "Q5403074",
+      "wiki_title": "Ethel Barrymore Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ethel_Barrymore_Theatre",
+      "wiki_lang": "en",
+      "references_count": 742,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q5407593",
+      "wiki_title": "Eugene O'Neill Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Eugene_O%27Neill_Theatre",
+      "wiki_lang": "en",
+      "references_count": 554,
+      "verified": true,
+      "owner": [
+        "ATG Entertainment"
+      ],
+      "operator": [
+        "ATG Entertainment"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q173498",
+      "wiki_title": "1251 Avenue of the Americas",
+      "wiki_url": "https://en.wikipedia.org/wiki/1251_Avenue_of_the_Americas",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "owner": [
+        "Mitsui Fudosan"
+      ],
+      "architect": [
+        "Wallace Harrison"
+      ],
+      "floors": "54",
+      "built": "1968",
+      "style": "New Formalism"
+    },
+    {
+      "id": "Q2613321",
+      "wiki_title": "Fifth Avenue/53rd Street station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Fifth_Avenue/53rd_Street_station",
+      "wiki_lang": "en",
+      "references_count": 109,
+      "verified": true
+    },
+    {
+      "id": "Q5448921",
+      "wiki_title": "Film Center Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Film_Center_Building",
+      "wiki_lang": "en",
+      "references_count": 172,
+      "verified": true,
+      "architect": [
+        "Ely Jacques Kahn"
+      ],
+      "built": "1928"
+    },
+    {
+      "id": "Q122981390",
+      "wiki_title": "Frankie & Johnnie's Steakhouse",
+      "wiki_url": "https://en.wikipedia.org/wiki/Frankie_%26_Johnnie%27s_Steakhouse",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q2893962",
+      "wiki_title": "Fred F. French Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Fred_F._French_Building",
+      "wiki_lang": "en",
+      "references_count": 214,
+      "verified": true,
+      "architect": [
+        "H. Douglas Ives and Sloan & Robertson"
+      ],
+      "built": "1927"
+    },
+    {
+      "id": "Q5508468",
+      "wiki_title": "Fulton Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Fulton_Theatre",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Herts & Tallant"
+      ]
+    },
+    {
+      "id": "Q85762463",
+      "wiki_title": "Gabriel Kreuther (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gabriel_Kreuther_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 33,
+      "verified": true
+    },
+    {
+      "id": "Q5517010",
+      "wiki_title": "Embassy Five Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Embassy_Five_Theatre",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true
+    },
+    {
+      "id": "Q5518818",
+      "wiki_title": "Gallagher's Steakhouse",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gallagher%27s_Steakhouse",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q355322",
+      "wiki_title": "Adelphi Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Adelphi_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "operator": [
+        "or"
+      ],
+      "built": "<!-- or"
+    },
+    {
+      "id": "Q101252358",
+      "wiki_title": "George M. Cohan's Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/George_M._Cohan%27s_Theatre",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q5549572",
+      "wiki_title": "Gerald Schoenfeld Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gerald_Schoenfeld_Theatre",
+      "wiki_lang": "en",
+      "references_count": 694,
+      "verified": true,
+      "owner": [
+        "Schoenfeld Theatre, LLC"
+      ],
+      "operator": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q1515007",
+      "wiki_title": "Gershwin Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gershwin_Theatre",
+      "wiki_lang": "en",
+      "references_count": 416,
+      "verified": true,
+      "owner": [
+        "Paramount Group"
+      ],
+      "operator": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "Ralph Alswang"
+      ]
+    },
+    {
+      "id": "Q5586408",
+      "wiki_title": "390 Fifth Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/390_Fifth_Avenue",
+      "wiki_lang": "en",
+      "references_count": 209,
+      "verified": true,
+      "architect": [
+        "Stanford White"
+      ],
+      "floors": "8",
+      "style": "Italian Renaissance Revival"
+    },
+    {
+      "id": "Q1139579",
+      "wiki_title": "Grand Army Plaza (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Grand_Army_Plaza_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 375,
+      "verified": true,
+      "owner": [
+        "Government of New York City"
+      ]
+    },
+    {
+      "id": "Q5594397",
+      "wiki_title": "Grand Central station (IRT 42nd Street Branch)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Grand_Central_station_%28IRT_42nd_Street_Branch%29",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "operator": [
+        "Interborough Rapid Transit Company"
+      ],
+      "style": "IRT"
+    },
+    {
+      "id": "Q112061809",
+      "wiki_title": "Grand Central Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Grand_Central_Tower",
+      "wiki_lang": "en",
+      "references_count": 252,
+      "verified": true,
+      "architect": [
+        "Fellheimer & Wagner (1954 proposal)",
+        "I. M. Pei (1954–1956 proposals)",
+        "Marcel Breuer (1968–1969 proposal)"
+      ],
+      "height": "1600 ft (Pei proposal)"
+    },
+    {
+      "id": "Q2982151",
+      "wiki_title": "Grand Central–42nd Street station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Grand_Central%E2%80%9342nd_Street_station",
+      "wiki_lang": "en",
+      "references_count": 249,
+      "verified": true
+    },
+    {
+      "id": "Q5594659",
+      "wiki_title": "Hyatt Grand Central New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hyatt_Grand_Central_New_York",
+      "wiki_lang": "en",
+      "references_count": 562,
+      "verified": true,
+      "owner": [
+        "Hyatt"
+      ],
+      "operator": [
+        "Hyatt"
+      ],
+      "architect": [
+        "Warren & Wetmore"
+      ],
+      "floors": "26"
+    },
+    {
+      "id": "Q71429431",
+      "wiki_title": "Graybar Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Graybar_Building",
+      "wiki_lang": "en",
+      "references_count": 179,
+      "verified": true,
+      "owner": [
+        "SL Green Realty"
+      ],
+      "architect": [
+        "John Sloan"
+      ],
+      "developer": [
+        "Graybar"
+      ],
+      "floors": "30",
+      "built": "1927",
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q137739230",
+      "wiki_title": "Gulp (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gulp_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q14706305",
+      "wiki_title": "Gunther Building (Fifth Avenue)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gunther_Building_%28Fifth_Avenue%29",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q5641376",
+      "wiki_title": "Hale Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hale_Building",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q44406603",
+      "wiki_title": "Hampshire House",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hampshire_House",
+      "wiki_lang": "en",
+      "references_count": 61,
+      "verified": true
+    },
+    {
+      "id": "Q859452",
+      "wiki_title": "Hearst Tower (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hearst_Tower_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 366,
+      "verified": true,
+      "architect": [
+        "Joseph Urban and George B. Post & Sons (original building)",
+        "Norman Foster and Adamson Associates Architects (tower)"
+      ],
+      "developer": [
+        "Tishman Speyer"
+      ],
+      "floors": "46",
+      "built": "1928 (original building)",
+      "style": "Structural expressionism",
+      "cost": "$500 million"
+    },
+    {
+      "id": "Q5186073",
+      "wiki_title": "Hayes Theater",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hayes_Theater",
+      "wiki_lang": "en",
+      "references_count": 650,
+      "verified": true,
+      "owner": [
+        "Second Stage Theater"
+      ],
+      "architect": [
+        "Harry Creighton Ingalls"
+      ]
+    },
+    {
+      "id": "Q1603308",
+      "wiki_title": "Helmsley Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Helmsley_Building",
+      "wiki_lang": "en",
+      "references_count": 242,
+      "verified": true,
+      "owner": [
+        "RXR Realty"
+      ],
+      "developer": [
+        "New York Central Railroad Company"
+      ],
+      "floors": "35",
+      "height": "565 ft",
+      "built": "1929",
+      "style": "Beaux-Arts"
+    },
+    {
+      "id": "Q109982",
+      "wiki_title": "Herald Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/Herald_Square",
+      "wiki_lang": "en",
+      "references_count": 16,
+      "verified": true
+    },
+    {
+      "id": "Q5732648",
+      "wiki_title": "Herald Square Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Herald_Square_Theatre",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "architect": [
+        "Rose & Stone"
+      ]
+    },
+    {
+      "id": "Q2632341",
+      "wiki_title": "New York Hilton Midtown",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_York_Hilton_Midtown",
+      "wiki_lang": "en",
+      "references_count": 21,
+      "verified": true,
+      "owner": [
+        "Park Hotels & Resorts"
+      ],
+      "operator": [
+        "Hilton Worldwide"
+      ],
+      "architect": [
+        "William B. Tabler Architects",
+        "Harrison & Abramovitz"
+      ],
+      "developer": [
+        "Uris Buildings Corporation"
+      ],
+      "floors": "47"
+    },
+    {
+      "id": "Q204583",
+      "wiki_title": "New York Hippodrome",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_York_Hippodrome",
+      "wiki_lang": "en",
+      "references_count": 27,
+      "verified": true,
+      "architect": [
+        "Frederic Thompson and Jay Herbert Morgan"
+      ],
+      "built": "1905"
+    },
+    {
+      "id": "Q5903297",
+      "wiki_title": "Hotel Astor",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Astor",
+      "wiki_lang": "en",
+      "references_count": 20,
+      "verified": true,
+      "built": "1910",
+      "style": "Beaux-Arts"
+    },
+    {
+      "id": "Q5911331",
+      "wiki_title": "Hotel Carter",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Carter",
+      "wiki_lang": "en",
+      "references_count": 194,
+      "verified": true,
+      "owner": [
+        "Joseph Chetrit"
+      ],
+      "architect": [
+        "Emery Roth"
+      ],
+      "floors": "25"
+    },
+    {
+      "id": "Q5911374",
+      "wiki_title": "Hotel Claridge",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Claridge",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "architect": [
+        "D.H. Burnham & Company"
+      ],
+      "floors": "16",
+      "style": "Beaux-arts style"
+    },
+    {
+      "id": "Q14706412",
+      "wiki_title": "Hotel Edison",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Edison",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "owner": [
+        "Shimmie Horn",
+        "Gerald Barad"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ],
+      "floors": "26"
+    },
+    {
+      "id": "Q5911454",
+      "wiki_title": "Hotel Elysée",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Elys%C3%A9e",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q5397234",
+      "wiki_title": "Hotel Gerard",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Gerard",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "architect": [
+        "George Keister"
+      ],
+      "built": "1893"
+    },
+    {
+      "id": "Q19361343",
+      "wiki_title": "Hotel Manhattan",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Manhattan",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "architect": [
+        "Henry Janeway Hardenbergh"
+      ],
+      "style": "Baroque Revival architecture"
+    },
+    {
+      "id": "Q12060552",
+      "wiki_title": "Hotel McAlpin",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_McAlpin",
+      "wiki_lang": "en",
+      "references_count": 357,
+      "verified": true,
+      "architect": [
+        "Frank Mills Andrews"
+      ],
+      "floors": "25",
+      "height": "308 ft",
+      "built": "1912"
+    },
+    {
+      "id": "Q5911733",
+      "wiki_title": "Hotel Metropole (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Metropole_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "floors": "6"
+    },
+    {
+      "id": "Q121095733",
+      "wiki_title": "Hotel Normandie (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Normandie_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 23,
+      "verified": true,
+      "floors": "8"
+    },
+    {
+      "id": "Q1631006",
+      "wiki_title": "Hotel Pennsylvania",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Pennsylvania",
+      "wiki_lang": "en",
+      "references_count": 476,
+      "verified": true,
+      "owner": [
+        "Vornado Realty Trust"
+      ],
+      "architect": [
+        "McKim, Mead & White"
+      ],
+      "developer": [
+        "Pennsylvania Railroad"
+      ],
+      "floors": "22"
+    },
+    {
+      "id": "Q5911845",
+      "wiki_title": "Hotel Pierrepont",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Pierrepont",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q5911999",
+      "wiki_title": "Hotel St. Moritz",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_St._Moritz",
+      "wiki_lang": "en",
+      "references_count": 28,
+      "verified": true,
+      "owner": [
+        "Millennium Partners"
+      ],
+      "operator": [
+        "Ritz-Carlton Hotel Company"
+      ],
+      "architect": [
+        "Emery Roth"
+      ],
+      "floors": "33"
+    },
+    {
+      "id": "Q47321201",
+      "wiki_title": "Houdini Museum of New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/Houdini_Museum_of_New_York",
+      "wiki_lang": "en",
+      "references_count": 30,
+      "verified": true,
+      "owner": [
+        "Roger Dreyer"
+      ]
+    },
+    {
+      "id": "Q5915627",
+      "wiki_title": "House of the New York City Bar Association",
+      "wiki_url": "https://en.wikipedia.org/wiki/House_of_the_New_York_City_Bar_Association",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "architect": [
+        "Cyrus L. W. Eidlitz"
+      ],
+      "built": "1896"
+    },
+    {
+      "id": "Q10526870",
+      "wiki_title": "Hudson Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hudson_Theatre",
+      "wiki_lang": "en",
+      "references_count": 525,
+      "verified": true,
+      "owner": [
+        "Millennium & Copthorne Hotels"
+      ],
+      "operator": [
+        "ATG Entertainment"
+      ],
+      "architect": [
+        "J.B. McElfatrick & Son; Israels & Harder"
+      ]
+    },
+    {
+      "id": "Q137739223",
+      "wiki_title": "Hue House",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hue_House",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q15227634",
+      "wiki_title": "IDT Megabite Cafe",
+      "wiki_url": "https://en.wikipedia.org/wiki/IDT_Megabite_Cafe",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q6006906",
+      "wiki_title": "Imperial Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Imperial_Theatre",
+      "wiki_lang": "en",
+      "references_count": 482,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q6044880",
+      "wiki_title": "InterContinental New York Barclay Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/InterContinental_New_York_Barclay_Hotel",
+      "wiki_lang": "en",
+      "references_count": 300,
+      "verified": true,
+      "architect": [
+        "Cross and Cross"
+      ],
+      "floors": "14"
+    },
+    {
+      "id": "Q6109252",
+      "wiki_title": "JW Marriott Essex House",
+      "wiki_url": "https://en.wikipedia.org/wiki/JW_Marriott_Essex_House",
+      "wiki_lang": "en",
+      "references_count": 20,
+      "verified": true,
+      "owner": [
+        "Anbang Insurance Group"
+      ],
+      "operator": [
+        "JW Marriott Hotels"
+      ],
+      "architect": [
+        "Frank Grad & Sons"
+      ],
+      "floors": "43",
+      "height": "140.51 m"
+    },
+    {
+      "id": "Q6112071",
+      "wiki_title": "Jack Dempsey's Broadway Restaurant",
+      "wiki_url": "https://en.wikipedia.org/wiki/Jack_Dempsey%27s_Broadway_Restaurant",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q5173206",
+      "wiki_title": "James Earl Jones Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/James_Earl_Jones_Theatre",
+      "wiki_lang": "en",
+      "references_count": 566,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Thomas W. Lamb"
+      ]
+    },
+    {
+      "id": "Q108749757",
+      "wiki_title": "Joel's Bohemia",
+      "wiki_url": "https://en.wikipedia.org/wiki/Joel%27s_Bohemia",
+      "wiki_lang": "en",
+      "references_count": 25,
+      "verified": true
+    },
+    {
+      "id": "Q6235625",
+      "wiki_title": "John Golden Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/John_Golden_Theatre",
+      "wiki_lang": "en",
+      "references_count": 551,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q137216934",
+      "wiki_title": "Jōji (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/J%C5%8Dji_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q6422066",
+      "wiki_title": "Knickerbocker Theatre (Broadway)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Knickerbocker_Theatre_%28Broadway%29",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q6432276",
+      "wiki_title": "Korilla BBQ",
+      "wiki_url": "https://en.wikipedia.org/wiki/Korilla_BBQ",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q2579510",
+      "wiki_title": "Koster & Bial's Music Hall",
+      "wiki_url": "https://en.wikipedia.org/wiki/Koster_%26_Bial%27s_Music_Hall",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true
+    },
+    {
+      "id": "Q6456307",
+      "wiki_title": "3 East 57th Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/3_East_57th_Street",
+      "wiki_lang": "en",
+      "references_count": 164,
+      "verified": true,
+      "architect": [
+        "William F. Lamb of Shreve, Lamb & Harmon"
+      ],
+      "floors": "9",
+      "height": "100 ft",
+      "built": "September 25, 1930"
+    },
+    {
+      "id": "Q19881198",
+      "wiki_title": "La Caravelle (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/La_Caravelle_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 51,
+      "verified": true,
+      "owner": [
+        "Fred Decré and Robert Meyzen (original)"
+      ]
+    },
+    {
+      "id": "Q6462169",
+      "wiki_title": "La Côte Basque",
+      "wiki_url": "https://en.wikipedia.org/wiki/La_C%C3%B4te_Basque",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true
+    },
+    {
+      "id": "Q6462920",
+      "wiki_title": "La Grenouille (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/La_Grenouille_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 51,
+      "verified": true
+    },
+    {
+      "id": "Q122609946",
+      "wiki_title": "Lan Sheng",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lan_Sheng",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true
+    },
+    {
+      "id": "Q858778",
+      "wiki_title": "Late Show with David Letterman",
+      "wiki_url": "https://en.wikipedia.org/wiki/Late_Show_with_David_Letterman",
+      "wiki_lang": "en",
+      "references_count": 99,
+      "verified": true
+    },
+    {
+      "id": "Q11983435",
+      "wiki_title": "Latin Quarter (nightclub)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Latin_Quarter_%28nightclub%29",
+      "wiki_lang": "en",
+      "references_count": 24,
+      "verified": true
+    },
+    {
+      "id": "Q14706774",
+      "wiki_title": "Laurie Beechman Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Laurie_Beechman_Theatre",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "owner": [
+        "Tom D'angora"
+      ]
+    },
+    {
+      "id": "Q6506539",
+      "wiki_title": "Le Bernardin",
+      "wiki_url": "https://en.wikipedia.org/wiki/Le_Bernardin",
+      "wiki_lang": "en",
+      "references_count": 44,
+      "verified": true
+    },
+    {
+      "id": "Q107104799",
+      "wiki_title": "Le Pavillon (Daniel Boulud restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Le_Pavillon_%28Daniel_Boulud_restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 24,
+      "verified": true
+    },
+    {
+      "id": "Q6507417",
+      "wiki_title": "Le Pavillon (Henri Soulé restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Le_Pavillon_%28Henri_Soul%C3%A9_restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true
+    },
+    {
+      "id": "Q6516628",
+      "wiki_title": "Lefcourt Colonial Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lefcourt_Colonial_Building",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "architect": [
+        "Charles F. Moyer Company and Bark & Djorup"
+      ],
+      "floors": "45",
+      "built": "1930"
+    },
+    {
+      "id": "Q4974974",
+      "wiki_title": "Lena Horne Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lena_Horne_Theatre",
+      "wiki_lang": "en",
+      "references_count": 609,
+      "verified": true,
+      "owner": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q6541981",
+      "wiki_title": "Liberty Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Liberty_Theatre",
+      "wiki_lang": "en",
+      "references_count": 407,
+      "verified": true,
+      "owner": [
+        "City and State of New York; leased to New 42nd Street"
+      ],
+      "operator": [
+        "Brookfield Asset Management"
+      ],
+      "architect": [
+        "Herts & Tallant"
+      ]
+    },
+    {
+      "id": "Q6542503",
+      "wiki_title": "Library Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Library_Hotel",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q18152524",
+      "wiki_title": "Loew's State Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Loew%27s_State_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true
+    },
+    {
+      "id": "Q6673576",
+      "wiki_title": "Longacre Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Longacre_Theatre",
+      "wiki_lang": "en",
+      "references_count": 569,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Henry Beaumont Herts"
+      ]
+    },
+    {
+      "id": "Q42548377",
+      "wiki_title": "Lord & Taylor Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lord_%26_Taylor_Building",
+      "wiki_lang": "en",
+      "references_count": 129,
+      "verified": true,
+      "owner": [
+        "Amazon.com"
+      ],
+      "current_tenants": [
+        "Amazon.com"
+      ],
+      "architect": [
+        "Starrett and Van Vleck, Architects"
+      ],
+      "floors": "11",
+      "built": "1914",
+      "style": "Italian Renaissance Revival"
+    },
+    {
+      "id": "Q7753810",
+      "wiki_title": "Lotte New York Palace Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lotte_New_York_Palace_Hotel",
+      "wiki_lang": "en",
+      "references_count": 284,
+      "verified": true,
+      "owner": [
+        "Land: Lotte Hotels & Resorts",
+        "Building: Lotte Hotels & Resorts"
+      ],
+      "operator": [
+        "Lotte Hotels & Resorts"
+      ],
+      "architect": [
+        "Villard Houses: McKim, Mead & White",
+        "Helmsley Palace: Emery Roth & Sons",
+        "New York Palace: Lee Jablin of Harman Jablin Architects"
+      ],
+      "developer": [
+        "Harry Helmsley"
+      ],
+      "floors": "51",
+      "height": "563 ft"
+    },
+    {
+      "id": "Q7634840",
+      "wiki_title": "Lunt-Fontanne Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lunt-Fontanne_Theatre",
+      "wiki_lang": "en",
+      "references_count": 640,
+      "verified": true,
+      "owner": [
+        "Stahl Organization and Nederlander Organization"
+      ],
+      "operator": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "Carrère and Hastings"
+      ]
+    },
+    {
+      "id": "Q6706426",
+      "wiki_title": "Luxor Hotel (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Luxor_Hotel_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q1756846",
+      "wiki_title": "Lyceum Theatre (Broadway)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lyceum_Theatre_%28Broadway%29",
+      "wiki_lang": "en",
+      "references_count": 688,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herts & Tallant"
+      ]
+    },
+    {
+      "id": "Q5477291",
+      "wiki_title": "Lyric Theatre (New York City, 1998)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lyric_Theatre_%28New_York_City%2C_1998%29",
+      "wiki_lang": "en",
+      "references_count": 403,
+      "verified": true,
+      "owner": [
+        "City and State of New York"
+      ],
+      "operator": [
+        "ATG Entertainment"
+      ],
+      "architect": [
+        "Richard Blinder (Beyer Blinder Belle)",
+        "Peter Kofman"
+      ]
+    },
+    {
+      "id": "Q6710003",
+      "wiki_title": "Lyric Theatre (New York City, 1903)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lyric_Theatre_%28New_York_City%2C_1903%29",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "owner": [
+        "Shubert Organization"
+      ]
+    },
+    {
+      "id": "Q1393081",
+      "wiki_title": "Majestic Theatre (Broadway)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Majestic_Theatre_%28Broadway%29",
+      "wiki_lang": "en",
+      "references_count": 529,
+      "verified": true,
+      "owner": [
+        "Majestic Theatre LLC"
+      ],
+      "operator": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q6737715",
+      "wiki_title": "International Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/International_Theatre",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "architect": [
+        "John H. Duncan"
+      ]
+    },
+    {
+      "id": "Q3285824",
+      "wiki_title": "100 West 33rd Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/100_West_33rd_Street",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "owner": [
+        "Vornado Realty Trust"
+      ],
+      "operator": [
+        "Vornado Realty Trust"
+      ],
+      "architect": [
+        "Daniel Burnham"
+      ],
+      "floors": "4 (former mall concourse)"
+    },
+    {
+      "id": "Q6749314",
+      "wiki_title": "Manhattan Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Manhattan_Theatre",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q117671703",
+      "wiki_title": "Mansfield Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Mansfield_Hotel",
+      "wiki_lang": "en",
+      "references_count": 145,
+      "verified": true,
+      "owner": [
+        "Mansfield Realty I LLC"
+      ],
+      "developer": [
+        "John G. McCullough and Frederick B. Jennings"
+      ],
+      "floors": "12",
+      "built": "1902",
+      "style": "Beaux-Arts",
+      "cost": "$200,000 ()"
+    },
+    {
+      "id": "Q6753089",
+      "wiki_title": "Manufacturers Trust Company Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Manufacturers_Trust_Company_Building",
+      "wiki_lang": "en",
+      "references_count": 333,
+      "verified": true,
+      "owner": [
+        "Reuben Brothers"
+      ],
+      "architect": [
+        "Charles Evans Hughes III and Gordon Bunshaft of Skidmore, Owings & Merrill"
+      ],
+      "floors": "5 (+1 basement)",
+      "built": "1954",
+      "style": "International Style"
+    },
+    {
+      "id": "Q6755272",
+      "wiki_title": "2 Herald Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/2_Herald_Square",
+      "wiki_lang": "en",
+      "references_count": 30,
+      "verified": true,
+      "architect": [
+        "Townsend, Steinle & Haskell"
+      ],
+      "floors": "12",
+      "height": "144 ft",
+      "built": "1909"
+    },
+    {
+      "id": "Q6758739",
+      "wiki_title": "Marea (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Marea_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true
+    },
+    {
+      "id": "Q121494205",
+      "wiki_title": "Mari (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Mari_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q6772686",
+      "wiki_title": "Marquis Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Marquis_Theatre",
+      "wiki_lang": "en",
+      "references_count": 258,
+      "verified": true,
+      "owner": [
+        "Vornado Realty Trust (majority)"
+      ],
+      "operator": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "John C. Portman Jr."
+      ]
+    },
+    {
+      "id": "Q14706909",
+      "wiki_title": "Mars 2112",
+      "wiki_url": "https://en.wikipedia.org/wiki/Mars_2112",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true
+    },
+    {
+      "id": "Q18746571",
+      "wiki_title": "Martinique New York on Broadway, Curio Collection by Hilton",
+      "wiki_url": "https://en.wikipedia.org/wiki/Martinique_New_York_on_Broadway%2C_Curio_Collection_by_Hilton",
+      "wiki_lang": "en",
+      "references_count": 390,
+      "verified": true,
+      "operator": [
+        "Hilton Hotels"
+      ],
+      "architect": [
+        "Henry Janeway Hardenbergh"
+      ],
+      "floors": "19",
+      "height": "200 feet",
+      "style": "French Renaissance"
+    },
+    {
+      "id": "Q6795966",
+      "wiki_title": "Maxine Elliott's Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Maxine_Elliott%27s_Theatre",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "tenants": [
+        "Federal Theatre Project 1936–1937, Mutual Broadcasting System 1941–1944, CBS 1944–1956"
+      ],
+      "owner": [
+        "Maxine Elliott (1908–1940), The Shubert Organization (1908–1956), Maxine Elliott's heirs (1940–1956)"
+      ],
+      "architect": [
+        "Marshall and Fox"
+      ],
+      "built": "1908"
+    },
+    {
+      "id": "Q464482",
+      "wiki_title": "MetLife Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/MetLife_Building",
+      "wiki_lang": "en",
+      "references_count": 494,
+      "verified": true,
+      "owner": [
+        "The Irvine Company"
+      ],
+      "architect": [
+        "Emery Roth & Sons, Pietro Belluschi, and Walter Gropius"
+      ],
+      "floors": "59",
+      "built": "1963",
+      "style": "International"
+    },
+    {
+      "id": "Q1925883",
+      "wiki_title": "Metropolitan Tower (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Metropolitan_Tower_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 238,
+      "verified": true,
+      "owner": [
+        "GDS Development Management and Sabal Investment Holdings (offices)",
+        "condominium owners (residences)"
+      ],
+      "architect": [
+        "Schuman, Lichtenstein, Claman & Efron"
+      ],
+      "developer": [
+        "Macklowe Properties"
+      ],
+      "floors": "68",
+      "built": "1987",
+      "style": "Postmodern"
+    },
+    {
+      "id": "Q25345177",
+      "wiki_title": "Millennium Times Square New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/Millennium_Times_Square_New_York",
+      "wiki_lang": "en",
+      "references_count": 234,
+      "verified": true,
+      "owner": [
+        "CDL West 45th Street L.P."
+      ],
+      "architect": [
+        "Perkins & Will and William Derman (original)",
+        "Stonehill & Taylor (Premier annex)"
+      ],
+      "developer": [
+        "Harry B. Macklowe"
+      ],
+      "floors": "48",
+      "built": "1990"
+    },
+    {
+      "id": "Q3062716",
+      "wiki_title": "Minskoff Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Minskoff_Theatre",
+      "wiki_lang": "en",
+      "references_count": 305,
+      "verified": true,
+      "owner": [
+        "SL Green Realty (majority)"
+      ],
+      "operator": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "Kahn and Jacobs"
+      ]
+    },
+    {
+      "id": "Q1608810",
+      "wiki_title": "1585 Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/1585_Broadway",
+      "wiki_lang": "en",
+      "references_count": 297,
+      "verified": true,
+      "owner": [
+        "Morgan Stanley"
+      ],
+      "current_tenants": [
+        "Morgan Stanley"
+      ],
+      "architect": [
+        "Emery Roth & Sons, Gwathmey Siegel & Associates Architects"
+      ],
+      "developer": [
+        "Solomon Equities Inc."
+      ],
+      "floors": "42",
+      "built": "1990"
+    },
+    {
+      "id": "Q6911961",
+      "wiki_title": "Morgans Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Morgans_Hotel",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "owner": [
+        "Morgans Hotel Group ($MHG), 1984-2016",
+        "SBE Entertainment Group, 2016-2017",
+        "Shel Capital and Kash Group (2017-2018 closed, converted to No. 237 condos)"
+      ],
+      "architect": [
+        "Andrew J. Thomas"
+      ],
+      "developer": [
+        "Ian Schrager"
+      ],
+      "floors": "19",
+      "style": "Italian Romanesque"
+    },
+    {
+      "id": "Q6913281",
+      "wiki_title": "Morosco Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Morosco_Theatre",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q6929837",
+      "wiki_title": "Mrs. O. H. P. Belmont House",
+      "wiki_url": "https://en.wikipedia.org/wiki/Mrs._O._H._P._Belmont_House",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "architect": [
+        "Hunt & Hunt"
+      ],
+      "style": "Neoclassical architecture"
+    },
+    {
+      "id": "Q22023355",
+      "wiki_title": "Murray Hill Hotel (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Murray_Hill_Hotel_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "architect": [
+        "Stephen Decatur Hatch"
+      ]
+    },
+    {
+      "id": "Q112860597",
+      "wiki_title": "Museum of Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/Museum_of_Broadway",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q188740",
+      "wiki_title": "Museum of Modern Art",
+      "wiki_url": "https://en.wikipedia.org/wiki/Museum_of_Modern_Art",
+      "wiki_lang": "en",
+      "references_count": 180,
+      "verified": true
+    },
+    {
+      "id": "Q76726860",
+      "wiki_title": "Museum of the Dog",
+      "wiki_url": "https://en.wikipedia.org/wiki/Museum_of_the_Dog",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q1954899",
+      "wiki_title": "Music Box Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Music_Box_Theatre",
+      "wiki_lang": "en",
+      "references_count": 627,
+      "verified": true,
+      "owner": [
+        "Shubert Organization"
+      ],
+      "architect": [
+        "C. Howard Crane"
+      ]
+    },
+    {
+      "id": "Q39074985",
+      "wiki_title": "National Bible Institute School and Dormitory (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/National_Bible_Institute_School_and_Dormitory_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "architect": [
+        "McKenzie, Voorhees and Gmelin"
+      ],
+      "floors": "11",
+      "built": "1925",
+      "style": "Venetian-Gothic"
+    },
+    {
+      "id": "Q12063656",
+      "wiki_title": "Nederlander Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Nederlander_Theatre",
+      "wiki_lang": "en",
+      "references_count": 578,
+      "verified": true,
+      "owner": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "William Neil Smith"
+      ]
+    },
+    {
+      "id": "Q1974872",
+      "wiki_title": "Neil Simon Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Neil_Simon_Theatre",
+      "wiki_lang": "en",
+      "references_count": 676,
+      "verified": true,
+      "owner": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q4080267",
+      "wiki_title": "Nelson Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Nelson_Tower",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "architect": [
+        "H. Craig Severance"
+      ],
+      "developer": [
+        "Julius Nelson"
+      ],
+      "floors": "46",
+      "built": "1931",
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q2004827",
+      "wiki_title": "New Amsterdam Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_Amsterdam_Theatre",
+      "wiki_lang": "en",
+      "references_count": 760,
+      "verified": true,
+      "owner": [
+        "Government of New York City"
+      ],
+      "operator": [
+        "Disney Theatrical Group"
+      ],
+      "architect": [
+        "Herts & Tallant"
+      ]
+    },
+    {
+      "id": "Q7006506",
+      "wiki_title": "New Century Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_Century_Theatre",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "owner": [
+        "Shubert Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q1467005",
+      "wiki_title": "New Victory Theater",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_Victory_Theater",
+      "wiki_lang": "en",
+      "references_count": 601,
+      "verified": true,
+      "tenants": [
+        "New 42nd Street"
+      ],
+      "owner": [
+        "City and State of New York"
+      ],
+      "operator": [
+        "New 42nd Street"
+      ],
+      "architect": [
+        "Albert Westover"
+      ]
+    },
+    {
+      "id": "Q14707071",
+      "wiki_title": "New York Biltmore Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_York_Biltmore_Hotel",
+      "wiki_lang": "en",
+      "references_count": 453,
+      "verified": true,
+      "architect": [
+        "Warren and Wetmore"
+      ],
+      "developer": [
+        "New York State Realty and Terminal Company"
+      ],
+      "floors": "23–26",
+      "height": "305 ft",
+      "built": "December 1913",
+      "style": "Italian Renaissance Revival",
+      "cost": "(equivalent to $ million in )"
+    },
+    {
+      "id": "Q535631",
+      "wiki_title": "New York City Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_York_City_Center",
+      "wiki_lang": "en",
+      "references_count": 529,
+      "verified": true,
+      "owner": [
+        "City of New York"
+      ],
+      "operator": [
+        "City Center 55th Street Theater Foundation"
+      ],
+      "architect": [
+        "Harry P. Knowles and Clinton & Russell"
+      ]
+    },
+    {
+      "id": "Q1983045",
+      "wiki_title": "New York Crystal Palace",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_York_Crystal_Palace",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Georg Carstensen and Charles Gildemeister"
+      ]
+    },
+    {
+      "id": "Q7013741",
+      "wiki_title": "New York Marriott Marquis",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_York_Marriott_Marquis",
+      "wiki_lang": "en",
+      "references_count": 466,
+      "verified": true,
+      "owner": [
+        "Host Hotels & Resorts"
+      ],
+      "operator": [
+        "Marriott International"
+      ],
+      "architect": [
+        "John Portman & Associates"
+      ],
+      "floors": "51 (+2 basement)",
+      "style": "Brutalist"
+    },
+    {
+      "id": "Q7013887",
+      "wiki_title": "New York Public Library Main Branch",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_York_Public_Library_Main_Branch",
+      "wiki_lang": "en",
+      "references_count": 719,
+      "verified": true,
+      "architect": [
+        "Carrère and Hastings"
+      ]
+    },
+    {
+      "id": "Q8247542",
+      "wiki_title": "New York Public Library and Bryant Park",
+      "wiki_url": "https://en.wikipedia.org/wiki/New_York_Public_Library_and_Bryant_Park",
+      "wiki_lang": "en",
+      "references_count": 317,
+      "verified": true,
+      "operator": [
+        "New York City Department of Parks and Recreation"
+      ]
+    },
+    {
+      "id": "Q192680",
+      "wiki_title": "The New York Times Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_New_York_Times_Building",
+      "wiki_lang": "en",
+      "references_count": 481,
+      "verified": true,
+      "owner": [
+        "New York City Economic Development Corporation"
+      ],
+      "operator": [
+        "The New York Times Company (58%)",
+        "Brookfield Properties (42%)"
+      ],
+      "architect": [
+        "Renzo Piano Building Workshop, FXFOWLE Architects"
+      ],
+      "developer": [
+        "The New York Times Company, Forest City Ratner, ING Real Estate"
+      ],
+      "floors": "52",
+      "built": "June 12, 2007",
+      "cost": "US$1 billion"
+    },
+    {
+      "id": "Q14289857",
+      "wiki_title": "News Corp",
+      "wiki_url": "https://en.wikipedia.org/wiki/News_Corp",
+      "wiki_lang": "en",
+      "references_count": 84,
+      "verified": true,
+      "owner": [
+        "Lachlan Murdoch (33% voting power)"
+      ]
+    },
+    {
+      "id": "Q121590615",
+      "wiki_title": "Oceana (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Oceana_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q96397179",
+      "wiki_title": "Offensive Security",
+      "wiki_url": "https://en.wikipedia.org/wiki/Offensive_Security",
+      "wiki_lang": "en",
+      "references_count": 36,
+      "verified": true
+    },
+    {
+      "id": "Q7088983",
+      "wiki_title": "Olympia Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Olympia_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 36,
+      "verified": true,
+      "architect": [
+        "J. B. McElfatrick & Son"
+      ]
+    },
+    {
+      "id": "Q510272",
+      "wiki_title": "Olympic Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Olympic_Tower",
+      "wiki_lang": "en",
+      "references_count": 260,
+      "verified": true,
+      "owner": [
+        "Oxford Properties"
+      ],
+      "operator": [
+        "Oxford Properties"
+      ],
+      "architect": [
+        "Skidmore, Owings & Merrill"
+      ],
+      "developer": [
+        "Victory Development Corporation, Arlen Realty and Development Corporation"
+      ],
+      "floors": "51",
+      "built": "1974",
+      "cost": "$95 million"
+    },
+    {
+      "id": "Q96397379",
+      "wiki_title": "Omni Berkshire Place",
+      "wiki_url": "https://en.wikipedia.org/wiki/Omni_Berkshire_Place",
+      "wiki_lang": "en",
+      "references_count": 44,
+      "verified": true,
+      "owner": [
+        "Omni Hotels"
+      ],
+      "operator": [
+        "Omni Hotels"
+      ],
+      "architect": [
+        "Warren & Wetmore"
+      ]
+    },
+    {
+      "id": "Q659652",
+      "wiki_title": "One Astor Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/One_Astor_Plaza",
+      "wiki_lang": "en",
+      "references_count": 420,
+      "verified": true,
+      "owner": [
+        "SL Green Realty (53%), Allianz (47%)"
+      ],
+      "architect": [
+        "Der Scutt"
+      ],
+      "developer": [
+        "Sam Minskoff & Sons, Inc."
+      ],
+      "floors": "54",
+      "built": "1972"
+    },
+    {
+      "id": "Q1517863",
+      "wiki_title": "One Grand Central Place",
+      "wiki_url": "https://en.wikipedia.org/wiki/One_Grand_Central_Place",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "owner": [
+        "Empire State Realty Trust One Grand Central Place"
+      ],
+      "architect": [
+        "Kenneth Norton of J.E.R. Carpenter"
+      ],
+      "floors": "55",
+      "built": "1930",
+      "style": "Neo-Gothic"
+    },
+    {
+      "id": "Q1139633",
+      "wiki_title": "One Times Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/One_Times_Square",
+      "wiki_lang": "en",
+      "references_count": 449,
+      "verified": true,
+      "owner": [
+        "Jamestown L.P. and Sherwood Equities"
+      ],
+      "architect": [
+        "Cyrus L. W. Eidlitz and Andrew C. McKenzie"
+      ],
+      "developer": [
+        "The New York Times"
+      ],
+      "floors": "25",
+      "built": "1904"
+    },
+    {
+      "id": "Q18398409",
+      "wiki_title": "One Vanderbilt",
+      "wiki_url": "https://en.wikipedia.org/wiki/One_Vanderbilt",
+      "wiki_lang": "en",
+      "references_count": 346,
+      "verified": true,
+      "owner": [
+        "SL Green Realty, National Pension Service of Korea, Hines Interests Limited Partnership, Mori Building Company"
+      ],
+      "architect": [
+        "Kohn Pedersen Fox"
+      ],
+      "developer": [
+        "SL Green Realty"
+      ],
+      "floors": "62",
+      "cost": "$3.31 billion"
+    },
+    {
+      "id": "Q1342690",
+      "wiki_title": "One Worldwide Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/One_Worldwide_Plaza",
+      "wiki_lang": "en",
+      "references_count": 356,
+      "verified": true,
+      "owner": [
+        "New York REIT"
+      ],
+      "architect": [
+        "David Childs of Skidmore, Owings and Merrill"
+      ],
+      "developer": [
+        "William Zeckendorf Jr."
+      ],
+      "floors": "50",
+      "built": "June 1989",
+      "style": "Postmodernism"
+    },
+    {
+      "id": "Q2023928",
+      "wiki_title": "One57",
+      "wiki_url": "https://en.wikipedia.org/wiki/One57",
+      "wiki_lang": "en",
+      "references_count": 406,
+      "verified": true,
+      "architect": [
+        "Christian de Portzamparc",
+        "SLCE Architects (architect of record)"
+      ],
+      "developer": [
+        "Extell Development Company"
+      ],
+      "floors": "73 (+2 below ground floors)",
+      "built": "2014",
+      "style": "Modern",
+      "cost": "US$1.5 billion"
+    },
+    {
+      "id": "Q564259",
+      "wiki_title": "Grand Central Oyster Bar & Restaurant",
+      "wiki_url": "https://en.wikipedia.org/wiki/Grand_Central_Oyster_Bar_%26_Restaurant",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q18151982",
+      "wiki_title": "Pabst Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Pabst_Hotel",
+      "wiki_lang": "en",
+      "references_count": 91,
+      "verified": true,
+      "owner": [
+        "Charles Thorley"
+      ],
+      "architect": [
+        "Henry F. Kilburn"
+      ],
+      "floors": "9",
+      "cost": "$225,000"
+    },
+    {
+      "id": "Q3360756",
+      "wiki_title": "Palace Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Palace_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 621,
+      "verified": true,
+      "owner": [
+        "Nederlander Organization and Stewart F. Lane"
+      ],
+      "operator": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "Kirchhoff & Rose"
+      ]
+    },
+    {
+      "id": "Q5951152",
+      "wiki_title": "Paley Park",
+      "wiki_url": "https://en.wikipedia.org/wiki/Paley_Park",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "owner": [
+        "The Greenpark Foundation, Inc."
+      ]
+    },
+    {
+      "id": "Q17065500",
+      "wiki_title": "Paradise Roof Garden",
+      "wiki_url": "https://en.wikipedia.org/wiki/Paradise_Roof_Garden",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "owner": [
+        "Oscar Hammerstein I"
+      ],
+      "operator": [
+        "Oscar and Willie Hammerstein"
+      ]
+    },
+    {
+      "id": "Q7135335",
+      "wiki_title": "Paramount Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Paramount_Hotel",
+      "wiki_lang": "en",
+      "references_count": 300,
+      "verified": true,
+      "owner": [
+        "RFR Hotel Group"
+      ],
+      "architect": [
+        "Thomas W. Lamb"
+      ],
+      "developer": [
+        "Isidore Zimmer, Samuel Resnick, and Frank Locker"
+      ],
+      "floors": "19"
+    },
+    {
+      "id": "Q2051730",
+      "wiki_title": "Paramount Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/Paramount_Plaza",
+      "wiki_lang": "en",
+      "references_count": 260,
+      "verified": true,
+      "owner": [
+        "Rithm Capital"
+      ],
+      "architect": [
+        "Emery Roth & Sons"
+      ],
+      "developer": [
+        "Uris Brothers"
+      ],
+      "floors": "48",
+      "style": "International Style"
+    },
+    {
+      "id": "Q7135375",
+      "wiki_title": "Paramount Theatre (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Paramount_Theatre_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true
+    },
+    {
+      "id": "Q55315937",
+      "wiki_title": "Park Avenue Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/Park_Avenue_Plaza",
+      "wiki_lang": "en",
+      "references_count": 179,
+      "verified": true,
+      "height": "574 ft",
+      "built": "1981"
+    },
+    {
+      "id": "Q7137669",
+      "wiki_title": "Park Central Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Park_Central_Hotel",
+      "wiki_lang": "en",
+      "references_count": 16,
+      "verified": true,
+      "architect": [
+        "Gronenberg & Leuchtag"
+      ],
+      "floors": "25",
+      "height": "357 ft",
+      "built": "1926",
+      "style": "Renaissance revival"
+    },
+    {
+      "id": "Q18155724",
+      "wiki_title": "Park Lane Hotel (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Park_Lane_Hotel_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 33,
+      "verified": true,
+      "owner": [
+        "Qatar Investment Authority"
+      ],
+      "architect": [
+        "Emery Roth & Sons"
+      ],
+      "developer": [
+        "Harry Helmsley"
+      ],
+      "floors": "46"
+    },
+    {
+      "id": "Q7148215",
+      "wiki_title": "Patsy's",
+      "wiki_url": "https://en.wikipedia.org/wiki/Patsy%27s",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true
+    },
+    {
+      "id": "Q7158713",
+      "wiki_title": "Peck & Peck",
+      "wiki_url": "https://en.wikipedia.org/wiki/Peck_%26_Peck",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true
+    },
+    {
+      "id": "Q17182259",
+      "wiki_title": "Pershing Square, Manhattan",
+      "wiki_url": "https://en.wikipedia.org/wiki/Pershing_Square%2C_Manhattan",
+      "wiki_lang": "en",
+      "references_count": 45,
+      "verified": true
+    },
+    {
+      "id": "Q7170180",
+      "wiki_title": "Pershing Square Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Pershing_Square_Building",
+      "wiki_lang": "en",
+      "references_count": 127,
+      "verified": true,
+      "owner": [
+        "SL Green"
+      ],
+      "architect": [
+        "John Sloan"
+      ],
+      "developer": [
+        "Henry Mandel"
+      ],
+      "floors": "24",
+      "built": "1923",
+      "style": "Romanesque Revival"
+    },
+    {
+      "id": "Q15032188",
+      "wiki_title": "Playhouse Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Playhouse_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "owner": [
+        "Brady Enterprises, Inc."
+      ],
+      "operator": [
+        "William A. Brady"
+      ],
+      "architect": [
+        "Charles A. Rich"
+      ]
+    },
+    {
+      "id": "Q1066676",
+      "wiki_title": "Plaza Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Plaza_Hotel",
+      "wiki_lang": "en",
+      "references_count": 814,
+      "verified": true,
+      "owner": [
+        "Katara Hospitality"
+      ],
+      "operator": [
+        "Fairmont Hotels and Resorts"
+      ],
+      "architect": [
+        "Henry Janeway Hardenbergh (original)",
+        "Warren and Wetmore (annex)"
+      ],
+      "developer": [
+        "U.S. Realty Company"
+      ],
+      "floors": "18",
+      "style": "French Renaissance-inspired château style",
+      "cost": "$12.5 million"
+    },
+    {
+      "id": "Q120068967",
+      "wiki_title": "Prime Burger",
+      "wiki_url": "https://en.wikipedia.org/wiki/Prime_Burger",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true
+    },
+    {
+      "id": "Q87747949",
+      "wiki_title": "Prime Produce",
+      "wiki_url": "https://en.wikipedia.org/wiki/Prime_Produce",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true
+    },
+    {
+      "id": "Q7244847",
+      "wiki_title": "Princess Theatre (New York City, 1913–1955)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Princess_Theatre_%28New_York_City%2C_1913%E2%80%931955%29",
+      "wiki_lang": "en",
+      "references_count": 25,
+      "verified": true,
+      "owner": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "William A. Swasey"
+      ],
+      "built": "1913"
+    },
+    {
+      "id": "Q134608920",
+      "wiki_title": "America's Little House",
+      "wiki_url": "https://en.wikipedia.org/wiki/America%27s_Little_House",
+      "wiki_lang": "en",
+      "references_count": 87,
+      "verified": true,
+      "owner": [
+        "New York Committee of Better Homes in America"
+      ],
+      "architect": [
+        "Roger Bullard, Clifford C. Wendehack"
+      ],
+      "floors": "2",
+      "style": "Georgian Revival",
+      "cost": "$8,000"
+    },
+    {
+      "id": "Q137733390",
+      "wiki_title": "343 Madison Avenue",
+      "wiki_url": "https://en.wikipedia.org/wiki/343_Madison_Avenue",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "architect": [
+        "Kohn Pedersen Fox"
+      ]
+    },
+    {
+      "id": "Q753437",
+      "wiki_title": "Radio City Music Hall",
+      "wiki_url": "https://en.wikipedia.org/wiki/Radio_City_Music_Hall",
+      "wiki_lang": "en",
+      "references_count": 501,
+      "verified": true,
+      "owner": [
+        "Tishman Speyer Properties"
+      ],
+      "operator": [
+        "Madison Square Garden Entertainment"
+      ]
+    },
+    {
+      "id": "Q3417784",
+      "wiki_title": "Rainbow Room",
+      "wiki_url": "https://en.wikipedia.org/wiki/Rainbow_Room",
+      "wiki_lang": "en",
+      "references_count": 191,
+      "verified": true
+    },
+    {
+      "id": "Q2130764",
+      "wiki_title": "Random House Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Random_House_Tower",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "owner": [
+        "SL Green/Ivanhoé Cambridge/Witkoff/Lehman Brothers (office portion)"
+      ],
+      "architect": [
+        "Skidmore, Owings and Merrill and Ismael Leyva"
+      ],
+      "built": "2003",
+      "cost": "$300 Million"
+    },
+    {
+      "id": "Q7317397",
+      "wiki_title": "Reuben's Restaurant",
+      "wiki_url": "https://en.wikipedia.org/wiki/Reuben%27s_Restaurant",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true
+    },
+    {
+      "id": "Q15032193",
+      "wiki_title": "Rialto Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Rialto_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "owner": [
+        "Paramount Pictures"
+      ]
+    },
+    {
+      "id": "Q7328714",
+      "wiki_title": "Richard Rodgers Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Richard_Rodgers_Theatre",
+      "wiki_lang": "en",
+      "references_count": 532,
+      "verified": true,
+      "owner": [
+        "Nederlander Organization"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q7332524",
+      "wiki_title": "Ride of Fame",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ride_of_Fame",
+      "wiki_lang": "en",
+      "references_count": 86,
+      "verified": true
+    },
+    {
+      "id": "Q30599873",
+      "wiki_title": "Ritz-Carlton Hotel (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ritz-Carlton_Hotel_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "owner": [
+        "The Ritz-Carlton Hotel Company"
+      ],
+      "style": "Neoclassical"
+    },
+    {
+      "id": "Q107008859",
+      "wiki_title": "Rockefeller Apartments",
+      "wiki_url": "https://en.wikipedia.org/wiki/Rockefeller_Apartments",
+      "wiki_lang": "en",
+      "references_count": 174,
+      "verified": true,
+      "architect": [
+        "Wallace Harrison and J. André Fouilhoux"
+      ],
+      "floors": "11",
+      "built": "October 1, 1936",
+      "style": "International Style"
+    },
+    {
+      "id": "Q11277",
+      "wiki_title": "Rockefeller Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Rockefeller_Center",
+      "wiki_lang": "en",
+      "references_count": 695,
+      "verified": true,
+      "architect": [
+        "Raymond Hood"
+      ],
+      "developer": [
+        "Rockefeller family"
+      ],
+      "built": "1939",
+      "style": "Modern, Art Deco"
+    },
+    {
+      "id": "Q59354575",
+      "wiki_title": "Rodin Studios",
+      "wiki_url": "https://en.wikipedia.org/wiki/Rodin_Studios",
+      "wiki_lang": "en",
+      "references_count": 117,
+      "verified": true,
+      "owner": [
+        "The Feil Organization"
+      ],
+      "architect": [
+        "Cass Gilbert"
+      ],
+      "floors": "15",
+      "style": "French Gothic"
+    },
+    {
+      "id": "Q18156930",
+      "wiki_title": "Roger Smith Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Roger_Smith_Hotel",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "operator": [
+        "Roger Smith Corp."
+      ],
+      "architect": [
+        "Hearn & Erich"
+      ]
+    },
+    {
+      "id": "Q7367872",
+      "wiki_title": "Rose Museum",
+      "wiki_url": "https://en.wikipedia.org/wiki/Rose_Museum",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true
+    },
+    {
+      "id": "Q6851749",
+      "wiki_title": "Row NYC Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Row_NYC_Hotel",
+      "wiki_lang": "en",
+      "references_count": 406,
+      "verified": true,
+      "owner": [
+        "Rockpoint Group"
+      ],
+      "operator": [
+        "Highgate Holdings"
+      ],
+      "developer": [
+        "Irwin S. Chanin"
+      ],
+      "floors": "27"
+    },
+    {
+      "id": "Q2170757",
+      "wiki_title": "Roxy Theatre (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Roxy_Theatre_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 27,
+      "verified": true,
+      "owner": [
+        "Fox Theatres",
+        "National Theaters",
+        "Rockefeller Center"
+      ],
+      "operator": [
+        "Roxy Theatre Corp."
+      ],
+      "architect": [
+        "Walter W. Ahlschlager"
+      ]
+    },
+    {
+      "id": "Q3446105",
+      "wiki_title": "Royalton Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Royalton_Hotel",
+      "wiki_lang": "en",
+      "references_count": 203,
+      "verified": true,
+      "owner": [
+        "MCR Hotels"
+      ],
+      "operator": [
+        "LuxUrban"
+      ],
+      "architect": [
+        "Rossiter & Wright"
+      ],
+      "developer": [
+        "Edward G. Bailey"
+      ],
+      "floors": "13"
+    },
+    {
+      "id": "Q1814591",
+      "wiki_title": "Russian Tea Room",
+      "wiki_url": "https://en.wikipedia.org/wiki/Russian_Tea_Room",
+      "wiki_lang": "en",
+      "references_count": 184,
+      "verified": true
+    },
+    {
+      "id": "Q105593077",
+      "wiki_title": "Saks Fifth Avenue flagship store",
+      "wiki_url": "https://en.wikipedia.org/wiki/Saks_Fifth_Avenue_flagship_store",
+      "wiki_lang": "en",
+      "references_count": 182,
+      "verified": true,
+      "owner": [
+        "Saks Fifth Avenue (store)",
+        "Vornado Realty Trust (remainder of 623 Fifth Avenue)"
+      ],
+      "architect": [
+        "Starrett & van Vleck",
+        "Lee Harris Pomeroy Associates and Max Abramovitz",
+        "Abramovitz Kingsland Schiff (expansion)"
+      ],
+      "style": "Neo-Renaissance, Palazzo"
+    },
+    {
+      "id": "Q7405547",
+      "wiki_title": "Salmon Tower Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Salmon_Tower_Building",
+      "wiki_lang": "en",
+      "references_count": 19,
+      "verified": true,
+      "owner": [
+        "Tishman Speyer, Silverstein Properties"
+      ],
+      "architect": [
+        "York & Sawyer"
+      ],
+      "developer": [
+        "Walter J. Salmon Sr."
+      ],
+      "floors": "31",
+      "built": "1928"
+    },
+    {
+      "id": "Q104870711",
+      "wiki_title": "Sam H. Harris Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sam_H._Harris_Theatre",
+      "wiki_lang": "en",
+      "references_count": 306,
+      "verified": true,
+      "architect": [
+        "Thomas W. Lamb"
+      ]
+    },
+    {
+      "id": "Q5935075",
+      "wiki_title": "Samuel J. Friedman Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Samuel_J._Friedman_Theatre",
+      "wiki_lang": "en",
+      "references_count": 622,
+      "verified": true,
+      "owner": [
+        "Manhattan Theatre Club"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q7423790",
+      "wiki_title": "Sardi's",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sardi%27s",
+      "wiki_lang": "en",
+      "references_count": 71,
+      "verified": true
+    },
+    {
+      "id": "Q123982744",
+      "wiki_title": "Satsuki (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Satsuki_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true
+    },
+    {
+      "id": "Q2612605",
+      "wiki_title": "Seventh Avenue station (IND lines)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Seventh_Avenue_station_%28IND_lines%29",
+      "wiki_lang": "en",
+      "references_count": 26,
+      "verified": true
+    },
+    {
+      "id": "Q7494693",
+      "wiki_title": "Sheraton New York Times Square Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sheraton_New_York_Times_Square_Hotel",
+      "wiki_lang": "en",
+      "references_count": 171,
+      "verified": true,
+      "owner": [
+        "MCR Hotels & Island Capital Group"
+      ],
+      "operator": [
+        "Sheraton Hotels and Resorts"
+      ],
+      "architect": [
+        "Morris Lapidus & Associates",
+        "Kornblath, Harle & Liebman"
+      ],
+      "floors": "51",
+      "height": "501 ft"
+    },
+    {
+      "id": "Q107058324",
+      "wiki_title": "Sherwood Studio Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sherwood_Studio_Building",
+      "wiki_lang": "en",
+      "references_count": 198,
+      "verified": true,
+      "architect": [
+        "John H. Sherwood"
+      ],
+      "floors": "7"
+    },
+    {
+      "id": "Q1797756",
+      "wiki_title": "Shubert Theatre (Broadway)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shubert_Theatre_%28Broadway%29",
+      "wiki_lang": "en",
+      "references_count": 727,
+      "verified": true,
+      "owner": [
+        "Shubert and Booth Theatre, LLC"
+      ],
+      "operator": [
+        "The Shubert Organization"
+      ],
+      "architect": [
+        "Henry Beaumont Herts"
+      ]
+    },
+    {
+      "id": "Q23907605",
+      "wiki_title": "Socony-Mobil Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Socony-Mobil_Building",
+      "wiki_lang": "en",
+      "references_count": 157,
+      "verified": true,
+      "operator": [
+        "JLL"
+      ],
+      "architect": [
+        "Harrison & Abramovitz, John B. Peterkin"
+      ],
+      "developer": [
+        "Peter B. Ruffin (Galbreath Corporation)"
+      ],
+      "floors": "45",
+      "built": "1956",
+      "style": "International and Moderne Style"
+    },
+    {
+      "id": "Q3488860",
+      "wiki_title": "Sofitel New York Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sofitel_New_York_Hotel",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "owner": [
+        "Sofitel corporation"
+      ],
+      "architect": [
+        "Brennan Beer Gorman"
+      ],
+      "floors": "30",
+      "height": "109 m",
+      "built": "2000"
+    },
+    {
+      "id": "Q632019",
+      "wiki_title": "Solow Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Solow_Building",
+      "wiki_lang": "en",
+      "references_count": 252,
+      "verified": true,
+      "owner": [
+        "Stefan Soloviev"
+      ],
+      "operator": [
+        "Soloviev Group"
+      ],
+      "architect": [
+        "Gordon Bunshaft",
+        "Skidmore, Owings & Merrill"
+      ],
+      "developer": [
+        "Solow Building Corporation"
+      ],
+      "floors": "50",
+      "built": "1972"
+    },
+    {
+      "id": "Q96406036",
+      "wiki_title": "Sony Hall",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sony_Hall",
+      "wiki_lang": "en",
+      "references_count": 78,
+      "verified": true,
+      "operator": [
+        "Blue Note Entertainment Group"
+      ]
+    },
+    {
+      "id": "Q7565045",
+      "wiki_title": "The Original Soupman",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Original_Soupman",
+      "wiki_lang": "en",
+      "references_count": 19,
+      "verified": true
+    },
+    {
+      "id": "Q7581168",
+      "wiki_title": "Springs Mills Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Springs_Mills_Building",
+      "wiki_lang": "en",
+      "references_count": 72,
+      "verified": true,
+      "architect": [
+        "Charles H. Abby of Harrison & Abramovitz"
+      ],
+      "floors": "21"
+    },
+    {
+      "id": "Q65082668",
+      "wiki_title": "Spyscape",
+      "wiki_url": "https://en.wikipedia.org/wiki/Spyscape",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q3909790",
+      "wiki_title": "St. James Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/St._James_Theatre",
+      "wiki_lang": "en",
+      "references_count": 657,
+      "verified": true,
+      "owner": [
+        "ATG Entertainment"
+      ],
+      "architect": [
+        "Warren and Wetmore"
+      ]
+    },
+    {
+      "id": "Q14707345",
+      "wiki_title": "St. Luke's Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/St._Luke%27s_Theatre",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "tenants": [
+        "Out of the Box Theatrics"
+      ]
+    },
+    {
+      "id": "Q7596782",
+      "wiki_title": "Stage Deli",
+      "wiki_url": "https://en.wikipedia.org/wiki/Stage_Deli",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true
+    },
+    {
+      "id": "Q69968634",
+      "wiki_title": "Stavros Niarchos Foundation Library",
+      "wiki_url": "https://en.wikipedia.org/wiki/Stavros_Niarchos_Foundation_Library",
+      "wiki_lang": "en",
+      "references_count": 128,
+      "verified": true,
+      "architect": [
+        "T. Joseph Bartley",
+        "(original)",
+        "Mecanoo",
+        "(renovation)"
+      ]
+    },
+    {
+      "id": "Q7610570",
+      "wiki_title": "Stephen Sondheim Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Stephen_Sondheim_Theatre",
+      "wiki_lang": "en",
+      "references_count": 444,
+      "verified": true,
+      "operator": [
+        "Roundabout Theatre Company"
+      ]
+    },
+    {
+      "id": "Q6769881",
+      "wiki_title": "Strand Theatre (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Strand_Theatre_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true
+    },
+    {
+      "id": "Q607212",
+      "wiki_title": "Studio 54",
+      "wiki_url": "https://en.wikipedia.org/wiki/Studio_54",
+      "wiki_lang": "en",
+      "references_count": 744,
+      "verified": true,
+      "owner": [
+        "Roundabout Theatre Company"
+      ],
+      "architect": [
+        "Eugene De Rosa"
+      ]
+    },
+    {
+      "id": "Q25004498",
+      "wiki_title": "Studio 8H",
+      "wiki_url": "https://en.wikipedia.org/wiki/Studio_8H",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q116167908",
+      "wiki_title": "TSX Broadway",
+      "wiki_url": "https://en.wikipedia.org/wiki/TSX_Broadway",
+      "wiki_lang": "en",
+      "references_count": 90,
+      "verified": true,
+      "built": "2024",
+      "cost": "$2.5&nbsp;billion"
+    },
+    {
+      "id": "Q110130817",
+      "wiki_title": "The Briarcliffe",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Briarcliffe",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true,
+      "architect": [
+        "Warren and Wetmore"
+      ],
+      "floors": "13",
+      "built": "1922"
+    },
+    {
+      "id": "Q60748757",
+      "wiki_title": "The Bryant",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Bryant",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "architect": [
+        "David Chipperfield"
+      ],
+      "built": "2018"
+    },
+    {
+      "id": "Q7727475",
+      "wiki_title": "The Continental NYC",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Continental_NYC",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "architect": [
+        "Costas Kondylis"
+      ],
+      "floors": "53",
+      "built": "2011"
+    },
+    {
+      "id": "Q2671628",
+      "wiki_title": "The Epic (building)",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Epic_%28building%29",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "owner": [
+        "Fetner Properties LLC"
+      ],
+      "architect": [
+        "Schuman, Lichtenstein, Claman & Efron, FXFOWLE Architects"
+      ],
+      "floors": "58",
+      "built": "2007"
+    },
+    {
+      "id": "Q10846129",
+      "wiki_title": "The Halal Guys",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Halal_Guys",
+      "wiki_lang": "en",
+      "references_count": 49,
+      "verified": true
+    },
+    {
+      "id": "Q56085016",
+      "wiki_title": "The Iroquois New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Iroquois_New_York",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true
+    },
+    {
+      "id": "Q4642538",
+      "wiki_title": "The Knickerbocker Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Knickerbocker_Hotel",
+      "wiki_lang": "en",
+      "references_count": 337,
+      "verified": true,
+      "owner": [
+        "FelCor Lodging Trust"
+      ],
+      "architect": [
+        "Marvin & Davis (exterior)",
+        "Bruce Price (consultant)"
+      ],
+      "developer": [
+        "International Realty and Construction Company",
+        "John Jacob Astor IV"
+      ],
+      "floors": "15",
+      "height": "195 ft",
+      "built": "<!-- or",
+      "style": "Beaux Arts"
+    },
+    {
+      "id": "Q1415203",
+      "wiki_title": "The Langham, New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Langham%2C_New_York",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "owner": [
+        "Great Eagle Holdings"
+      ],
+      "architect": [
+        "Gwathmey Siegel & Associates Architects"
+      ],
+      "developer": [
+        "Bizzi & Partners Development"
+      ],
+      "floors": "57 (2 below ground)",
+      "built": "2010"
+    },
+    {
+      "id": "Q18157223",
+      "wiki_title": "Lexington Hotel (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lexington_Hotel_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 180,
+      "verified": true,
+      "owner": [
+        "MCR Hotels",
+        "Three Wall Capital",
+        "Island Capital Group"
+      ],
+      "architect": [
+        "Schultze and Weaver"
+      ],
+      "floors": "27"
+    },
+    {
+      "id": "Q7751246",
+      "wiki_title": "The Michelangelo",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Michelangelo",
+      "wiki_lang": "en",
+      "references_count": 21,
+      "verified": true,
+      "operator": [
+        "Starhotels"
+      ],
+      "architect": [
+        "H. Craig Severance"
+      ],
+      "floors": "22",
+      "height": "226 ft"
+    },
+    {
+      "id": "Q131686881",
+      "wiki_title": "The Modern (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Modern_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q1478423",
+      "wiki_title": "Morgan Library & Museum",
+      "wiki_url": "https://en.wikipedia.org/wiki/Morgan_Library_%26_Museum",
+      "wiki_lang": "en",
+      "references_count": 821,
+      "verified": true,
+      "architect": [
+        "Charles Follen McKim (main building)",
+        "Benjamin Wistar Morris (main building annex)",
+        "Isaac Newton Phelps (231 Madison Avenue)",
+        "Renzo Piano and Beyer Blinder Belle (expansion)"
+      ]
+    },
+    {
+      "id": "Q2285176",
+      "wiki_title": "The Orion (skyscraper)",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Orion_%28skyscraper%29",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "architect": [
+        "CetraRuddy"
+      ],
+      "developer": [
+        "Extell Development Company"
+      ],
+      "floors": "58"
+    },
+    {
+      "id": "Q2413390",
+      "wiki_title": "The Peninsula New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Peninsula_New_York",
+      "wiki_lang": "en",
+      "references_count": 431,
+      "verified": true,
+      "owner": [
+        "The Hongkong and Shanghai Hotels, Limited"
+      ],
+      "operator": [
+        "The Peninsula Hotels"
+      ],
+      "architect": [
+        "Hiss and Weekes"
+      ],
+      "floors": "23"
+    },
+    {
+      "id": "Q19878233",
+      "wiki_title": "The Quin",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Quin",
+      "wiki_lang": "en",
+      "references_count": 40,
+      "verified": true,
+      "architect": [
+        "Emery Roth"
+      ],
+      "floors": "17"
+    },
+    {
+      "id": "Q7761492",
+      "wiki_title": "Roosevelt Hotel (Manhattan)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Roosevelt_Hotel_%28Manhattan%29",
+      "wiki_lang": "en",
+      "references_count": 596,
+      "verified": true,
+      "owner": [
+        "Government of Pakistan"
+      ],
+      "architect": [
+        "William Stone Post; George B. Post & Sons"
+      ]
+    },
+    {
+      "id": "Q2322983",
+      "wiki_title": "St. Regis New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/St._Regis_New_York",
+      "wiki_lang": "en",
+      "references_count": 622,
+      "verified": true,
+      "owner": [
+        "Qatar Investment Authority"
+      ],
+      "operator": [
+        "Marriott International"
+      ],
+      "architect": [
+        "Trowbridge & Livingston (original building)",
+        "Sloan & Robertson (1927 addition)"
+      ],
+      "developer": [
+        "John Jacob Astor IV"
+      ],
+      "floors": "20",
+      "style": "Beaux-Arts"
+    },
+    {
+      "id": "Q30598334",
+      "wiki_title": "The Tank (theater)",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Tank_%28theater%29",
+      "wiki_lang": "en",
+      "references_count": 71,
+      "verified": true
+    },
+    {
+      "id": "Q14475911",
+      "wiki_title": "The Theater Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Theater_Center",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "owner": [
+        "Catherine Russell"
+      ]
+    },
+    {
+      "id": "Q7769405",
+      "wiki_title": "229 West 43rd Street",
+      "wiki_url": "https://en.wikipedia.org/wiki/229_West_43rd_Street",
+      "wiki_lang": "en",
+      "references_count": 391,
+      "verified": true,
+      "owner": [
+        "Columbia Property Trust (offices)",
+        "Kushner Companies (retail)"
+      ],
+      "operator": [
+        "Columbia Property Trust"
+      ],
+      "architect": [
+        "Mortimer J. Fox (original)",
+        "Ludlow and Peabody (1922 addition)",
+        "Albert Kahn (1931–1932 addition)",
+        "Shreve, Lamb & Harmon (1944–1947 addition)"
+      ],
+      "developer": [
+        "The New York Times Company"
+      ],
+      "floors": "18",
+      "built": "August 1913 (eastern section on 43rd Street)",
+      "style": "Neo-Gothic"
+    },
+    {
+      "id": "Q1634948",
+      "wiki_title": "The Town Hall (New York City)",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Town_Hall_%28New_York_City%29",
+      "wiki_lang": "en",
+      "references_count": 491,
+      "verified": true,
+      "owner": [
+        "Town Hall Foundation, Inc."
+      ],
+      "architect": [
+        "Teunis J. van der Bent of McKim, Mead & White"
+      ],
+      "built": "1919"
+    },
+    {
+      "id": "Q7774328",
+      "wiki_title": "The Westin New York Grand Central Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Westin_New_York_Grand_Central_Hotel",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "owner": [
+        "Davidson Kempner Capital Management"
+      ],
+      "operator": [
+        "HEI Hotels & Resorts"
+      ],
+      "architect": [
+        "Emery Roth & Sons"
+      ],
+      "developer": [
+        "Harry Helmsley"
+      ]
+    },
+    {
+      "id": "Q96398432",
+      "wiki_title": "Thompson Central Park New York Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Thompson_Central_Park_New_York_Hotel",
+      "wiki_lang": "en",
+      "references_count": 25,
+      "verified": true,
+      "architect": [
+        "Philip Birnbaum"
+      ],
+      "floors": "42"
+    },
+    {
+      "id": "Q17191385",
+      "wiki_title": "Tiffany & Co. flagship store",
+      "wiki_url": "https://en.wikipedia.org/wiki/Tiffany_%26_Co._flagship_store",
+      "wiki_lang": "en",
+      "references_count": 138,
+      "verified": true,
+      "owner": [
+        "Tiffany & Co."
+      ],
+      "architect": [
+        "Cross & Cross"
+      ],
+      "floors": "10",
+      "built": "1940"
+    },
+    {
+      "id": "Q7801275",
+      "wiki_title": "Tiffany and Company Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Tiffany_and_Company_Building",
+      "wiki_lang": "en",
+      "references_count": 326,
+      "verified": true,
+      "architect": [
+        "Stanford White of McKim, Mead, and White"
+      ],
+      "built": "1905"
+    },
+    {
+      "id": "Q11259",
+      "wiki_title": "Times Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/Times_Square",
+      "wiki_lang": "en",
+      "references_count": 213,
+      "verified": true
+    },
+    {
+      "id": "Q7806559",
+      "wiki_title": "Times Square Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Times_Square_Hotel",
+      "wiki_lang": "en",
+      "references_count": 241,
+      "verified": true,
+      "architect": [
+        "Gronenberg & Leuchtag"
+      ],
+      "built": "1922"
+    },
+    {
+      "id": "Q14707479",
+      "wiki_title": "Times Square Theater",
+      "wiki_url": "https://en.wikipedia.org/wiki/Times_Square_Theater",
+      "wiki_lang": "en",
+      "references_count": 398,
+      "verified": true,
+      "tenants": [
+        "New 42nd Street"
+      ],
+      "owner": [
+        "City and State of New York"
+      ],
+      "architect": [
+        "Eugene De Rosa"
+      ]
+    },
+    {
+      "id": "Q1580807",
+      "wiki_title": "Times Square Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Times_Square_Tower",
+      "wiki_lang": "en",
+      "references_count": 247,
+      "verified": true,
+      "owner": [
+        "New York City Department of Citywide Administrative Services"
+      ],
+      "operator": [
+        "Boston Properties/Norges Bank"
+      ],
+      "architect": [
+        "David Childs of Skidmore, Owings and Merrill"
+      ],
+      "developer": [
+        "Boston Properties"
+      ],
+      "floors": "48",
+      "built": "2004"
+    },
+    {
+      "id": "Q24192478",
+      "wiki_title": "Times Squared 3015",
+      "wiki_url": "https://en.wikipedia.org/wiki/Times_Squared_3015",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "floors": "321",
+      "style": "Futurism, vertical city"
+    },
+    {
+      "id": "Q11265",
+      "wiki_title": "Times Square–42nd Street station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Times_Square%E2%80%9342nd_Street_station",
+      "wiki_lang": "en",
+      "references_count": 301,
+      "verified": true
+    },
+    {
+      "id": "Q130838",
+      "wiki_title": "Today (American TV program)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Today_%28American_TV_program%29",
+      "wiki_lang": "en",
+      "references_count": 117,
+      "verified": true
+    },
+    {
+      "id": "Q4742962",
+      "wiki_title": "Todd Haimes Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Todd_Haimes_Theatre",
+      "wiki_lang": "en",
+      "references_count": 678,
+      "verified": true,
+      "owner": [
+        "City and State of New York (leased to New 42nd Street)"
+      ],
+      "operator": [
+        "Roundabout Theatre Company"
+      ],
+      "architect": [
+        "George Keister"
+      ]
+    },
+    {
+      "id": "Q1551686",
+      "wiki_title": "Tower 49",
+      "wiki_url": "https://en.wikipedia.org/wiki/Tower_49",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "architect": [
+        "Skidmore, Owings & Merrill"
+      ],
+      "floors": "45",
+      "height": "614 ft",
+      "built": "1985",
+      "style": "Modern"
+    },
+    {
+      "id": "Q65048060",
+      "wiki_title": "Tower Fifth",
+      "wiki_url": "https://en.wikipedia.org/wiki/Tower_Fifth",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "architect": [
+        "Gensler"
+      ],
+      "developer": [
+        "Harry B. Macklowe of Macklowe Properties"
+      ],
+      "floors": "96",
+      "height": "1,556 ft"
+    },
+    {
+      "id": "Q28186627",
+      "wiki_title": "Trump Parc",
+      "wiki_url": "https://en.wikipedia.org/wiki/Trump_Parc",
+      "wiki_lang": "en",
+      "references_count": 36,
+      "verified": true
+    },
+    {
+      "id": "Q868772",
+      "wiki_title": "Trump Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Trump_Tower",
+      "wiki_lang": "en",
+      "references_count": 444,
+      "verified": true,
+      "owner": [
+        "GMAC Commercial Mortgage"
+      ],
+      "current_tenants": [
+        "The Trump Organization"
+      ],
+      "architect": [
+        "Der Scutt"
+      ],
+      "developer": [
+        "Donald Trump"
+      ],
+      "floors": "58",
+      "style": "Modernist",
+      "cost": "$300 million"
+    },
+    {
+      "id": "Q7914450",
+      "wiki_title": "Vanderbilt Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Vanderbilt_Theatre",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "architect": [
+        "Eugene De Rosa"
+      ]
+    },
+    {
+      "id": "Q16986504",
+      "wiki_title": "Victoria Theatre (Hammerstein's)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Victoria_Theatre_%28Hammerstein%27s%29",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "owner": [
+        "Oscar Hammerstein I"
+      ],
+      "operator": [
+        "Oscar and William Hammerstein"
+      ],
+      "architect": [
+        "John B. McElfatrick"
+      ]
+    },
+    {
+      "id": "Q7930928",
+      "wiki_title": "Villard Houses",
+      "wiki_url": "https://en.wikipedia.org/wiki/Villard_Houses",
+      "wiki_lang": "en",
+      "references_count": 647,
+      "verified": true,
+      "architect": [
+        "Joseph Morrill Wells of McKim, Mead & White"
+      ],
+      "built": "1882–84"
+    },
+    {
+      "id": "Q685377",
+      "wiki_title": "W. R. Grace Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/W._R._Grace_Building",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "owner": [
+        "Brookfield Properties"
+      ],
+      "architect": [
+        "Gordon Bunshaft",
+        "Skidmore, Owings & Merrill"
+      ],
+      "floors": "50",
+      "built": "1972"
+    },
+    {
+      "id": "Q1123997",
+      "wiki_title": "Waldorf Astoria New York",
+      "wiki_url": "https://en.wikipedia.org/wiki/Waldorf_Astoria_New_York",
+      "wiki_lang": "en",
+      "references_count": 523,
+      "verified": true,
+      "owner": [
+        "Dajia Insurance Group Co."
+      ],
+      "operator": [
+        "Hilton Worldwide"
+      ],
+      "architect": [
+        "Schultze & Weaver"
+      ],
+      "floors": "47",
+      "height": "625 ft"
+    },
+    {
+      "id": "Q18749268",
+      "wiki_title": "Waldorf-Astoria (1893–1929)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Waldorf-Astoria_%281893%E2%80%931929%29",
+      "wiki_lang": "en",
+      "references_count": 148,
+      "verified": true,
+      "architect": [
+        "Henry Janeway Hardenbergh"
+      ],
+      "floors": "13 (Waldorf), 16 (Astoria)",
+      "style": "Renaissance Revival architecture",
+      "cost": "$4.5 million ($126 million in 2017)"
+    },
+    {
+      "id": "Q7965343",
+      "wiki_title": "Walter Kerr Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Walter_Kerr_Theatre",
+      "wiki_lang": "en",
+      "references_count": 433,
+      "verified": true,
+      "owner": [
+        "ATG Entertainment"
+      ],
+      "architect": [
+        "Herbert J. Krapp"
+      ]
+    },
+    {
+      "id": "Q7971165",
+      "wiki_title": "Warwick New York Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Warwick_New_York_Hotel",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "owner": [
+        "Warwick Hotels and Resorts"
+      ],
+      "architect": [
+        "Emery Roth, George B. Post & Sons"
+      ],
+      "developer": [
+        "William Randolph Hearst"
+      ],
+      "floors": "36",
+      "height": "110.64 m",
+      "built": "1927",
+      "style": "Renaissance revival"
+    },
+    {
+      "id": "Q7978932",
+      "wiki_title": "Webster Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Webster_Hotel",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "architect": [
+        "Tracy & Swartwout"
+      ],
+      "built": "1902"
+    },
+    {
+      "id": "Q7989720",
+      "wiki_title": "Westside Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Westside_Theatre",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "owner": [
+        "Reno Productions (Peter Askin)"
+      ]
+    },
+    {
+      "id": "Q7990338",
+      "wiki_title": "Weylin Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Weylin_Hotel",
+      "wiki_lang": "en",
+      "references_count": 24,
+      "verified": true
+    },
+    {
+      "id": "Q8024638",
+      "wiki_title": "Windsor Hotel fire",
+      "wiki_url": "https://en.wikipedia.org/wiki/Windsor_Hotel_fire",
+      "wiki_lang": "en",
+      "references_count": 31,
+      "verified": true
+    },
+    {
+      "id": "Q3569403",
+      "wiki_title": "Winter Garden Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Winter_Garden_Theatre",
+      "wiki_lang": "en",
+      "references_count": 650,
+      "verified": true,
+      "owner": [
+        "Shubert Organization"
+      ],
+      "architect": [
+        "William Albert Swasey (original theater)",
+        "Herbert J. Krapp (rebuild)"
+      ]
+    },
+    {
+      "id": "Q1755036",
+      "wiki_title": "Xenon (nightclub)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Xenon_%28nightclub%29",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true
+    },
+    {
+      "id": "Q2067115",
+      "wiki_title": "Yen Press",
+      "wiki_url": "https://en.wikipedia.org/wiki/Yen_Press",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true
+    },
+    {
+      "id": "Q198850",
+      "wiki_title": "Ziegfeld Theatre (1927)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ziegfeld_Theatre_%281927%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "owner": [
+        "Florenz Ziegfeld, Jr."
+      ],
+      "architect": [
+        "Joseph Urban and",
+        "Thomas W. Lamb"
+      ]
+    }
+  ]
+}

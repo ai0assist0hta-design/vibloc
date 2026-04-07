@@ -1,0 +1,2153 @@
+{
+  "items": [
+    {
+      "id": "Q2436941",
+      "wiki_title": "1 Cal Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/1_Cal_Plaza",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "owner": [
+        "Partnership Between Rising Realty Partners & Colony Northstar, Inc."
+      ],
+      "operator": [
+        "Rising Realty Partners"
+      ],
+      "architect": [
+        "Arthur Erickson Architects"
+      ],
+      "developer": [
+        "Metropolitan Structures West"
+      ],
+      "floors": "42",
+      "built": "1985"
+    },
+    {
+      "id": "Q2319313",
+      "wiki_title": "2Cal",
+      "wiki_url": "https://en.wikipedia.org/wiki/2Cal",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true,
+      "owner": [
+        "CIM Group"
+      ],
+      "architect": [
+        "Arthur Erickson",
+        "AC Martin Partners"
+      ],
+      "developer": [
+        "Metropolitan Structures West"
+      ],
+      "floors": "52",
+      "built": "1992"
+    },
+    {
+      "id": "Q116825210",
+      "wiki_title": "300 North Los Angeles Street Federal Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/300_North_Los_Angeles_Street_Federal_Building",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "built": "1965"
+    },
+    {
+      "id": "Q3499247",
+      "wiki_title": "611 Place",
+      "wiki_url": "https://en.wikipedia.org/wiki/611_Place",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "William L. Pereira & Associates"
+      ],
+      "developer": [
+        "Chetrit Group"
+      ],
+      "floors": "42",
+      "built": "1969",
+      "style": "Modernism"
+    },
+    {
+      "id": "Q3093639",
+      "wiki_title": "7th Street/Metro Center station",
+      "wiki_url": "https://en.wikipedia.org/wiki/7th_Street/Metro_Center_station",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "style": "Los Angeles Metro Rail"
+    },
+    {
+      "id": "Q4647173",
+      "wiki_title": "A.G. Bartlett Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/A.G._Bartlett_Building",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "architect": [
+        "John B. Parkinson",
+        "Edwin Bergstrom"
+      ],
+      "floors": "14",
+      "built": "1911"
+    },
+    {
+      "id": "Q4653612",
+      "wiki_title": "ARCO Center for Visual Art",
+      "wiki_url": "https://en.wikipedia.org/wiki/ARCO_Center_for_Visual_Art",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true
+    },
+    {
+      "id": "Q4654550",
+      "wiki_title": "AT&T Madison Complex Tandem Office",
+      "wiki_url": "https://en.wikipedia.org/wiki/AT%26T_Madison_Complex_Tandem_Office",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "owner": [
+        "AT&T"
+      ],
+      "architect": [
+        "John B. Parkinson",
+        "Donald D. Parkinson"
+      ],
+      "floors": "17",
+      "built": "1961"
+    },
+    {
+      "id": "Q4672984",
+      "wiki_title": "United Artists Theatre (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/United_Artists_Theatre_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 24,
+      "verified": true,
+      "architect": [
+        "Walker & Eisen, Charles Howard Crane"
+      ],
+      "floors": "13",
+      "cost": "$3 million"
+    },
+    {
+      "id": "Q401052",
+      "wiki_title": "Ahmanson Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ahmanson_Theatre",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "owner": [
+        "Los Angeles Music Center"
+      ],
+      "architect": [
+        "Welton Becket & Associates (1967), Ellerbe Becket (1995)"
+      ],
+      "built": "1962–1967"
+    },
+    {
+      "id": "Q4706894",
+      "wiki_title": "Alan Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Alan_Hotel",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true
+    },
+    {
+      "id": "Q55603981",
+      "wiki_title": "Angels Landing (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Angels_Landing_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "owner": [
+        "City of Los Angeles"
+      ],
+      "operator": [
+        "Handel Architects"
+      ],
+      "architect": [
+        "Handel Architects"
+      ],
+      "developer": [
+        "Angels Landing Partners LLC, Claridge Properties, The Peebles Corporation, MacFarlane Partners"
+      ],
+      "floors": "64",
+      "built": "2028",
+      "style": "Modern",
+      "cost": "$1,200 million"
+    },
+    {
+      "id": "Q607743",
+      "wiki_title": "Aon Center (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Aon_Center_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "owner": [
+        "CAROLWOOD"
+      ],
+      "architect": [
+        "Charles Luckman"
+      ],
+      "floors": "67",
+      "built": "1973"
+    },
+    {
+      "id": "Q128567528",
+      "wiki_title": "Arcade Theatre",
+      "wiki_url": "https://en.wikipedia.org/wiki/Arcade_Theatre",
+      "wiki_lang": "en",
+      "references_count": 16,
+      "verified": true,
+      "architect": [
+        "Morgan and Walls"
+      ],
+      "built": "1910"
+    },
+    {
+      "id": "Q806671",
+      "wiki_title": "Bank of America Plaza (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bank_of_America_Plaza_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "owner": [
+        "Brookfield Properties"
+      ],
+      "operator": [
+        "Brookfield Properties"
+      ],
+      "architect": [
+        "Albert C. Martin & Associates",
+        "Peter Walker & Partners"
+      ],
+      "floors": "55",
+      "built": "1974"
+    },
+    {
+      "id": "Q131340354",
+      "wiki_title": "Barker Brothers Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Barker_Brothers_Building",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "architect": [
+        "Robert Brown Young"
+      ],
+      "built": "1909"
+    },
+    {
+      "id": "Q124466144",
+      "wiki_title": "Belasco Theater (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Belasco_Theater_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true,
+      "operator": [
+        "Live Nation"
+      ],
+      "architect": [
+        "Morgan, Walls & Clements"
+      ]
+    },
+    {
+      "id": "Q17509167",
+      "wiki_title": "Bell Block (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bell_Block_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true
+    },
+    {
+      "id": "Q4883373",
+      "wiki_title": "Bella Union Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bella_Union_Hotel",
+      "wiki_lang": "en",
+      "references_count": 51,
+      "verified": true,
+      "architect": [
+        "William Wolfskill, Joseph Paulding and Richard Laughlin"
+      ],
+      "built": "1835"
+    },
+    {
+      "id": "Q16971747",
+      "wiki_title": "Bottega Louie",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bottega_Louie",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true
+    },
+    {
+      "id": "Q495106",
+      "wiki_title": "Bradbury Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bradbury_Building",
+      "wiki_lang": "en",
+      "references_count": 69,
+      "verified": true,
+      "architect": [
+        "Sumner Hunt, George Wyman"
+      ],
+      "built": "1893"
+    },
+    {
+      "id": "Q131388801",
+      "wiki_title": "Braun Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Braun_Building",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "architect": [
+        "Walter Jesse Saunders"
+      ],
+      "built": "1913"
+    },
+    {
+      "id": "Q4972401",
+      "wiki_title": "Broadway-Spring Arcade",
+      "wiki_url": "https://en.wikipedia.org/wiki/Broadway-Spring_Arcade",
+      "wiki_lang": "en",
+      "references_count": 44,
+      "verified": true,
+      "architect": [
+        "Kenneth A. MacDonald Jr.",
+        "Maurice C. Couchot"
+      ],
+      "built": "1924"
+    },
+    {
+      "id": "Q131437958",
+      "wiki_title": "Broadway Leasehold Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Broadway_Leasehold_Building",
+      "wiki_lang": "en",
+      "references_count": 28,
+      "verified": true,
+      "architect": [
+        "Unknown or Meyer & Holler or an employee of theirs"
+      ],
+      "built": "1914"
+    },
+    {
+      "id": "Q131375102",
+      "wiki_title": "Broadway Mart Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Broadway_Mart_Center",
+      "wiki_lang": "en",
+      "references_count": 31,
+      "verified": true,
+      "architect": [
+        "Parkinson and Bergstrom"
+      ],
+      "built": "1913-1915"
+    },
+    {
+      "id": "Q4972516",
+      "wiki_title": "Broadway Theater District (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Broadway_Theater_District_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 127,
+      "verified": true,
+      "architect": [
+        "Multiple"
+      ]
+    },
+    {
+      "id": "Q4972846",
+      "wiki_title": "Brockman Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Brockman_Building",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "architect": [
+        "Barnett, Haynes & Barnett"
+      ],
+      "built": "1912"
+    },
+    {
+      "id": "Q20639518",
+      "wiki_title": "Bumiller Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bumiller_Building",
+      "wiki_lang": "en",
+      "references_count": 30,
+      "verified": true,
+      "architect": [
+        "Morgan & Walls"
+      ],
+      "built": "1906"
+    },
+    {
+      "id": "Q25831308",
+      "wiki_title": "California Mart",
+      "wiki_url": "https://en.wikipedia.org/wiki/California_Mart",
+      "wiki_lang": "en",
+      "references_count": 20,
+      "verified": true,
+      "owner": [
+        "David Lee"
+      ],
+      "architect": [
+        "Norma Merrick Sklarek"
+      ],
+      "floors": "13",
+      "built": "1963; 1965; 1979"
+    },
+    {
+      "id": "Q104867713",
+      "wiki_title": "California State Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/California_State_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q5024011",
+      "wiki_title": "Caltrans District 7 Headquarters",
+      "wiki_url": "https://en.wikipedia.org/wiki/Caltrans_District_7_Headquarters",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true
+    },
+    {
+      "id": "Q24693626",
+      "wiki_title": "Catalina Swimwear Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Catalina_Swimwear_Building",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "architect": [
+        "William Douglas Lee"
+      ],
+      "floors": "6",
+      "built": "1923",
+      "style": "Neoclassical architecture"
+    },
+    {
+      "id": "Q5052376",
+      "wiki_title": "Cathedral of Saint Vibiana",
+      "wiki_url": "https://en.wikipedia.org/wiki/Cathedral_of_Saint_Vibiana",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "architect": [
+        "Kysor & Mathews"
+      ],
+      "built": "1876"
+    },
+    {
+      "id": "Q5161852",
+      "wiki_title": "Cecil Hotel (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Cecil_Hotel_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 57,
+      "verified": true,
+      "owner": [
+        "Richard Born"
+      ],
+      "operator": [
+        "Skid Row Housing Trust"
+      ],
+      "architect": [
+        "Loy Lester Smith"
+      ],
+      "developer": [
+        "Simon Barron Developments"
+      ],
+      "floors": "14 above ground; 1 basement level; 1 mezzanine"
+    },
+    {
+      "id": "Q131411945",
+      "wiki_title": "Chapman Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Chapman_Building",
+      "wiki_lang": "en",
+      "references_count": 20,
+      "verified": true,
+      "architect": [
+        "Ernest McConnell"
+      ],
+      "built": "1911-1913"
+    },
+    {
+      "id": "Q131412141",
+      "wiki_title": "Cheney Block",
+      "wiki_url": "https://en.wikipedia.org/wiki/Cheney_Block",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "architect": [
+        "S. Charles Lee (1940s)"
+      ],
+      "built": "1913, 1940s"
+    },
+    {
+      "id": "Q131353995",
+      "wiki_title": "Chester Williams Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Chester_Williams_Building",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "architect": [
+        "Curlett & Beelman"
+      ],
+      "built": "1926"
+    },
+    {
+      "id": "Q3498921",
+      "wiki_title": "FourFortyFour South Flower",
+      "wiki_url": "https://en.wikipedia.org/wiki/FourFortyFour_South_Flower",
+      "wiki_lang": "en",
+      "references_count": 22,
+      "verified": true,
+      "owner": [
+        "Coretrust Capital Partners"
+      ],
+      "operator": [
+        "Coretrust Management, LP"
+      ],
+      "architect": [
+        "Albert C. Martin & Associates"
+      ],
+      "developer": [
+        "Rockefeller Group"
+      ],
+      "floors": "48",
+      "built": "1981"
+    },
+    {
+      "id": "Q5919757",
+      "wiki_title": "Civic Center/Grand Park station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Civic_Center/Grand_Park_station",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "style": "Los Angeles Metro Rail"
+    },
+    {
+      "id": "Q5126044",
+      "wiki_title": "Clara Shortridge Foltz Criminal Justice Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Clara_Shortridge_Foltz_Criminal_Justice_Center",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "architect": [
+        "Adrian Wilson Associates"
+      ],
+      "floors": "20",
+      "built": "1972",
+      "cost": "$33.7 million"
+    },
+    {
+      "id": "Q130140",
+      "wiki_title": "Colburn School",
+      "wiki_url": "https://en.wikipedia.org/wiki/Colburn_School",
+      "wiki_lang": "en",
+      "references_count": 39,
+      "verified": true
+    },
+    {
+      "id": "Q5142607",
+      "wiki_title": "Cole's Pacific Electric Buffet",
+      "wiki_url": "https://en.wikipedia.org/wiki/Cole%27s_Pacific_Electric_Buffet",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true
+    },
+    {
+      "id": "Q5152491",
+      "wiki_title": "Commercial Exchange Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Commercial_Exchange_Building",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "owner": [
+        "Sydell Group"
+      ],
+      "architect": [
+        "Walker and Eisen"
+      ],
+      "built": "1924"
+    },
+    {
+      "id": "Q5165256",
+      "wiki_title": "Continental Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Continental_Building",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "owner": [
+        "Old Financial District LP"
+      ],
+      "architect": [
+        "John Parkinson",
+        "George Edwin Bergstrom",
+        "Killefer Flammang Architects"
+      ],
+      "floors": "13",
+      "built": "1903"
+    },
+    {
+      "id": "Q55106502",
+      "wiki_title": "Crystal Theatre (Los Angeles, California)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Crystal_Theatre_%28Los_Angeles%2C_California%29",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true
+    },
+    {
+      "id": "Q131388729",
+      "wiki_title": "Desmond's Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Desmond%27s_Building",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "architect": [
+        "Albert C. Martin Sr."
+      ],
+      "built": "1924"
+    },
+    {
+      "id": "Q18149436",
+      "wiki_title": "Don Abel Stearns House",
+      "wiki_url": "https://en.wikipedia.org/wiki/Don_Abel_Stearns_House",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q5299633",
+      "wiki_title": "DoubleTree by Hilton Hotel Los Angeles Downtown",
+      "wiki_url": "https://en.wikipedia.org/wiki/DoubleTree_by_Hilton_Hotel_Los_Angeles_Downtown",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "owner": [
+        "Han’s Group USA"
+      ],
+      "operator": [
+        "Aimbridge Hospitality"
+      ],
+      "architect": [
+        "Hayahiko Takase"
+      ],
+      "developer": [
+        "Kajima Corporation"
+      ],
+      "floors": "21"
+    },
+    {
+      "id": "Q7730804",
+      "wiki_title": "Downtown Independent",
+      "wiki_url": "https://en.wikipedia.org/wiki/Downtown_Independent",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "architect": [
+        "John E. Kunst (1924)",
+        "Hodgetts + Fung (2007)"
+      ],
+      "built": "October 1924"
+    },
+    {
+      "id": "Q71842",
+      "wiki_title": "Eastern Columbia Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Eastern_Columbia_Building",
+      "wiki_lang": "en",
+      "references_count": 73,
+      "verified": true,
+      "architect": [
+        "Claud Beelman"
+      ],
+      "built": "1930"
+    },
+    {
+      "id": "Q5377700",
+      "wiki_title": "Engine Company No. 28",
+      "wiki_url": "https://en.wikipedia.org/wiki/Engine_Company_No._28",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "architect": [
+        "J.P. Krempel, W.E. Erkes"
+      ],
+      "built": "1912"
+    },
+    {
+      "id": "Q131388668",
+      "wiki_title": "F. and W. Grand Silver Store Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/F._and_W._Grand_Silver_Store_Building",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "architect": [
+        "Walker & Eisen"
+      ],
+      "built": "1931"
+    },
+    {
+      "id": "Q5435822",
+      "wiki_title": "Farmers and Merchants Bank of Los Angeles",
+      "wiki_url": "https://en.wikipedia.org/wiki/Farmers_and_Merchants_Bank_of_Los_Angeles",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q131400082",
+      "wiki_title": "Fifth Street Store Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Fifth_Street_Store_Building",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "architect": [
+        "Alexander Curlett"
+      ],
+      "built": "1927"
+    },
+    {
+      "id": "Q2438968",
+      "wiki_title": "Figueroa at Wilshire",
+      "wiki_url": "https://en.wikipedia.org/wiki/Figueroa_at_Wilshire",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "owner": [
+        "Brookfield Properties"
+      ],
+      "architect": [
+        "Albert C. Martin & Associates"
+      ],
+      "developer": [
+        "Hines Interests Limited Partnership"
+      ],
+      "floors": "53",
+      "built": "1990",
+      "style": "Postmodernism"
+    },
+    {
+      "id": "Q5450044",
+      "wiki_title": "Fine Arts Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Fine_Arts_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "architect": [
+        "Walker & Eisen"
+      ],
+      "built": "1927"
+    },
+    {
+      "id": "Q5451467",
+      "wiki_title": "Fire Station No. 23 (Los Angeles, California)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Fire_Station_No._23_%28Los_Angeles%2C_California%29",
+      "wiki_lang": "en",
+      "references_count": 57,
+      "verified": true,
+      "architect": [
+        "Hudson and Munsell"
+      ],
+      "built": "1910"
+    },
+    {
+      "id": "Q114658159",
+      "wiki_title": "Fletcher Bowron Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/Fletcher_Bowron_Square",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q134981291",
+      "wiki_title": "Follies Theater",
+      "wiki_url": "https://en.wikipedia.org/wiki/Follies_Theater",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "architect": [
+        "Abram M. Edelman (1904)",
+        "S. Charles Lee (1930s)"
+      ],
+      "built": "1904"
+    },
+    {
+      "id": "Q39046597",
+      "wiki_title": "Foreman & Clark Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Foreman_%26_Clark_Building",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "owner": [
+        "Bonnis Properties"
+      ],
+      "floors": "13",
+      "built": "1929"
+    },
+    {
+      "id": "Q131388805",
+      "wiki_title": "Forrester Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Forrester_Building",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "architect": [
+        "Charles Frederick Whittlesey"
+      ],
+      "built": "1907"
+    },
+    {
+      "id": "Q131354027",
+      "wiki_title": "Forve-Pettebone Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Forve-Pettebone_Building",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "architect": [
+        "Robert Brown Young"
+      ],
+      "built": "1905"
+    },
+    {
+      "id": "Q14681990",
+      "wiki_title": "Fremont Hotel, Los Angeles",
+      "wiki_url": "https://en.wikipedia.org/wiki/Fremont_Hotel%2C_Los_Angeles",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true
+    },
+    {
+      "id": "Q5523054",
+      "wiki_title": "Garfield Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Garfield_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "architect": [
+        "Claud Beelman"
+      ]
+    },
+    {
+      "id": "Q24041308",
+      "wiki_title": "Garment Capitol Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Garment_Capitol_Building",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "architect": [
+        "William Douglas Lee"
+      ],
+      "built": "1926"
+    },
+    {
+      "id": "Q2424258",
+      "wiki_title": "Gas Company Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gas_Company_Tower",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "owner": [
+        "Brookfield Properties Inc."
+      ],
+      "architect": [
+        "Richard Keating",
+        "Skidmore, Owings and Merrill"
+      ],
+      "developer": [
+        "Thomas Properties Group",
+        "Maguire Properties"
+      ],
+      "floors": "52",
+      "built": "1991"
+    },
+    {
+      "id": "Q5532093",
+      "wiki_title": "General Petroleum Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/General_Petroleum_Building",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true,
+      "architect": [
+        "Wurdeman and Becket"
+      ],
+      "built": "1947-1949"
+    },
+    {
+      "id": "Q21593056",
+      "wiki_title": "Bank of Italy Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Bank_of_Italy_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "owner": [
+        "Sydell Group"
+      ],
+      "architect": [
+        "Morgan, Walls & Clements"
+      ],
+      "floors": "12",
+      "built": "1922",
+      "style": "Neoclassical",
+      "cost": "$34,000,000"
+    },
+    {
+      "id": "Q130610265",
+      "wiki_title": "Globe Theatre (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Globe_Theatre_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Morgan, Walls & Morgan"
+      ],
+      "built": "1913"
+    },
+    {
+      "id": "Q136955229",
+      "wiki_title": "Grand Central Market",
+      "wiki_url": "https://en.wikipedia.org/wiki/Grand_Central_Market",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true
+    },
+    {
+      "id": "Q104640890",
+      "wiki_title": "Hall of Justice (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hall_of_Justice_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "architect": [
+        "Allied Architects Association"
+      ],
+      "built": "1925",
+      "style": "Beaux-Arts"
+    },
+    {
+      "id": "Q15223406",
+      "wiki_title": "Hazard's Pavilion",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hazard%27s_Pavilion",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true
+    },
+    {
+      "id": "Q18755114",
+      "wiki_title": "Herman W. Hellman Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Herman_W._Hellman_Building",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true
+    },
+    {
+      "id": "Q14682238",
+      "wiki_title": "Higgins Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Higgins_Building",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "owner": [
+        "Thomas Higgins (1910)"
+      ],
+      "architect": [
+        "Albert C. Martin, Sr.",
+        "A.L. Haley"
+      ],
+      "floors": "10",
+      "built": "1910",
+      "style": "Beaux-Arts"
+    },
+    {
+      "id": "Q4147619",
+      "wiki_title": "Historic Core, Los Angeles",
+      "wiki_url": "https://en.wikipedia.org/wiki/Historic_Core%2C_Los_Angeles",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q5890125",
+      "wiki_title": "Homer Laughlin Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Homer_Laughlin_Building",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true,
+      "architect": [
+        "John B. Parkinson (1897)",
+        "Thornton Fitzhugh or Harrison Albright (1905 addition)"
+      ],
+      "built": "1897, 1905"
+    },
+    {
+      "id": "Q5911174",
+      "wiki_title": "Hotel Alexandria",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Alexandria",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "architect": [
+        "John B. Parkinson (original building), Parkinson & Bergstrom (1911 addition)"
+      ],
+      "developer": [
+        "Bilicke-Rowan Company"
+      ],
+      "floors": "12"
+    },
+    {
+      "id": "Q21593065",
+      "wiki_title": "Hotel Clark",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Clark",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "owner": [
+        "Chetrit Group"
+      ],
+      "floors": "9",
+      "built": "1914"
+    },
+    {
+      "id": "Q18148849",
+      "wiki_title": "Hotel Rosslyn Annex",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hotel_Rosslyn_Annex",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "architect": [
+        "Parkinson & Parkinson, George Edwin Bergstrom"
+      ],
+      "built": "1923"
+    },
+    {
+      "id": "Q131367371",
+      "wiki_title": "Hubert-Thom McAn Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Hubert-Thom_McAn_Building",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "architect": [
+        "John B. Parkinson"
+      ],
+      "built": "1900"
+    },
+    {
+      "id": "Q6052845",
+      "wiki_title": "International Savings & Exchange Bank Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/International_Savings_%26_Exchange_Bank_Building",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "architect": [
+        "H. Alban Reaves"
+      ],
+      "floors": "10",
+      "built": "1907",
+      "style": "Renaissance Revival/Italianate"
+    },
+    {
+      "id": "Q131394655",
+      "wiki_title": "Issacs Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Issacs_Building",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "built": "1913"
+    },
+    {
+      "id": "Q131340526",
+      "wiki_title": "J. E. Carr Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/J._E._Carr_Building",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "architect": [
+        "Robert Brown Young"
+      ],
+      "built": "1908"
+    },
+    {
+      "id": "Q14682503",
+      "wiki_title": "James Oviatt Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/James_Oviatt_Building",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "architect": [
+        "Walker & Eisen; Feil & Paradise"
+      ],
+      "built": "1927–1928"
+    },
+    {
+      "id": "Q131353984",
+      "wiki_title": "Jewelry Trades Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Jewelry_Trades_Building",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "architect": [
+        "Morgan, Walls & Morgan"
+      ],
+      "built": "1912"
+    },
+    {
+      "id": "Q131314595",
+      "wiki_title": "Judson-Rives Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Judson-Rives_Building",
+      "wiki_lang": "en",
+      "references_count": 23,
+      "verified": true,
+      "architect": [
+        "Charles Ronald Aldrich"
+      ],
+      "built": "1906"
+    },
+    {
+      "id": "Q131345289",
+      "wiki_title": "Karl's Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Karl%27s_Building",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Abram M. Edelman"
+      ],
+      "built": "1903"
+    },
+    {
+      "id": "Q15235540",
+      "wiki_title": "Kenneth Hahn Hall of Administration",
+      "wiki_url": "https://en.wikipedia.org/wiki/Kenneth_Hahn_Hall_of_Administration",
+      "wiki_lang": "en",
+      "references_count": 17,
+      "verified": true,
+      "owner": [
+        "County of Los Angeles"
+      ],
+      "operator": [
+        "County of Los Angeles"
+      ],
+      "architect": [
+        "Paul R. Williams, Adrian Wilson, Austin, Field & Fry, Stanton & Stockwell"
+      ],
+      "floors": "10",
+      "built": "1960"
+    },
+    {
+      "id": "Q6457196",
+      "wiki_title": "LA Plaza de Cultura y Artes",
+      "wiki_url": "https://en.wikipedia.org/wiki/LA_Plaza_de_Cultura_y_Artes",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true
+    },
+    {
+      "id": "Q131378751",
+      "wiki_title": "Lerners Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Lerners_Building",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "architect": [
+        "Philip Barker"
+      ],
+      "built": "1931"
+    },
+    {
+      "id": "Q6681987",
+      "wiki_title": "Los Angeles Board of Trade Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Los_Angeles_Board_of_Trade_Building",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "architect": [
+        "Claud Beelman and Alexander Curlett"
+      ],
+      "built": "1929"
+    },
+    {
+      "id": "Q27676389",
+      "wiki_title": "Los Angeles Central Library",
+      "wiki_url": "https://en.wikipedia.org/wiki/Los_Angeles_Central_Library",
+      "wiki_lang": "en",
+      "references_count": 55,
+      "verified": true,
+      "architect": [
+        "Bertram Grosvenor Goodhue"
+      ],
+      "built": "1925"
+    },
+    {
+      "id": "Q368489",
+      "wiki_title": "Los Angeles City Hall",
+      "wiki_url": "https://en.wikipedia.org/wiki/Los_Angeles_City_Hall",
+      "wiki_lang": "en",
+      "references_count": 30,
+      "verified": true,
+      "owner": [
+        "City of Los Angeles"
+      ],
+      "operator": [
+        "City of Los Angeles"
+      ],
+      "architect": [
+        "Austin, Parkinson and Martin"
+      ],
+      "floors": "32",
+      "built": "1928",
+      "style": "Art Deco"
+    },
+    {
+      "id": "Q134889573",
+      "wiki_title": "Los Angeles County Hall of Records (1911)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Los_Angeles_County_Hall_of_Records_%281911%29",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "floors": "12",
+      "built": "1911",
+      "cost": "$1.5 million"
+    },
+    {
+      "id": "Q6682088",
+      "wiki_title": "Los Angeles County Hall of Records",
+      "wiki_url": "https://en.wikipedia.org/wiki/Los_Angeles_County_Hall_of_Records",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "owner": [
+        "County of Los Angeles"
+      ],
+      "architect": [
+        "Richard Neutra",
+        "Robert Alexander"
+      ],
+      "built": "1962",
+      "style": "Modernist",
+      "cost": "13.7 million 1961 USD"
+    },
+    {
+      "id": "Q99214713",
+      "wiki_title": "Los Angeles Mall",
+      "wiki_url": "https://en.wikipedia.org/wiki/Los_Angeles_Mall",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q981112",
+      "wiki_title": "Los Angeles Music Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Los_Angeles_Music_Center",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q30624966",
+      "wiki_title": "Los Angeles Stock Exchange Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Los_Angeles_Stock_Exchange_Building",
+      "wiki_lang": "en",
+      "references_count": 29,
+      "verified": true,
+      "floors": "12",
+      "height": "177.5 ft",
+      "built": "1931",
+      "style": "Moderne",
+      "cost": "$1.75 million"
+    },
+    {
+      "id": "Q6714910",
+      "wiki_title": "MCI Center (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/MCI_Center_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "owner": [
+        "Ratkovich Co."
+      ],
+      "architect": [
+        "The Luckman Partnership"
+      ],
+      "floors": "33",
+      "built": "1973",
+      "style": "International style"
+    },
+    {
+      "id": "Q131405350",
+      "wiki_title": "Mailing's Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Mailing%27s_Building",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "architect": [
+        "S. Charles Lee"
+      ],
+      "built": "1930"
+    },
+    {
+      "id": "Q18755117",
+      "wiki_title": "Majestic Theatre (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Majestic_Theatre_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 19,
+      "verified": true,
+      "architect": [
+        "Edelman & Barnett"
+      ]
+    },
+    {
+      "id": "Q1900454",
+      "wiki_title": "Mark Taper Forum",
+      "wiki_url": "https://en.wikipedia.org/wiki/Mark_Taper_Forum",
+      "wiki_lang": "en",
+      "references_count": 20,
+      "verified": true,
+      "owner": [
+        "Los Angeles Music Center"
+      ],
+      "operator": [
+        "The Music Center"
+      ],
+      "architect": [
+        "Welton Becket & Associates (1967), Rios Clementi Hale Studios (2008)"
+      ],
+      "built": "1964–1967"
+    },
+    {
+      "id": "Q18154187",
+      "wiki_title": "May Company Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/May_Company_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 51,
+      "verified": true,
+      "architect": [
+        "Alfred F. Rosenheim"
+      ],
+      "built": "1906"
+    },
+    {
+      "id": "Q33084547",
+      "wiki_title": "Merritt Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Merritt_Building",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "architect": [
+        "Reid & Reid"
+      ],
+      "built": "1915"
+    },
+    {
+      "id": "Q131340626",
+      "wiki_title": "Nelson Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Nelson_Building",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "architect": [
+        "Frank Van Trees",
+        "John Parkinson"
+      ],
+      "built": "1897"
+    },
+    {
+      "id": "Q7028252",
+      "wiki_title": "Nickel Diner",
+      "wiki_url": "https://en.wikipedia.org/wiki/Nickel_Diner",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q131405347",
+      "wiki_title": "Ninth and Broadway Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Ninth_and_Broadway_Building",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "architect": [
+        "Claude Beelman"
+      ],
+      "built": "1929"
+    },
+    {
+      "id": "Q131325089",
+      "wiki_title": "Norton Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Norton_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "architect": [
+        "Parkinson and Bergstrom"
+      ],
+      "built": "1906"
+    },
+    {
+      "id": "Q131437682",
+      "wiki_title": "O. T. Johnson Block",
+      "wiki_url": "https://en.wikipedia.org/wiki/O._T._Johnson_Block",
+      "wiki_lang": "en",
+      "references_count": 13,
+      "verified": true,
+      "architect": [
+        "Robert Brown Young"
+      ],
+      "built": "1895"
+    },
+    {
+      "id": "Q131425654",
+      "wiki_title": "O. T. Johnson Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/O._T._Johnson_Building",
+      "wiki_lang": "en",
+      "references_count": 22,
+      "verified": true,
+      "architect": [
+        "John B. Parkinson"
+      ],
+      "built": "1902"
+    },
+    {
+      "id": "Q122451824",
+      "wiki_title": "Olympic and Hill",
+      "wiki_url": "https://en.wikipedia.org/wiki/Olympic_and_Hill",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "owner": [
+        "Onni Group"
+      ],
+      "operator": [
+        "Onni Group"
+      ],
+      "architect": [
+        "Chris Dikeakos Architects / IBI Group"
+      ],
+      "developer": [
+        "IBI Group"
+      ],
+      "floors": "54",
+      "built": "2025",
+      "style": "Modern"
+    },
+    {
+      "id": "Q21540371",
+      "wiki_title": "One Wilshire",
+      "wiki_url": "https://en.wikipedia.org/wiki/One_Wilshire",
+      "wiki_lang": "en",
+      "references_count": 92,
+      "verified": true,
+      "owner": [
+        "GI Partners"
+      ],
+      "developer": [
+        "S. Jon Kreedman & Company"
+      ],
+      "floors": "30"
+    },
+    {
+      "id": "Q2491086",
+      "wiki_title": "Orpheum Theatre (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Orpheum_Theatre_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "owner": [
+        "Anjac Fashion Buildings"
+      ],
+      "architect": [
+        "G. Albert Lansburgh"
+      ]
+    },
+    {
+      "id": "Q115857591",
+      "wiki_title": "Orsa & Winston",
+      "wiki_url": "https://en.wikipedia.org/wiki/Orsa_%26_Winston",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true
+    },
+    {
+      "id": "Q7122437",
+      "wiki_title": "Pacific Electric Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Pacific_Electric_Building",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "operator": [
+        "Pacific Electric (1905–1958)Los Angeles Metropolitan Transit Authority (1958–1961)"
+      ],
+      "style": "Pacific Electric"
+    },
+    {
+      "id": "Q7128028",
+      "wiki_title": "Palm Court (Alexandria Hotel)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Palm_Court_%28Alexandria_Hotel%29",
+      "wiki_lang": "en",
+      "references_count": 65,
+      "verified": true
+    },
+    {
+      "id": "Q7135374",
+      "wiki_title": "Paramount Theatre (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Paramount_Theatre_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 20,
+      "verified": true,
+      "architect": [
+        "George Edwin Bergstrom",
+        "William Lee Woollett"
+      ],
+      "built": "1921–1923"
+    },
+    {
+      "id": "Q7137668",
+      "wiki_title": "Park Central Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Park_Central_Building",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "architect": [
+        "John C. Austin"
+      ],
+      "floors": "14",
+      "built": "1916"
+    },
+    {
+      "id": "Q7138288",
+      "wiki_title": "Parker Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Parker_Center",
+      "wiki_lang": "en",
+      "references_count": 33,
+      "verified": true,
+      "owner": [
+        "Los Angeles Police Department"
+      ],
+      "architect": [
+        "Welton Becket",
+        "J. E. Stanton"
+      ],
+      "floors": "8",
+      "built": "1955",
+      "style": "International Style",
+      "cost": "$6,142,548"
+    },
+    {
+      "id": "Q131378636",
+      "wiki_title": "Parmelee Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Parmelee_Building",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "architect": [
+        "Parkinson and Bergstrom"
+      ],
+      "built": "1907"
+    },
+    {
+      "id": "Q121189647",
+      "wiki_title": "Patina (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Patina_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q5919683",
+      "wiki_title": "Pershing Square station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Pershing_Square_station",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "style": "Los Angeles Metro Rail"
+    },
+    {
+      "id": "Q106517921",
+      "wiki_title": "Plaza House",
+      "wiki_url": "https://en.wikipedia.org/wiki/Plaza_House",
+      "wiki_lang": "en",
+      "references_count": 21,
+      "verified": true
+    },
+    {
+      "id": "Q115803173",
+      "wiki_title": "Q Sushi",
+      "wiki_url": "https://en.wikipedia.org/wiki/Q_Sushi",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q7276303",
+      "wiki_title": "REDCAT",
+      "wiki_url": "https://en.wikipedia.org/wiki/REDCAT",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true,
+      "architect": [
+        "Frank Gehry"
+      ]
+    },
+    {
+      "id": "Q126366739",
+      "wiki_title": "Remick Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Remick_Building",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "architect": [
+        "Abram M. Edelman"
+      ],
+      "built": "1902"
+    },
+    {
+      "id": "Q136667861",
+      "wiki_title": "Restaurant Ki",
+      "wiki_url": "https://en.wikipedia.org/wiki/Restaurant_Ki",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q7330440",
+      "wiki_title": "Richfield Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Richfield_Tower",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Stiles O. Clements"
+      ],
+      "floors": "12",
+      "height": "372 ft",
+      "built": "1929",
+      "style": "Art Deco",
+      "cost": "$1,750,000"
+    },
+    {
+      "id": "Q134503332",
+      "wiki_title": "Roeder Blocks",
+      "wiki_url": "https://en.wikipedia.org/wiki/Roeder_Blocks",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true,
+      "owner": [
+        "Louis Roeder"
+      ]
+    },
+    {
+      "id": "Q17492579",
+      "wiki_title": "Round House (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Round_House_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 14,
+      "verified": true
+    },
+    {
+      "id": "Q7413864",
+      "wiki_title": "San Fernando Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/San_Fernando_Building",
+      "wiki_lang": "en",
+      "references_count": 26,
+      "verified": true,
+      "architect": [
+        "Blee, John F., et al."
+      ],
+      "built": "1906"
+    },
+    {
+      "id": "Q131388745",
+      "wiki_title": "Schaber's Cafeteria Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Schaber%27s_Cafeteria_Building",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "architect": [
+        "Charles F. Plummer"
+      ],
+      "built": "1928"
+    },
+    {
+      "id": "Q131384778",
+      "wiki_title": "Schulte United Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Schulte_United_Building",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "built": "1928"
+    },
+    {
+      "id": "Q7444950",
+      "wiki_title": "Security Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Security_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "operator": [
+        "Simpson Property Group"
+      ],
+      "architect": [
+        "John Parkinson and Bergstrom",
+        "Killefer Flammang Architects"
+      ],
+      "floors": "12",
+      "built": "1906"
+    },
+    {
+      "id": "Q115802807",
+      "wiki_title": "Shibumi (restaurant)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shibumi_%28restaurant%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q131374988",
+      "wiki_title": "Silverwood's Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Silverwood%27s_Building",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Walker & Eisen"
+      ],
+      "built": "1920"
+    },
+    {
+      "id": "Q131309881",
+      "wiki_title": "Singer Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Singer_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Meyer & Holler"
+      ],
+      "built": "1922"
+    },
+    {
+      "id": "Q7568169",
+      "wiki_title": "South Park Lofts",
+      "wiki_url": "https://en.wikipedia.org/wiki/South_Park_Lofts",
+      "wiki_lang": "en",
+      "references_count": 16,
+      "verified": true,
+      "architect": [
+        "Curlett, Aleck; Beelman, Claud"
+      ],
+      "built": "1924"
+    },
+    {
+      "id": "Q7580685",
+      "wiki_title": "Spring Street (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Spring_Street_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 73,
+      "verified": true,
+      "architect": [
+        "Morgan, Walls & Morgan; Parkinson, John"
+      ],
+      "built": "1902"
+    },
+    {
+      "id": "Q104867813",
+      "wiki_title": "Stanley Mosk Courthouse",
+      "wiki_url": "https://en.wikipedia.org/wiki/Stanley_Mosk_Courthouse",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "current_tenants": [
+        "Los Angeles County Superior Court"
+      ],
+      "floors": "6",
+      "height": "80 ft",
+      "built": "1958",
+      "style": "Late Moderne"
+    },
+    {
+      "id": "Q18751125",
+      "wiki_title": "Star Apartments",
+      "wiki_url": "https://en.wikipedia.org/wiki/Star_Apartments",
+      "wiki_lang": "en",
+      "references_count": 28,
+      "verified": true,
+      "owner": [
+        "Skid Row Housing Trust"
+      ],
+      "floors": "6",
+      "cost": "US$40 million"
+    },
+    {
+      "id": "Q7632491",
+      "wiki_title": "Subway Terminal Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Subway_Terminal_Building",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "style": "Pacific Electric"
+    },
+    {
+      "id": "Q115806531",
+      "wiki_title": "Sushi Kaneyoshi",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sushi_Kaneyoshi",
+      "wiki_lang": "en",
+      "references_count": 11,
+      "verified": true
+    },
+    {
+      "id": "Q131345254",
+      "wiki_title": "Swelldom Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Swelldom_Building",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Davis & Davis",
+        "Henry F. Withey"
+      ],
+      "built": "1920"
+    },
+    {
+      "id": "Q7708453",
+      "wiki_title": "Textile Center Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Textile_Center_Building",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "architect": [
+        "William Douglas Lee"
+      ],
+      "built": "1926"
+    },
+    {
+      "id": "Q3857987",
+      "wiki_title": "The Biltmore Los Angeles",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Biltmore_Los_Angeles",
+      "wiki_lang": "en",
+      "references_count": 27,
+      "verified": true,
+      "owner": [
+        "Millennium & Copthorne Hotels"
+      ],
+      "architect": [
+        "Schultze and Weaver"
+      ],
+      "developer": [
+        "Biltmore Hotels with John McEntee Bowman"
+      ]
+    },
+    {
+      "id": "Q30589535",
+      "wiki_title": "The Bloc",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Bloc",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "owner": [
+        "National Real Estate Advisors (major shareholder)",
+        "Sun Hung Kai Properties (minority shareholder)"
+      ],
+      "developer": [
+        "Ogden Development"
+      ]
+    },
+    {
+      "id": "Q7643550",
+      "wiki_title": "The Delphi Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/The_Delphi_Hotel",
+      "wiki_lang": "en",
+      "references_count": 45,
+      "verified": true,
+      "architect": [
+        "Beelman, Claud; Simpson, William"
+      ],
+      "built": "1955–1956"
+    },
+    {
+      "id": "Q7738602",
+      "wiki_title": "Haas Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Haas_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "architect": [
+        "Morgan Walls & Morgan"
+      ],
+      "floors": "12",
+      "built": "1915",
+      "style": "Beaux Arts"
+    },
+    {
+      "id": "Q6682356",
+      "wiki_title": "Times Mirror Square",
+      "wiki_url": "https://en.wikipedia.org/wiki/Times_Mirror_Square",
+      "wiki_lang": "en",
+      "references_count": 27,
+      "verified": true,
+      "owner": [
+        "Onni Group"
+      ],
+      "architect": [
+        "Gordon B. Kaufmann"
+      ],
+      "built": "1935"
+    },
+    {
+      "id": "Q7810110",
+      "wiki_title": "Title Guarantee and Trust Company Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Title_Guarantee_and_Trust_Company_Building",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "architect": [
+        "Parkinson & Parkinson; Multiple"
+      ],
+      "built": "1930"
+    },
+    {
+      "id": "Q22025731",
+      "wiki_title": "Trinity Auditorium",
+      "wiki_url": "https://en.wikipedia.org/wiki/Trinity_Auditorium",
+      "wiki_lang": "en",
+      "references_count": 24,
+      "verified": true,
+      "owner": [
+        "Chetrit Group"
+      ],
+      "architect": [
+        "Harry C. Deckbar",
+        "Thornton Fitzhugh",
+        "Frank George Krucker"
+      ],
+      "floors": "9",
+      "built": "1914",
+      "style": "Beaux-Arts",
+      "cost": "US$1 million"
+    },
+    {
+      "id": "Q131360053",
+      "wiki_title": "Trustee Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Trustee_Building",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "architect": [
+        "Parkinson and Bergstrom"
+      ],
+      "built": "1905"
+    },
+    {
+      "id": "Q57900",
+      "wiki_title": "U.S. Bank Tower (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/U.S._Bank_Tower_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 53,
+      "verified": true,
+      "owner": [
+        "Silverstein Properties Inc."
+      ],
+      "operator": [
+        "Silverstein Properties, Inc."
+      ],
+      "current_tenants": [
+        "See tenants"
+      ],
+      "architect": [
+        "Pei Cobb Freed & Partners",
+        "Ellerbe Becket"
+      ],
+      "developer": [
+        "Maguire Properties"
+      ],
+      "floors": "73",
+      "built": "October 1989",
+      "style": "Postmodernism"
+    },
+    {
+      "id": "Q4004762",
+      "wiki_title": "Union Bank Plaza",
+      "wiki_url": "https://en.wikipedia.org/wiki/Union_Bank_Plaza",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "owner": [
+        "Waterbridge Capital"
+      ],
+      "architect": [
+        "Albert C. Martin & Associates",
+        "Harrison & Abramovitz"
+      ],
+      "floors": "40",
+      "built": "1965 – 1968",
+      "style": "International style"
+    },
+    {
+      "id": "Q116825923",
+      "wiki_title": "United States Post Office and Courthouse (Los Angeles, California, 1892)",
+      "wiki_url": "https://en.wikipedia.org/wiki/United_States_Post_Office_and_Courthouse_%28Los_Angeles%2C_California%2C_1892%29",
+      "wiki_lang": "en",
+      "references_count": 20,
+      "verified": true,
+      "operator": [
+        "or"
+      ],
+      "built": "<!-- or"
+    },
+    {
+      "id": "Q106517931",
+      "wiki_title": "Vickrey-Brunswig Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Vickrey-Brunswig_Building",
+      "wiki_lang": "en",
+      "references_count": 21,
+      "verified": true
+    },
+    {
+      "id": "Q131412182",
+      "wiki_title": "Victor Clothing Company Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Victor_Clothing_Company_Building",
+      "wiki_lang": "en",
+      "references_count": 26,
+      "verified": true,
+      "architect": [
+        "Train & Williams"
+      ],
+      "built": "1914"
+    },
+    {
+      "id": "Q474326",
+      "wiki_title": "Walt Disney Concert Hall",
+      "wiki_url": "https://en.wikipedia.org/wiki/Walt_Disney_Concert_Hall",
+      "wiki_lang": "en",
+      "references_count": 46,
+      "verified": true,
+      "tenants": [
+        "Los Angeles Philharmonic",
+        "Los Angeles Master Chorale"
+      ],
+      "owner": [
+        "Los Angeles Music Center"
+      ],
+      "architect": [
+        "Frank Gehry"
+      ],
+      "built": "1999–2003"
+    },
+    {
+      "id": "Q131151761",
+      "wiki_title": "Walter P. Story Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Walter_P._Story_Building",
+      "wiki_lang": "en",
+      "references_count": 22,
+      "verified": true,
+      "architect": [
+        "Morgan & Walls"
+      ],
+      "built": "1909"
+    },
+    {
+      "id": "Q21016322",
+      "wiki_title": "Water Grill",
+      "wiki_url": "https://en.wikipedia.org/wiki/Water_Grill",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q2543729",
+      "wiki_title": "Wells Fargo Center (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Wells_Fargo_Center_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "owner": [
+        "Brookfield Properties Inc."
+      ],
+      "architect": [
+        "Skidmore, Owings & Merrill"
+      ],
+      "developer": [
+        "Maguire Properties",
+        "Thomas Properties Group"
+      ],
+      "floors": "Tower I: 54",
+      "built": "1983"
+    },
+    {
+      "id": "Q371058",
+      "wiki_title": "Westin Bonaventure Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Westin_Bonaventure_Hotel",
+      "wiki_lang": "en",
+      "references_count": 38,
+      "verified": true,
+      "operator": [
+        "Aimbridge Hospitality"
+      ],
+      "architect": [
+        "John C. Portman Jr."
+      ],
+      "floors": "33",
+      "height": "367 ft"
+    },
+    {
+      "id": "Q2582539",
+      "wiki_title": "Wilshire Grand Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Wilshire_Grand_Center",
+      "wiki_lang": "en",
+      "references_count": 55,
+      "verified": true,
+      "owner": [
+        "Hanjin Group",
+        "IJNR Investments Inc.",
+        "Plant Holdings NA, Inc."
+      ],
+      "operator": [
+        "Martin Project Management"
+      ],
+      "architect": [
+        "AC Martin Partners"
+      ],
+      "developer": [
+        "Thomas Properties Group, LLC"
+      ],
+      "floors": "73",
+      "built": "June 23, 2017: 8 years ago",
+      "style": "Metamodern",
+      "cost": "US$900 million"
+    },
+    {
+      "id": "Q131345333",
+      "wiki_title": "Wilson Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Wilson_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 6,
+      "verified": true,
+      "built": "1909"
+    },
+    {
+      "id": "Q131388703",
+      "wiki_title": "Wood Brothers Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Wood_Brothers_Building",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "built": "1922"
+    },
+    {
+      "id": "Q131405359",
+      "wiki_title": "Woolworth's Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Woolworth%27s_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "architect": [
+        "Weeks and Day (1920)"
+      ],
+      "built": "1920, 1941"
+    },
+    {
+      "id": "Q131400172",
+      "wiki_title": "Wurlitzer Building (Los Angeles)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Wurlitzer_Building_%28Los_Angeles%29",
+      "wiki_lang": "en",
+      "references_count": 15,
+      "verified": true,
+      "architect": [
+        "Walker & Eisen"
+      ],
+      "built": "1923"
+    }
+  ]
+}

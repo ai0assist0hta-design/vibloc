@@ -1,0 +1,116 @@
+{
+  "items": [
+    {
+      "id": "Q4950454",
+      "wiki_title": "Boutique Monaco",
+      "wiki_url": "https://en.wikipedia.org/wiki/Boutique_Monaco",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "architect": [
+        "Minsuk Cho"
+      ],
+      "floors": "27",
+      "built": "<!-- or",
+      "address": "397, Seocho-daero, Seocho-gu, Seoul"
+    },
+    {
+      "id": "Q17278983",
+      "wiki_title": "Eonju station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Eonju_station",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "Seoul Metro"
+      ],
+      "address": "279-165 Nonhyeon-dong, Gangnam-gu, Seoul"
+    },
+    {
+      "id": "Q6458430",
+      "wiki_title": "GS Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/GS_Tower",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "architect": [
+        "Skidmore, Owings & Merrill"
+      ],
+      "floors": "38",
+      "built": "1997",
+      "address": "Seoul, South Korea"
+    },
+    {
+      "id": "Q15972860",
+      "wiki_title": "Gangnam Finance Center",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gangnam_Finance_Center",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "operator": [
+        "or"
+      ],
+      "floors": "45",
+      "built": "31 July 2001",
+      "address": "152, Teheran-ro, Gangnam-gu, Seoul, South Korea"
+    },
+    {
+      "id": "Q17469",
+      "wiki_title": "Gangnam station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Gangnam_station",
+      "wiki_lang": "en",
+      "references_count": 10,
+      "verified": true,
+      "operator": [
+        "Seoul Metro",
+        "Shinbundang Railroad Corporation"
+      ],
+      "address": "804 Yeoksam 2-dong,, 303 Gangnamdaero Jiha,, Gangnam-gu, Seoul"
+    },
+    {
+      "id": "Q17063396",
+      "wiki_title": "Seocho Garak Tower East",
+      "wiki_url": "https://en.wikipedia.org/wiki/Seocho_Garak_Tower_East",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "owner": [
+        "GT Construction"
+      ],
+      "architect": [
+        "Het Architecten Consort"
+      ],
+      "developer": [
+        "GT Construction"
+      ],
+      "floors": "24",
+      "built": "2011",
+      "address": "Seoul, South Korea"
+    },
+    {
+      "id": "Q53000",
+      "wiki_title": "Sinnonhyeon station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sinnonhyeon_station",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "operator": [
+        "Seoul Metro Line 9 Corporation",
+        "New Seoul Railroad Co., Ltd."
+      ],
+      "address": "800 Nonhyeon-dong, Gangnam-gu, Seoul"
+    },
+    {
+      "id": "Q488791",
+      "wiki_title": "Yeoksam station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Yeoksam_station",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "operator": [
+        "Seoul Metro"
+      ],
+      "address": "737 Yeoksam 1-dong,, 156 Teherandaero Jiha,, Gangnam-gu, Seoul"
+    }
+  ]
+}

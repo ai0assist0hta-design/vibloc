@@ -1,0 +1,718 @@
+{
+  "items": [
+    {
+      "id": "Q97341936",
+      "wiki_title": "774 inc.",
+      "wiki_url": "https://ja.wikipedia.org/wiki/774_inc.",
+      "wiki_lang": "ja",
+      "references_count": 25,
+      "verified": true
+    },
+    {
+      "id": "Q11289539",
+      "wiki_title": "エイアンドエフ",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%82%A8%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%89%E3%82%A8%E3%83%95",
+      "wiki_lang": "ja",
+      "references_count": 32,
+      "verified": true
+    },
+    {
+      "id": "Q11282973",
+      "wiki_title": "アクタス (家具・インテリア)",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%82%A2%E3%82%AF%E3%82%BF%E3%82%B9_%28%E5%AE%B6%E5%85%B7%E3%83%BB%E3%82%A4%E3%83%B3%E3%83%86%E3%83%AA%E3%82%A2%29",
+      "wiki_lang": "ja",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q11283384",
+      "wiki_title": "アジア航測",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%82%A2%E3%82%B8%E3%82%A2%E8%88%AA%E6%B8%AC",
+      "wiki_lang": "ja",
+      "references_count": 52,
+      "verified": true
+    },
+    {
+      "id": "Q65227625",
+      "wiki_title": "AtCoder",
+      "wiki_url": "https://ja.wikipedia.org/wiki/AtCoder",
+      "wiki_lang": "ja",
+      "references_count": 15,
+      "verified": true
+    },
+    {
+      "id": "Q85877882",
+      "wiki_title": "名曲喫茶らんぶる",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E5%90%8D%E6%9B%B2%E5%96%AB%E8%8C%B6%E3%82%89%E3%82%93%E3%81%B6%E3%82%8B",
+      "wiki_lang": "ja",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q950734",
+      "wiki_title": "Deep (mixed martial arts)",
+      "wiki_url": "https://en.wikipedia.org/wiki/Deep_%28mixed_martial_arts%29",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "location_country": "Japan",
+      "address": "Nagoya"
+    },
+    {
+      "id": "Q131390328",
+      "wiki_title": "フラッグス",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%83%95%E3%83%A9%E3%83%83%E3%82%B0%E3%82%B9",
+      "wiki_lang": "ja",
+      "references_count": 14,
+      "verified": true
+    },
+    {
+      "id": "Q112503",
+      "wiki_title": "Higashi-shinjuku Station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Higashi-shinjuku_Station",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "address": "7-23 Shinjuku, Shinjuku-ku, Tokyo"
+    },
+    {
+      "id": "Q115682468",
+      "wiki_title": "HIKE",
+      "wiki_url": "https://ja.wikipedia.org/wiki/HIKE",
+      "wiki_lang": "ja",
+      "references_count": 36,
+      "verified": true
+    },
+    {
+      "id": "Q17226268",
+      "wiki_title": "ヒルトン東京",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%83%92%E3%83%AB%E3%83%88%E3%83%B3%E6%9D%B1%E4%BA%AC",
+      "wiki_lang": "ja",
+      "references_count": 28,
+      "verified": true
+    },
+    {
+      "id": "Q3143638",
+      "wiki_title": "ハイアットリージェンシー東京",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%83%8F%E3%82%A4%E3%82%A2%E3%83%83%E3%83%88%E3%83%AA%E3%83%BC%E3%82%B8%E3%82%A7%E3%83%B3%E3%82%B7%E3%83%BC%E6%9D%B1%E4%BA%AC",
+      "wiki_lang": "ja",
+      "references_count": 7,
+      "verified": true
+    },
+    {
+      "id": "Q11226271",
+      "wiki_title": "JR東日本クロスステーション",
+      "wiki_url": "https://ja.wikipedia.org/wiki/JR%E6%9D%B1%E6%97%A5%E6%9C%AC%E3%82%AF%E3%83%AD%E3%82%B9%E3%82%B9%E3%83%86%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3",
+      "wiki_lang": "ja",
+      "references_count": 77,
+      "verified": true
+    },
+    {
+      "id": "Q3156958",
+      "wiki_title": "JR東日本本社ビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/JR%E6%9D%B1%E6%97%A5%E6%9C%AC%E6%9C%AC%E7%A4%BE%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 38,
+      "verified": true
+    },
+    {
+      "id": "Q11226265",
+      "wiki_title": "JR東日本ステーションサービス",
+      "wiki_url": "https://ja.wikipedia.org/wiki/JR%E6%9D%B1%E6%97%A5%E6%9C%AC%E3%82%B9%E3%83%86%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9",
+      "wiki_lang": "ja",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q11226207",
+      "wiki_title": "JR南新宿ビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/JR%E5%8D%97%E6%96%B0%E5%AE%BF%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q23666195",
+      "wiki_title": "JR新宿ミライナタワー",
+      "wiki_url": "https://ja.wikipedia.org/wiki/JR%E6%96%B0%E5%AE%BF%E3%83%9F%E3%83%A9%E3%82%A4%E3%83%8A%E3%82%BF%E3%83%AF%E3%83%BC",
+      "wiki_lang": "ja",
+      "references_count": 45,
+      "verified": true
+    },
+    {
+      "id": "Q11227689",
+      "wiki_title": "KDDIビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/KDDI%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q6383787",
+      "wiki_title": "Keio Plaza Hotel",
+      "wiki_url": "https://en.wikipedia.org/wiki/Keio_Plaza_Hotel",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "floors": "47",
+      "height": "584 ft",
+      "address": "2-2-1 Nishi-Shinjuku Shinjuku, Tokyo, Japan"
+    },
+    {
+      "id": "Q11638632",
+      "wiki_title": "近畿日本ツーリスト",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E8%BF%91%E7%95%BF%E6%97%A5%E6%9C%AC%E3%83%84%E3%83%BC%E3%83%AA%E3%82%B9%E3%83%88",
+      "wiki_lang": "ja",
+      "references_count": 93,
+      "verified": true
+    },
+    {
+      "id": "Q11604957",
+      "wiki_title": "紀伊國屋ホール",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E7%B4%80%E4%BC%8A%E5%9C%8B%E5%B1%8B%E3%83%9B%E3%83%BC%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q11270346",
+      "wiki_title": "そっくり館キサラ",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%81%9D%E3%81%A3%E3%81%8F%E3%82%8A%E9%A4%A8%E3%82%AD%E3%82%B5%E3%83%A9",
+      "wiki_lang": "ja",
+      "references_count": 10,
+      "verified": true
+    },
+    {
+      "id": "Q11349103",
+      "wiki_title": "ルミネtheよしもと",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%83%AB%E3%83%9F%E3%83%8Dthe%E3%82%88%E3%81%97%E3%82%82%E3%81%A8",
+      "wiki_lang": "ja",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q18457061",
+      "wiki_title": "ルミネ新宿",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%83%AB%E3%83%9F%E3%83%8D%E6%96%B0%E5%AE%BF",
+      "wiki_lang": "ja",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q1135947",
+      "wiki_title": "Minami-Shinjuku Station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Minami-Shinjuku_Station",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "operator": [
+        "Odakyu Electric Railway"
+      ],
+      "address": "2-29-16 Yoyogi, Shibuya, Tokyo"
+    },
+    {
+      "id": "Q1030463",
+      "wiki_title": "Mode Gakuen Cocoon Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Mode_Gakuen_Cocoon_Tower",
+      "wiki_lang": "en",
+      "references_count": 9,
+      "verified": true,
+      "architect": [
+        "Tange Associates"
+      ],
+      "floors": "50 above ground",
+      "built": "2008",
+      "style": "Structural expressionism",
+      "address": "1-7-3 Nishi-Shinjuku, Shinjuku, Tokyo, Japan"
+    },
+    {
+      "id": "Q2090752",
+      "wiki_title": "NTT Docomo Yoyogi Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/NTT_Docomo_Yoyogi_Building",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "architect": [
+        "Kajima Design"
+      ],
+      "floors": "27 above ground",
+      "built": "2000",
+      "address": "Shibuya, Tokyo, Japan"
+    },
+    {
+      "id": "Q24862867",
+      "wiki_title": "GUNKAN東新宿ビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/GUNKAN%E6%9D%B1%E6%96%B0%E5%AE%BF%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 10,
+      "verified": true
+    },
+    {
+      "id": "Q3342141",
+      "wiki_title": "西新宿三井ビルディング",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E8%A5%BF%E6%96%B0%E5%AE%BF%E4%B8%89%E4%BA%95%E3%83%93%E3%83%AB%E3%83%87%E3%82%A3%E3%83%B3%E3%82%B0",
+      "wiki_lang": "ja",
+      "references_count": 17,
+      "verified": true
+    },
+    {
+      "id": "Q22009327",
+      "wiki_title": "日土地西新宿ビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%97%A5%E5%9C%9F%E5%9C%B0%E8%A5%BF%E6%96%B0%E5%AE%BF%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 46,
+      "verified": true
+    },
+    {
+      "id": "Q11463071",
+      "wiki_title": "小田急エース",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E5%B0%8F%E7%94%B0%E6%80%A5%E3%82%A8%E3%83%BC%E3%82%B9",
+      "wiki_lang": "ja",
+      "references_count": 11,
+      "verified": true
+    },
+    {
+      "id": "Q3482251",
+      "wiki_title": "新宿第一生命ビルディング",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E7%AC%AC%E4%B8%80%E7%94%9F%E5%91%BD%E3%83%93%E3%83%AB%E3%83%87%E3%82%A3%E3%83%B3%E3%82%B0",
+      "wiki_lang": "ja",
+      "references_count": 16,
+      "verified": true
+    },
+    {
+      "id": "Q11463107",
+      "wiki_title": "小田急百貨店",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E5%B0%8F%E7%94%B0%E6%80%A5%E7%99%BE%E8%B2%A8%E5%BA%97",
+      "wiki_lang": "ja",
+      "references_count": 194,
+      "verified": true
+    },
+    {
+      "id": "Q3349080",
+      "wiki_title": "小田急サザンタワー",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E5%B0%8F%E7%94%B0%E6%80%A5%E3%82%B5%E3%82%B6%E3%83%B3%E3%82%BF%E3%83%AF%E3%83%BC",
+      "wiki_lang": "ja",
+      "references_count": 17,
+      "verified": true
+    },
+    {
+      "id": "Q11329793",
+      "wiki_title": "パークハイアット東京",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%83%91%E3%83%BC%E3%82%AF%E3%83%8F%E3%82%A4%E3%82%A2%E3%83%83%E3%83%88%E6%9D%B1%E4%BA%AC",
+      "wiki_lang": "ja",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q11376002",
+      "wiki_title": "人形劇団プーク",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E4%BA%BA%E5%BD%A2%E5%8A%87%E5%9B%A3%E3%83%97%E3%83%BC%E3%82%AF",
+      "wiki_lang": "ja",
+      "references_count": 3,
+      "verified": true
+    },
+    {
+      "id": "Q11470937",
+      "wiki_title": "山谷駅 (東京都)",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E5%B1%B1%E8%B0%B7%E9%A7%85_%28%E6%9D%B1%E4%BA%AC%E9%83%BD%29",
+      "wiki_lang": "ja",
+      "references_count": 5,
+      "verified": true
+    },
+    {
+      "id": "Q801428",
+      "wiki_title": "Sendagaya Station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Sendagaya_Station",
+      "wiki_lang": "en",
+      "references_count": 7,
+      "verified": true,
+      "operator": [
+        "JR East"
+      ],
+      "style": "JR East",
+      "address": "1 Sendagaya, Shibuya, Tokyo"
+    },
+    {
+      "id": "Q21019082",
+      "wiki_title": "新宿スバルビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%82%B9%E3%83%90%E3%83%AB%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 15,
+      "verified": true
+    },
+    {
+      "id": "Q1134395",
+      "wiki_title": "Shinjuku Center Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku_Center_Building",
+      "wiki_lang": "en",
+      "references_count": 5,
+      "verified": true,
+      "owner": [
+        "Tokyo Tatemono",
+        "Meiji Yasuda Life",
+        "Japan Prime Realty Investment Corporation"
+      ],
+      "floors": "54 above ground",
+      "height": "222.95 m",
+      "built": "1979",
+      "location_country": "Japan",
+      "address": "1-25-1 Nishi-Shinjuku"
+    },
+    {
+      "id": "Q17217521",
+      "wiki_title": "新宿イーストサイドスクエア",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%82%A4%E3%83%BC%E3%82%B9%E3%83%88%E3%82%B5%E3%82%A4%E3%83%89%E3%82%B9%E3%82%AF%E3%82%A8%E3%82%A2",
+      "wiki_lang": "ja",
+      "references_count": 24,
+      "verified": true
+    },
+    {
+      "id": "Q84191979",
+      "wiki_title": "新宿ゴールデン街劇場",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%82%B4%E3%83%BC%E3%83%AB%E3%83%87%E3%83%B3%E8%A1%97%E5%8A%87%E5%A0%B4",
+      "wiki_lang": "ja",
+      "references_count": 12,
+      "verified": true
+    },
+    {
+      "id": "Q3482250",
+      "wiki_title": "新宿グリーンタワービル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%82%B0%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%BF%E3%83%AF%E3%83%BC%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 27,
+      "verified": true
+    },
+    {
+      "id": "Q5364378",
+      "wiki_title": "Shinjuku I-Land Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku_I-Land_Tower",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true,
+      "architect": [
+        "Nihon Sekkei"
+      ],
+      "floors": "48 (44 above & 4 below ground)",
+      "built": "1995",
+      "style": "Modernism",
+      "location_country": "Japan",
+      "address": "6-5-1 Nishi-Shinjuku"
+    },
+    {
+      "id": "Q17217559",
+      "wiki_title": "新宿ジョイシネマ",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%82%B8%E3%83%A7%E3%82%A4%E3%82%B7%E3%83%8D%E3%83%9E",
+      "wiki_lang": "ja",
+      "references_count": 77,
+      "verified": true
+    },
+    {
+      "id": "Q11501806",
+      "wiki_title": "新宿マインズタワー",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%83%9E%E3%82%A4%E3%83%B3%E3%82%BA%E3%82%BF%E3%83%AF%E3%83%BC",
+      "wiki_lang": "ja",
+      "references_count": 23,
+      "verified": true
+    },
+    {
+      "id": "Q2413330",
+      "wiki_title": "Shinjuku Mitsui Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku_Mitsui_Building",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "owner": [
+        "Mitsui Fudosan"
+      ],
+      "architect": [
+        "Nihon Sekkei"
+      ],
+      "developer": [
+        "Mitsui Fudosan"
+      ],
+      "floors": "55",
+      "built": "1974",
+      "address": "Shinjuku, Tokyo, Japan"
+    },
+    {
+      "id": "Q3482255",
+      "wiki_title": "新宿モノリスビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%83%A2%E3%83%8E%E3%83%AA%E3%82%B9%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 2,
+      "verified": true
+    },
+    {
+      "id": "Q863639",
+      "wiki_title": "Shinjuku NS Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku_NS_Building",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "architect": [
+        "Nikken Sekkei"
+      ],
+      "developer": [
+        "Nippon Life Insurance Company",
+        "Sumitomo Realty & Development"
+      ],
+      "floors": "30 above ground",
+      "built": "1982",
+      "address": "2-4-1 Nishi-Shinjuku, Shinjuku, Tokyo, Japan"
+    },
+    {
+      "id": "Q1048673",
+      "wiki_title": "Shinjuku Nomura Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku_Nomura_Building",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "floors": "55",
+      "location_country": "Japan",
+      "address": "Shinjuku, Tokyo"
+    },
+    {
+      "id": "Q3482260",
+      "wiki_title": "Shinjuku Oak Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku_Oak_Tower",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true
+    },
+    {
+      "id": "Q132130903",
+      "wiki_title": "新宿パレットビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%83%91%E3%83%AC%E3%83%83%E3%83%88%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 44,
+      "verified": true
+    },
+    {
+      "id": "Q1348023",
+      "wiki_title": "Shinjuku Park Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku_Park_Tower",
+      "wiki_lang": "en",
+      "references_count": 8,
+      "verified": true,
+      "architect": [
+        "Kenzo Tange"
+      ],
+      "floors": "52",
+      "address": "3-7-1 Nishi-Shinjuku, Shinjuku, Tokyo, Japan"
+    },
+    {
+      "id": "Q11501794",
+      "wiki_title": "新宿サブナード",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%82%B5%E3%83%96%E3%83%8A%E3%83%BC%E3%83%89",
+      "wiki_lang": "ja",
+      "references_count": 45,
+      "verified": true
+    },
+    {
+      "id": "Q863588",
+      "wiki_title": "Shinjuku Sumitomo Building",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku_Sumitomo_Building",
+      "wiki_lang": "en",
+      "references_count": 4,
+      "verified": true,
+      "floors": "52",
+      "built": "March 6, 1974",
+      "address": "Shinjuku, Tokyo, Japan"
+    },
+    {
+      "id": "Q3482258",
+      "wiki_title": "新宿ワシントンホテル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%83%AF%E3%82%B7%E3%83%B3%E3%83%88%E3%83%B3%E3%83%9B%E3%83%86%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 34,
+      "verified": true
+    },
+    {
+      "id": "Q246198",
+      "wiki_title": "Shinjuku-nishiguchi Station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinjuku-nishiguchi_Station",
+      "wiki_lang": "en",
+      "references_count": 2,
+      "verified": true,
+      "address": "1-3-17 Nishi-shinjuku, Shinjuku City, Tokyo"
+    },
+    {
+      "id": "Q11503937",
+      "wiki_title": "Shinsen-Shinjuku Station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Shinsen-Shinjuku_Station",
+      "wiki_lang": "en",
+      "references_count": 63,
+      "verified": true,
+      "operator": [
+        "32px Keio Corporation",
+        "16px Odakyu Electric Railway"
+      ],
+      "address": "Shinjuku and Shibuya wards, Tokyo"
+    },
+    {
+      "id": "Q11313008",
+      "wiki_title": "スペース・ゼロ",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%82%B9%E3%83%9A%E3%83%BC%E3%82%B9%E3%83%BB%E3%82%BC%E3%83%AD",
+      "wiki_lang": "ja",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q11381742",
+      "wiki_title": "住友不動産西新宿ビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E4%BD%8F%E5%8F%8B%E4%B8%8D%E5%8B%95%E7%94%A3%E8%A5%BF%E6%96%B0%E5%AE%BF%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 17,
+      "verified": true
+    },
+    {
+      "id": "Q11381740",
+      "wiki_title": "住友不動産新宿グランドタワー",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E4%BD%8F%E5%8F%8B%E4%B8%8D%E5%8B%95%E7%94%A3%E6%96%B0%E5%AE%BF%E3%82%B0%E3%83%A9%E3%83%B3%E3%83%89%E3%82%BF%E3%83%AF%E3%83%BC",
+      "wiki_lang": "ja",
+      "references_count": 3,
+      "verified": true
+    },
+    {
+      "id": "Q11443967",
+      "wiki_title": "太平洋不動産",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E5%A4%AA%E5%B9%B3%E6%B4%8B%E4%B8%8D%E5%8B%95%E7%94%A3",
+      "wiki_lang": "ja",
+      "references_count": 26,
+      "verified": true
+    },
+    {
+      "id": "Q17217529",
+      "wiki_title": "新宿オデヲン座",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%82%AA%E3%83%87%E3%83%B2%E3%83%B3%E5%BA%A7",
+      "wiki_lang": "ja",
+      "references_count": 45,
+      "verified": true
+    },
+    {
+      "id": "Q246186",
+      "wiki_title": "Tochōmae Station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Toch%C5%8Dmae_Station",
+      "wiki_lang": "en",
+      "references_count": 3,
+      "verified": true,
+      "address": "2-8-1 Nishi-Shinjuku, Shinjuku City, Tokyo"
+    },
+    {
+      "id": "Q3530518",
+      "wiki_title": "東京都庁第二本庁舎",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%9D%B1%E4%BA%AC%E9%83%BD%E5%BA%81%E7%AC%AC%E4%BA%8C%E6%9C%AC%E5%BA%81%E8%88%8E",
+      "wiki_lang": "ja",
+      "references_count": 31,
+      "verified": true
+    },
+    {
+      "id": "Q7813925",
+      "wiki_title": "Tokyo Kōsei Nenkin Kaikan",
+      "wiki_url": "https://en.wikipedia.org/wiki/Tokyo_K%C5%8Dsei_Nenkin_Kaikan",
+      "wiki_lang": "en",
+      "references_count": 1,
+      "verified": true
+    },
+    {
+      "id": "Q131538341",
+      "wiki_title": "東京メトロ都市開発",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%9D%B1%E4%BA%AC%E3%83%A1%E3%83%88%E3%83%AD%E9%83%BD%E5%B8%82%E9%96%8B%E7%99%BA",
+      "wiki_lang": "ja",
+      "references_count": 29,
+      "verified": true
+    },
+    {
+      "id": "Q24191410",
+      "wiki_title": "東京都庁第一本庁舎",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%9D%B1%E4%BA%AC%E9%83%BD%E5%BA%81%E7%AC%AC%E4%B8%80%E6%9C%AC%E5%BA%81%E8%88%8E",
+      "wiki_lang": "ja",
+      "references_count": 31,
+      "verified": true
+    },
+    {
+      "id": "Q109595002",
+      "wiki_title": "Tokyu Kabukicho Tower",
+      "wiki_url": "https://en.wikipedia.org/wiki/Tokyu_Kabukicho_Tower",
+      "wiki_lang": "en",
+      "references_count": 18,
+      "verified": true,
+      "owner": [
+        "Tokyu Recreation and Tokyu Corporation"
+      ],
+      "developer": [
+        "Shimizu Corporation"
+      ],
+      "floors": "48",
+      "built": "11 January 2023",
+      "style": "Postmodern",
+      "address": "Kabukichō, Shinjuku, Tokyo, Japan"
+    },
+    {
+      "id": "Q86444703",
+      "wiki_title": "津田ホール",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%B4%A5%E7%94%B0%E3%83%9B%E3%83%BC%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 4,
+      "verified": true
+    },
+    {
+      "id": "Q11471044",
+      "wiki_title": "山野ホール",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E5%B1%B1%E9%87%8E%E3%83%9B%E3%83%BC%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 3,
+      "verified": true,
+      "height": "160"
+    },
+    {
+      "id": "Q11378216",
+      "wiki_title": "代々木ゼミナール本部校代ゼミタワー",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E4%BB%A3%E3%80%85%E6%9C%A8%E3%82%BC%E3%83%9F%E3%83%8A%E3%83%BC%E3%83%AB%E6%9C%AC%E9%83%A8%E6%A0%A1%E4%BB%A3%E3%82%BC%E3%83%9F%E3%82%BF%E3%83%AF%E3%83%BC",
+      "wiki_lang": "ja",
+      "references_count": 6,
+      "verified": true
+    },
+    {
+      "id": "Q590162",
+      "wiki_title": "Yoyogi Station",
+      "wiki_url": "https://en.wikipedia.org/wiki/Yoyogi_Station",
+      "wiki_lang": "en",
+      "references_count": 12,
+      "verified": true,
+      "address": "1 Yoyogi, Shibuya-ku, Tokyo"
+    },
+    {
+      "id": "Q11257440",
+      "wiki_title": "あすか信用組合",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E3%81%82%E3%81%99%E3%81%8B%E4%BF%A1%E7%94%A8%E7%B5%84%E5%90%88",
+      "wiki_lang": "ja",
+      "references_count": 11,
+      "verified": true
+    },
+    {
+      "id": "Q67592612",
+      "wiki_title": "代々木会館",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E4%BB%A3%E3%80%85%E6%9C%A8%E4%BC%9A%E9%A4%A8",
+      "wiki_lang": "ja",
+      "references_count": 14,
+      "verified": true
+    },
+    {
+      "id": "Q109603907",
+      "wiki_title": "修養団SYDビル",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E4%BF%AE%E9%A4%8A%E5%9B%A3SYD%E3%83%93%E3%83%AB",
+      "wiki_lang": "ja",
+      "references_count": 1,
+      "verified": true
+    },
+    {
+      "id": "Q11501804",
+      "wiki_title": "新宿フロントスクエア",
+      "wiki_url": "https://ja.wikipedia.org/wiki/%E6%96%B0%E5%AE%BF%E3%83%95%E3%83%AD%E3%83%B3%E3%83%88%E3%82%B9%E3%82%AF%E3%82%A8%E3%82%A2",
+      "wiki_lang": "ja",
+      "references_count": 1,
+      "verified": true
+    }
+  ]
+}

@@ -7,12 +7,18 @@ import {
   Vector2,
   CanvasTexture,
   RepeatWrapping,
-  NearestFilter,
+  LinearMipmapLinearFilter,
+  LinearFilter,
   PlaneGeometry,
   Object3D,
   Matrix4,
   SphereGeometry,
+  BoxGeometry,
+  CylinderGeometry,
   MeshBasicMaterial,
+  MeshStandardMaterial,
+  MeshPhysicalMaterial,
+  MeshLambertMaterial,
   InstancedMesh,
   Color,
 } from 'three';
@@ -73,44 +79,14 @@ function createFacadeNormalMap(): CanvasTexture {
   }
   const tex = new CanvasTexture(canvas);
   tex.wrapS = tex.wrapT = RepeatWrapping;
-  tex.magFilter = NearestFilter;
-  return tex;
-}
-
-// --- Ground grid texture: subtle architectural grid ---
-function createGroundGridMap(): CanvasTexture {
-  const size = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
-  // Pure white base
-  ctx.fillStyle = '#fafafa';
-  ctx.fillRect(0, 0, size, size);
-  // Very subtle grid lines
-  ctx.strokeStyle = '#f0f0f0';
-  ctx.lineWidth = 0.5;
-  const step = 16;
-  for (let i = 0; i <= size; i += step) {
-    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
-  }
-  // Slightly visible major grid
-  ctx.strokeStyle = '#eaeaea';
-  ctx.lineWidth = 1;
-  const major = step * 4;
-  for (let i = 0; i <= size; i += major) {
-    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
-  }
-  const tex = new CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = RepeatWrapping;
+  tex.minFilter = LinearMipmapLinearFilter;
+  tex.magFilter = LinearFilter;
+  tex.generateMipmaps = true;
   return tex;
 }
 
 let _facadeNorm: CanvasTexture | null = null;
 const getFacadeNorm = () => (_facadeNorm ??= createFacadeNormalMap());
-let _groundGrid: CanvasTexture | null = null;
-const getGroundGrid = () => (_groundGrid ??= createGroundGridMap());
 
 
 // --- Shared height map: ground mesh vertex heights cached for exact building alignment ---
@@ -173,13 +149,122 @@ function groundHeightAt(x: number, z: number, hm: HeightMap): number {
   return h00 * (1 - tx) * (1 - tz) + h10 * tx * (1 - tz) + h01 * (1 - tx) * tz + h11 * tx * tz;
 }
 
-// --- MERGED buildings ---
-function MergedBuildings({ buildings, hm }: { buildings: OSMBuilding[]; hm: HeightMap | null }) {
+// Shared shader ref for per-frame uniform updates (uTime)
+let _buildingShader: any = null;
+
+// --- Building click detection ---
+// Point-in-polygon (ray casting)
+function pipTest(x: number, z: number, fp: [number, number][]): boolean {
+  let inside = false;
+  for (let i = 0, j = fp.length - 1; i < fp.length; j = i++) {
+    const xi = fp[i][0], zi = fp[i][1];
+    const xj = fp[j][0], zj = fp[j][1];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Distance from point to line segment
+function distToSeg(px: number, pz: number, ax: number, az: number, bx: number, bz: number): number {
+  const dx = bx - ax, dz = bz - az;
+  const lenSq = dx * dx + dz * dz;
+  if (lenSq === 0) return Math.sqrt((px - ax) ** 2 + (pz - az) ** 2);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / lenSq));
+  return Math.sqrt((px - ax - t * dx) ** 2 + (pz - az - t * dz) ** 2);
+}
+
+// Pre-computed bounding boxes for fast spatial lookup
+type BuildingBBox = { minX: number; maxX: number; minZ: number; maxZ: number; idx: number };
+let _bboxCache: { buildings: OSMBuilding[]; bboxes: BuildingBBox[] } | null = null;
+
+function getBBoxes(buildings: OSMBuilding[]): BuildingBBox[] {
+  if (_bboxCache && _bboxCache.buildings === buildings) return _bboxCache.bboxes;
+  const bboxes: BuildingBBox[] = [];
+  for (let idx = 0; idx < buildings.length; idx++) {
+    const fp = buildings[idx].footprint;
+    if (fp.length < 3) continue;
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const [px, pz] of fp) {
+      if (px < minX) minX = px; if (px > maxX) maxX = px;
+      if (pz < minZ) minZ = pz; if (pz > maxZ) maxZ = pz;
+    }
+    bboxes.push({ minX, maxX, minZ, maxZ, idx });
+  }
+  _bboxCache = { buildings, bboxes };
+  return bboxes;
+}
+
+function findBuildingAt(x: number, y: number, z: number, buildings: OSMBuilding[]): OSMBuilding | null {
+  const SEARCH_R = 15; // search radius in meters
+  const bboxes = getBBoxes(buildings);
+
+  // Collect all candidates within search radius
+  type Candidate = { b: OSMBuilding; dist: number; inside: boolean };
+  const candidates: Candidate[] = [];
+
+  for (const bb of bboxes) {
+    // Quick reject: too far from bounding box
+    if (x < bb.minX - SEARCH_R || x > bb.maxX + SEARCH_R ||
+        z < bb.minZ - SEARCH_R || z > bb.maxZ + SEARCH_R) continue;
+    const b = buildings[bb.idx];
+    // Height check: generous — click y should be within building + margin
+    if (y > b.height + 5) continue;
+
+    const fp = b.footprint;
+    const inside = pipTest(x, z, fp);
+
+    // Calculate distance to footprint edges
+    let edgeDist = Infinity;
+    for (let i = 0; i < fp.length; i++) {
+      const j = (i + 1) % fp.length;
+      const d = distToSeg(x, z, fp[i][0], fp[i][1], fp[j][0], fp[j][1]);
+      if (d < edgeDist) edgeDist = d;
+    }
+
+    // Distance to center
+    const dx = x - b.center[0], dz = z - b.center[1];
+    const centerDist = Math.sqrt(dx * dx + dz * dz);
+
+    // Use smallest of edge and center distance
+    const dist = inside ? 0 : Math.min(edgeDist, centerDist);
+
+    if (dist < SEARCH_R) {
+      candidates.push({ b, dist, inside });
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Sort: inside first, then by distance, prefer taller buildings at same distance
+  candidates.sort((a, c) => {
+    if (a.inside && !c.inside) return -1;
+    if (!a.inside && c.inside) return 1;
+    if (Math.abs(a.dist - c.dist) < 0.5) {
+      // Same distance: prefer taller building (more likely the one user clicked)
+      return c.b.height - a.b.height;
+    }
+    return a.dist - c.dist;
+  });
+
+  return candidates[0].b;
+}
+
+// --- MERGED buildings (single draw call) with face→building index map ---
+// Module-level face map so click handler can access it
+let _faceToBuilding: Int32Array | null = null;
+let _faceBuildingsList: OSMBuilding[] | null = null;
+
+function MergedBuildings({ buildings, hm, darkMode = false, onBuildingClick }: { buildings: OSMBuilding[]; hm: HeightMap | null; darkMode?: boolean; onBuildingClick?: (b: OSMBuilding | null) => void }) {
   const geometry = useMemo(() => {
     if (buildings.length === 0) return null;
     const geos: BufferGeometry[] = [];
+    // Track which building index each geometry belongs to
+    const buildingIndices: number[] = [];
 
-    for (const building of buildings) {
+    for (let bi = 0; bi < buildings.length; bi++) {
+      const building = buildings[bi];
       const fp = building.footprint;
       if (fp.length < 3) continue;
       try {
@@ -188,6 +273,7 @@ function MergedBuildings({ buildings, hm }: { buildings: OSMBuilding[]; hm: Heig
         for (let i = 1; i < fp.length; i++) shape.lineTo(fp[i][0], fp[i][1]);
         shape.closePath();
 
+        let geo: ExtrudeGeometry;
         if (hm) {
           const [cx, cz] = building.center;
           let minH = groundHeightAt(cx, cz, hm);
@@ -208,19 +294,40 @@ function MergedBuildings({ buildings, hm }: { buildings: OSMBuilding[]; hm: Heig
           const yBase = minH - foundation;
           const totalHeight = building.height + localSpan + foundation;
 
-          const geo = new ExtrudeGeometry(shape, { depth: totalHeight, bevelEnabled: false });
+          geo = new ExtrudeGeometry(shape, { depth: totalHeight, bevelEnabled: false });
           geo.rotateX(-Math.PI / 2);
           geo.translate(0, yBase, 0);
-          geos.push(geo);
         } else {
-          const geo = new ExtrudeGeometry(shape, { depth: building.height, bevelEnabled: false });
+          geo = new ExtrudeGeometry(shape, { depth: building.height, bevelEnabled: false });
           geo.rotateX(-Math.PI / 2);
-          geos.push(geo);
         }
+        geos.push(geo);
+        buildingIndices.push(bi);
       } catch { /* skip */ }
     }
 
     if (geos.length === 0) return null;
+
+    // Build face→building map BEFORE merging (count faces per geometry)
+    const faceCountPerGeo = geos.map(g => {
+      const idx = g.getIndex();
+      return idx ? idx.count / 3 : (g.getAttribute('position').count / 3);
+    });
+    const totalFaces = faceCountPerGeo.reduce((a, b) => a + b, 0);
+    const faceMap = new Int32Array(totalFaces);
+    let faceOffset = 0;
+    for (let gi = 0; gi < geos.length; gi++) {
+      const count = faceCountPerGeo[gi];
+      const bi = buildingIndices[gi];
+      for (let f = 0; f < count; f++) {
+        faceMap[faceOffset + f] = bi;
+      }
+      faceOffset += count;
+    }
+
+    _faceToBuilding = faceMap;
+    _faceBuildingsList = buildings;
+
     const merged = BufferGeometryUtils.mergeGeometries(geos, false);
     for (const g of geos) g.dispose();
     return merged;
@@ -228,23 +335,539 @@ function MergedBuildings({ buildings, hm }: { buildings: OSMBuilding[]; hm: Heig
 
   const normalMap = useMemo(() => {
     const tex = getFacadeNorm().clone();
-    tex.repeat.set(60, 30);
+    tex.repeat.set(40, 20);
     tex.needsUpdate = true;
     return tex;
   }, []);
 
+  // Frosted pearl glass material — MeshPhysicalMaterial with clearcoat + sheen + iridescence
+  const frostMat = useMemo(() => {
+    const mat = new MeshPhysicalMaterial({
+      color: darkMode ? '#22242a' : '#c0c2c6',
+      roughness: darkMode ? 0.4 : 0.15,
+      metalness: darkMode ? 0.2 : 0.35,
+      normalMap,
+      normalScale: new Vector2(0.15, 0.15),
+      emissive: darkMode ? '#1a1c22' : '#909090',
+      emissiveIntensity: darkMode ? 0.2 : 0.015,
+      envMapIntensity: darkMode ? 0.2 : 3.0,
+      // Frosted glass / pearl properties
+      clearcoat: darkMode ? 0.0 : 1.0,
+      clearcoatRoughness: darkMode ? 0.5 : 0.1,
+      clearcoatNormalMap: normalMap,
+      clearcoatNormalScale: new Vector2(0.04, 0.04),
+      sheen: darkMode ? 0.6 : 0.3,
+      sheenRoughness: 0.25,
+      sheenColor: darkMode ? new Color('#555560') : new Color('#909098'),
+      iridescence: darkMode ? 0.15 : 0.06,
+      iridescenceIOR: 1.4,
+      iridescenceThicknessRange: [100, 400],
+      reflectivity: darkMode ? 1.0 : 0.8,
+      specularIntensity: darkMode ? 0.5 : 1.5,
+      specularColor: darkMode ? new Color('#404040') : new Color('#c0c0c8'),
+    });
+
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uDarkMode = { value: darkMode ? 1.0 : 0.0 };
+      shader.uniforms.uTime = { value: 0.0 };
+      _buildingShader = shader;
+
+      // Inject varyings
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <common>',
+        `#include <common>
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;`
+      );
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <worldpos_vertex>',
+        `#include <worldpos_vertex>
+vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);`
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <common>',
+        `#include <common>
+uniform float uDarkMode;
+uniform float uTime;
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
+
+// Per-building hash functions (IQ-style, position-based)
+float hash21(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+vec3 hash23(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+  p3 += dot(p3, p3.yxz + 33.33);
+  return fract((p3.xxy + p3.yzz) * p3.zyx);
+}`
+      );
+
+      // After lighting, add floor bands + fresnel with PER-BUILDING randomness
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <dithering_fragment>',
+        `
+// Quantize world XZ to ~15m grid → stable per-building seed
+vec2 buildingCell = floor(vWorldPos.xz / 15.0);
+float bSeed = hash21(buildingCell);
+vec3 bSeed3 = hash23(buildingCell);
+
+// --- Facade mask: only side walls, not top/bottom ---
+float facadeMask = 1.0 - abs(vWorldNormal.y);
+
+// ====== Per-building variation parameters ======
+float bandFreq = mix(2.8, 4.2, hash21(buildingCell + 1.0));
+float mullionFreq = mix(1.6, 3.0, hash21(buildingCell + 2.0));
+float glowBrightness = mix(0.15, 1.0, pow(hash21(buildingCell + 3.0), 0.6));
+float colorTemp = hash21(buildingCell + 4.0);
+float occupancy = mix(0.3, 0.9, hash21(buildingCell + 5.0));
+// Per-building brightness variation (neutral, no color shift)
+vec3 facadeTint = vec3(1.0) + (bSeed3 - 0.5) * 0.08;
+// Keep it neutral — clamp color channels close together
+facadeTint = mix(vec3(dot(facadeTint, vec3(0.333))), facadeTint, 0.4);
+
+// ====== Floor grooves with per-floor ON/OFF ======
+float floorY = vWorldPos.y;
+float bandFrac = fract(floorY / bandFreq);
+float floorIndex = floor(floorY / bandFreq);
+
+float floorHash = hash21(buildingCell * 7.13 + vec2(floorIndex, floorIndex * 3.7));
+float floorLit = step(1.0 - occupancy, floorHash);
+float topFade = smoothstep(40.0, 80.0, floorY);
+floorLit *= mix(1.0, step(0.3, hash21(buildingCell + 99.0)), topFade);
+
+float grooveDist = min(bandFrac, 1.0 - bandFrac);
+float grooveSlot = 1.0 - smoothstep(0.0, 0.035, grooveDist);
+float grooveDarken = mix(0.4, 0.25, uDarkMode);
+gl_FragColor.rgb *= mix(1.0, grooveDarken, grooveSlot * facadeMask);
+
+float glowCore = 1.0 - smoothstep(0.0, 0.025, grooveDist);
+float glowSpread = 1.0 - smoothstep(0.0, 0.12, grooveDist);
+
+vec3 warmLightDay = vec3(1.0, 0.95, 0.88);
+vec3 warmLightNight = vec3(1.0, 0.88, 0.65);
+vec3 coolLightNight = vec3(0.95, 0.9, 0.8);
+vec3 baseWarm = mix(warmLightDay, warmLightNight, uDarkMode);
+vec3 baseCool = mix(warmLightDay, coolLightNight, uDarkMode);
+vec3 warmLight = mix(baseWarm, baseCool, colorTemp);
+warmLight *= mix(0.85, 1.15, hash21(vec2(floorIndex * 1.3, bSeed * 17.0)));
+
+// ====== Pulse ======
+float pulseSpeed = mix(0.05, 0.16, hash21(buildingCell + 10.0));
+float pulsePhase = hash21(buildingCell + 11.0) * 6.2832;
+float buildingPulse = sin(uTime * pulseSpeed * 6.2832 + pulsePhase) * 0.5 + 0.5;
+float isBeacon = step(0.85, hash21(buildingCell + 12.0));
+float buildingBreath = mix(
+  mix(0.4, 1.0, buildingPulse),
+  buildingPulse * 0.7,
+  isBeacon
+);
+
+float floorToggleOn = step(0.65, hash21(vec2(floorIndex * 5.1, bSeed * 3.3)));
+float floorToggleSpeed = mix(0.08, 0.25, hash21(vec2(floorIndex * 2.3, bSeed * 11.0)));
+float floorTogglePhase = hash21(vec2(floorIndex, bSeed * 7.7)) * 6.2832;
+float floorToggleWave = sin(uTime * floorToggleSpeed * 6.2832 + floorTogglePhase);
+float floorToggle = step(-0.2, floorToggleWave);
+float floorBreath = mix(1.0, floorToggle, floorToggleOn);
+
+float totalPulse = buildingBreath * floorBreath;
+
+// Bloom removed — compensate with stronger shader glow
+float coreBase = mix(1.8, 3.5, uDarkMode);
+float spreadBase = mix(0.2, 1.2, uDarkMode);
+
+float coreIntensity = coreBase * glowBrightness * floorLit * totalPulse;
+gl_FragColor.rgb += warmLight * glowCore * coreIntensity * facadeMask;
+float spreadIntensity = spreadBase * glowBrightness * floorLit * totalPulse;
+gl_FragColor.rgb += warmLight * glowSpread * spreadIntensity * facadeMask;
+
+// ====== Per-window ======
+float winSegFreq = mullionFreq;
+float winSegId = floor(vWorldPos.x / winSegFreq + vWorldPos.z / winSegFreq);
+float winHash = hash21(vec2(winSegId, floorIndex) + buildingCell * 31.7);
+float winLit = step(0.25, winHash) * floorLit;
+float winBlinkOn = step(0.6, hash21(vec2(winSegId * 3.1, floorIndex * 1.7) + buildingCell * 5.3));
+float winBlinkSpeed = mix(0.055, 0.2, hash21(vec2(winSegId, floorIndex) + buildingCell * 13.0));
+float winBlinkPhase = hash21(vec2(winSegId * 7.0, floorIndex * 2.1) + buildingCell) * 6.2832;
+float winBlinkWave = sin(uTime * winBlinkSpeed * 6.2832 + winBlinkPhase);
+float winBlink = smoothstep(-0.3, 0.1, winBlinkWave);
+float winBreath = mix(1.0, winBlink, winBlinkOn);
+float winGlow = (1.0 - smoothstep(0.0, 0.06, grooveDist)) * winLit * winBreath;
+gl_FragColor.rgb += warmLight * winGlow * mix(0.4, 1.2, uDarkMode) * facadeMask * glowBrightness;
+
+// --- Spandrel band ---
+float spandrelBand = smoothstep(0.04, 0.12, bandFrac) * (1.0 - smoothstep(0.88, 0.96, bandFrac));
+gl_FragColor.rgb *= mix(1.0, 0.92, spandrelBand * facadeMask * 0.3);
+
+// --- Shader-based AO ---
+float groundAO = smoothstep(0.0, 40.0, vWorldPos.y);
+gl_FragColor.rgb *= mix(mix(0.4, 0.2, uDarkMode), 1.0, groundAO);
+vec3 fakeLight = normalize(vec3(0.4, 0.8, 0.3));
+float nDotL = max(dot(vWorldNormal, fakeLight), 0.0);
+float shadowSim = mix(mix(0.6, 0.4, uDarkMode), 1.0, nDotL * 0.7 + 0.3);
+gl_FragColor.rgb *= shadowSim;
+
+// --- Mullion grid ---
+float mx = abs(fract(vWorldPos.x / mullionFreq) - 0.5) * 2.0;
+float mz = abs(fract(vWorldPos.z / mullionFreq) - 0.5) * 2.0;
+float mullion = max(smoothstep(0.93, 0.99, mx), smoothstep(0.93, 0.99, mz));
+float mullionDarken = mix(0.35, 0.5, hash21(buildingCell + 6.0));
+gl_FragColor.rgb *= mix(1.0, 0.85, mullion * mullionDarken * facadeMask);
+
+// --- Fresnel (neutral frosted glass) ---
+vec3 viewDir = normalize(cameraPosition - vWorldPos);
+float fresnel = 1.0 - max(dot(viewDir, vWorldNormal), 0.0);
+float fresnelWide = pow(fresnel, 1.5);
+float fresnelSharp = pow(fresnel, 3.0);
+vec3 fresnelColor = mix(
+  vec3(0.6, 0.6, 0.62),   // light mode: neutral silver
+  vec3(0.25, 0.25, 0.3),  // dark mode: cool grey
+  uDarkMode
+);
+fresnelColor *= facadeTint;
+float fresnelStr = mix(1.2, 2.0, uDarkMode);
+gl_FragColor.rgb += fresnelColor * fresnelWide * facadeMask * fresnelStr * 0.6;
+gl_FragColor.rgb += vec3(0.85, 0.85, 0.88) * fresnelSharp * facadeMask * mix(0.4, 0.8, uDarkMode);
+
+gl_FragColor.rgb *= facadeTint;
+
+// --- Frost edge rim (neutral) ---
+vec3 frostEdge = mix(vec3(0.86, 0.86, 0.88), vec3(0.14, 0.14, 0.16), uDarkMode);
+gl_FragColor.rgb = mix(gl_FragColor.rgb, frostEdge, fresnelWide * 0.3 * facadeMask);
+
+// --- Roof treatment: neutral tone + height variation ---
+float roofMask = abs(vWorldNormal.y);
+float roofHeight = smoothstep(5.0, 120.0, vWorldPos.y);
+vec3 roofTint = mix(
+  mix(vec3(0.80, 0.80, 0.82), vec3(0.75, 0.75, 0.78), roofHeight),  // light: neutral grey
+  mix(vec3(0.09, 0.09, 0.11), vec3(0.13, 0.13, 0.15), roofHeight),  // dark: dark grey
+  uDarkMode
+);
+roofTint *= (0.9 + bSeed * 0.2);
+gl_FragColor.rgb = mix(gl_FragColor.rgb, roofTint, roofMask * 0.35);
+// Roof fresnel
+float roofFresnel = pow(1.0 - abs(dot(viewDir, vec3(0.0, 1.0, 0.0))), 2.5);
+vec3 skyReflect = mix(vec3(0.75, 0.75, 0.78), vec3(0.12, 0.12, 0.15), uDarkMode);
+gl_FragColor.rgb += skyReflect * roofFresnel * roofMask * mix(0.25, 0.4, uDarkMode);
+
+#include <dithering_fragment>`
+      );
+    };
+
+    return mat;
+  }, [normalMap, darkMode]);
+
+  // Update uTime each frame
+  useFrame(({ clock }) => {
+    if (_buildingShader) {
+      _buildingShader.uniforms.uTime.value = clock.getElapsedTime();
+    }
+  });
+
   if (!geometry) return null;
 
   return (
-    <mesh geometry={geometry} castShadow receiveShadow>
-      <meshStandardMaterial
-        color="#ffffff"
-        roughness={1}
-        metalness={0}
-        normalMap={normalMap}
-        normalScale={new Vector2(0.6, 0.6)}
-      />
-    </mesh>
+    <mesh
+      geometry={geometry}
+      material={frostMat}
+      castShadow
+      receiveShadow
+      onClick={(e) => {
+        if (!onBuildingClick) return;
+        e.stopPropagation();
+        // Use faceIndex for direct triangle→building lookup (100% accurate)
+        const fi = e.faceIndex;
+        if (fi != null && _faceToBuilding && _faceBuildingsList === buildings) {
+          const bi = _faceToBuilding[fi];
+          if (bi != null && bi >= 0 && bi < buildings.length) {
+            onBuildingClick(buildings[bi]);
+            return;
+          }
+        }
+        // Fallback to coordinate-based detection
+        const p = e.point;
+        const hit = findBuildingAt(p.x, p.y, p.z, buildings);
+        onBuildingClick(hit);
+      }}
+      onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
+      onPointerOut={() => { document.body.style.cursor = 'default'; }}
+    />
+  );
+}
+
+// --- Rooftop equipment: antennas, HVAC units, vents ---
+// Simple seeded PRNG for deterministic placement
+function mulberry32(seed: number) {
+  return () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+type RoofItem = { x: number; y: number; z: number; type: 'antenna' | 'hvac' | 'vent' | 'pipe'; scale: number; rotY: number };
+
+// Point-in-polygon test (ray casting)
+function pointInPolygon(px: number, pz: number, poly: [number, number][]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], zi = poly[i][1];
+    const xj = poly[j][0], zj = poly[j][1];
+    if ((zi > pz) !== (zj > pz) && px < ((xj - xi) * (pz - zi)) / (zj - zi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function generateRoofItems(buildings: OSMBuilding[], hm: HeightMap | null): {
+  antennas: RoofItem[]; hvacs: RoofItem[]; vents: RoofItem[]; pipes: RoofItem[];
+} {
+  const antennas: RoofItem[] = [];
+  const hvacs: RoofItem[] = [];
+  const vents: RoofItem[] = [];
+  const pipes: RoofItem[] = [];
+
+  for (const b of buildings) {
+    if (b.height < 16) continue; // skip short buildings
+    const fp = b.footprint;
+    if (fp.length < 3) continue;
+
+    // Compute bounding box of footprint
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const [px, pz] of fp) {
+      if (px < minX) minX = px;
+      if (px > maxX) maxX = px;
+      if (pz < minZ) minZ = pz;
+      if (pz > maxZ) maxZ = pz;
+    }
+    const bw = maxX - minX;
+    const bd = maxZ - minZ;
+    if (bw < 4 || bd < 4) continue; // skip tiny footprints
+    const footprintArea = bw * bd;
+    const [cx, cz] = b.center;
+
+    // Deterministic random from building ID
+    const seed = (cx * 73856093 + cz * 19349663 + b.height * 83492791) | 0;
+    const rng = mulberry32(seed);
+
+    const roofY = b.height;
+
+    // Helper: try placing an item within the footprint polygon
+    const tryPlace = (maxAttempts = 8): [number, number] | null => {
+      const margin = Math.min(bw, bd) * 0.2;
+      for (let a = 0; a < maxAttempts; a++) {
+        const px = minX + margin + rng() * (bw - margin * 2);
+        const pz = minZ + margin + rng() * (bd - margin * 2);
+        if (pointInPolygon(px, pz, fp)) return [px, pz];
+      }
+      // Fallback: building center with small offset
+      const px = cx + (rng() - 0.5) * bw * 0.2;
+      const pz = cz + (rng() - 0.5) * bd * 0.2;
+      if (pointInPolygon(px, pz, fp)) return [px, pz];
+      return null;
+    };
+
+    // Tall buildings (>40m): antenna on top
+    if (b.height > 40 && rng() < 0.6) {
+      const pos = tryPlace();
+      if (pos) antennas.push({
+        x: pos[0], y: roofY, z: pos[1],
+        type: 'antenna', scale: 0.6 + rng() * 0.8, rotY: rng() * Math.PI * 2,
+      });
+    }
+
+    // Very tall buildings (>80m): extra antenna
+    if (b.height > 80 && rng() < 0.5) {
+      const pos = tryPlace();
+      if (pos) antennas.push({
+        x: pos[0], y: roofY, z: pos[1],
+        type: 'antenna', scale: 0.4 + rng() * 0.5, rotY: rng() * Math.PI * 2,
+      });
+    }
+
+    // HVAC units: medium+ buildings with enough roof area
+    if (b.height > 18 && footprintArea > 200) {
+      const hvacCount = Math.min(4, Math.floor(footprintArea / 400) + (rng() < 0.5 ? 1 : 0));
+      for (let i = 0; i < hvacCount; i++) {
+        const pos = tryPlace();
+        if (pos) hvacs.push({
+          x: pos[0], y: roofY, z: pos[1],
+          type: 'hvac', scale: 0.6 + rng() * 0.6, rotY: (Math.floor(rng() * 4) / 4) * Math.PI * 2,
+        });
+      }
+    }
+
+    // Vents: small cylindrical exhausts
+    if (b.height > 16 && rng() < 0.6) {
+      const ventCount = 1 + Math.floor(rng() * 2);
+      for (let i = 0; i < ventCount; i++) {
+        const pos = tryPlace();
+        if (pos) vents.push({
+          x: pos[0], y: roofY, z: pos[1],
+          type: 'vent', scale: 0.5 + rng() * 0.5, rotY: 0,
+        });
+      }
+    }
+
+    // Pipes: vertical exhaust pipes on larger buildings
+    if (b.height > 22 && footprintArea > 250 && rng() < 0.5) {
+      const pipeCount = 1 + Math.floor(rng() * 2);
+      for (let i = 0; i < pipeCount; i++) {
+        const pos = tryPlace();
+        if (pos) pipes.push({
+          x: pos[0], y: roofY, z: pos[1],
+          type: 'pipe', scale: 0.5 + rng() * 0.6, rotY: 0,
+        });
+      }
+    }
+  }
+
+  return { antennas, hvacs, vents, pipes };
+}
+
+function RooftopEquipment({ buildings, hm, darkMode = false }: { buildings: OSMBuilding[]; hm: HeightMap | null; darkMode?: boolean }) {
+  const { antennas, hvacs, vents, pipes } = useMemo(
+    () => generateRoofItems(buildings, hm), [buildings, hm]
+  );
+
+  // Shared geometries
+  const antennaGeo = useMemo(() => {
+    // Thin tall cylinder (antenna mast)
+    const geo = new CylinderGeometry(0.15, 0.2, 8, 6);
+    geo.translate(0, 4, 0);
+    return geo;
+  }, []);
+
+  const antennaDishGeo = useMemo(() => {
+    // Small box at top of antenna (dish/equipment)
+    const base = new CylinderGeometry(0.12, 0.15, 6, 5);
+    base.translate(0, 3, 0);
+    const dish = new BoxGeometry(0.8, 0.5, 0.3);
+    dish.translate(0, 6.5, 0);
+    return BufferGeometryUtils.mergeGeometries([base, dish], false);
+  }, []);
+
+  const hvacGeo = useMemo(() => {
+    // Box-shaped HVAC unit
+    const box = new BoxGeometry(2.5, 1.4, 1.8);
+    box.translate(0, 0.7, 0);
+    return box;
+  }, []);
+
+  const ventGeo = useMemo(() => {
+    // Short cylinder with wider cap
+    const shaft = new CylinderGeometry(0.3, 0.3, 0.8, 8);
+    shaft.translate(0, 0.4, 0);
+    const cap = new CylinderGeometry(0.5, 0.45, 0.15, 8);
+    cap.translate(0, 0.88, 0);
+    return BufferGeometryUtils.mergeGeometries([shaft, cap], false);
+  }, []);
+
+  const pipeGeo = useMemo(() => {
+    // Vertical pipe
+    const pipe = new CylinderGeometry(0.2, 0.2, 2.5, 6);
+    pipe.translate(0, 1.25, 0);
+    return pipe;
+  }, []);
+
+  // Material: darker metallic
+  const equipMat = useMemo(() => new MeshStandardMaterial({
+    color: darkMode ? '#1a1c20' : '#808488',
+    roughness: darkMode ? 0.5 : 0.6,
+    metalness: darkMode ? 0.6 : 0.4,
+    envMapIntensity: darkMode ? 1.5 : 1.0,
+  }), [darkMode]);
+
+  const dummy = useMemo(() => new Object3D(), []);
+
+  // Antenna instances
+  const antennaRef = useRef<InstancedMesh>(null);
+  useEffect(() => {
+    if (!antennaRef.current) return;
+    const mesh = antennaRef.current;
+    // Alternate between two antenna geo types via scale trick
+    for (let i = 0; i < antennas.length; i++) {
+      const a = antennas[i];
+      dummy.position.set(a.x, a.y, a.z);
+      dummy.rotation.set(0, a.rotY, 0);
+      dummy.scale.setScalar(a.scale);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [antennas, dummy]);
+
+  // HVAC instances
+  const hvacRef = useRef<InstancedMesh>(null);
+  useEffect(() => {
+    if (!hvacRef.current) return;
+    const mesh = hvacRef.current;
+    for (let i = 0; i < hvacs.length; i++) {
+      const h = hvacs[i];
+      dummy.position.set(h.x, h.y, h.z);
+      dummy.rotation.set(0, h.rotY, 0);
+      dummy.scale.setScalar(h.scale);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [hvacs, dummy]);
+
+  // Vent instances
+  const ventRef = useRef<InstancedMesh>(null);
+  useEffect(() => {
+    if (!ventRef.current) return;
+    const mesh = ventRef.current;
+    for (let i = 0; i < vents.length; i++) {
+      const v = vents[i];
+      dummy.position.set(v.x, v.y, v.z);
+      dummy.rotation.set(0, v.rotY, 0);
+      dummy.scale.setScalar(v.scale);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [vents, dummy]);
+
+  // Pipe instances
+  const pipeRef = useRef<InstancedMesh>(null);
+  useEffect(() => {
+    if (!pipeRef.current) return;
+    const mesh = pipeRef.current;
+    for (let i = 0; i < pipes.length; i++) {
+      const p = pipes[i];
+      dummy.position.set(p.x, p.y, p.z);
+      dummy.rotation.set(0, p.rotY, 0);
+      dummy.scale.setScalar(p.scale);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  }, [pipes, dummy]);
+
+  if (buildings.length === 0) return null;
+
+  return (
+    <group>
+      {antennas.length > 0 && (
+        <instancedMesh ref={antennaRef} args={[antennaDishGeo, equipMat, antennas.length]} castShadow />
+      )}
+      {hvacs.length > 0 && (
+        <instancedMesh ref={hvacRef} args={[hvacGeo, equipMat, hvacs.length]} castShadow />
+      )}
+      {vents.length > 0 && (
+        <instancedMesh ref={ventRef} args={[ventGeo, equipMat, vents.length]} castShadow />
+      )}
+      {pipes.length > 0 && (
+        <instancedMesh ref={pipeRef} args={[pipeGeo, equipMat, pipes.length]} castShadow />
+      )}
+    </group>
   );
 }
 
@@ -325,7 +948,7 @@ function buildTerrainPolygon(
 
 
 // --- Water areas (terrain-snapped, blue tint) ---
-function MergedWater({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) {
+function MergedWater({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
@@ -341,15 +964,15 @@ function MergedWater({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) 
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#08101a' : '#ffffff'}
         polygonOffset polygonOffsetFactor={-3} polygonOffsetUnits={-3} />
     </mesh>
   );
 }
 
 // --- Waterways (rivers/streams as line strips, deeper channel) ---
-function MergedWaterways({ waterways, hm }: { waterways: OSMWaterway[]; hm: HeightMap | null }) {
+function MergedWaterways({ waterways, hm, darkMode = false }: { waterways: OSMWaterway[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     if (waterways.length === 0) return null;
     const segs = waterways
@@ -363,15 +986,15 @@ function MergedWaterways({ waterways, hm }: { waterways: OSMWaterway[]; hm: Heig
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#08101a' : '#ffffff'}
         polygonOffset polygonOffsetFactor={-2.5} polygonOffsetUnits={-2.5} />
     </mesh>
   );
 }
 
 // --- Railways (merged, engraved lines) ---
-function MergedRailways({ railways, hm }: { railways: OSMRailway[]; hm: HeightMap | null }) {
+function MergedRailways({ railways, hm, darkMode = false }: { railways: OSMRailway[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     if (railways.length === 0) return null;
     const segs = railways
@@ -382,15 +1005,15 @@ function MergedRailways({ railways, hm }: { railways: OSMRailway[]; hm: HeightMa
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#0a0a14' : '#ffffff'}
         polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
     </mesh>
   );
 }
 
 // --- Parks (terrain-snapped, slightly green-tinged white) ---
-function MergedParks({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) {
+function MergedParks({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
@@ -406,15 +1029,15 @@ function MergedParks({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) 
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#0d1008' : '#ffffff'}
         polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
     </mesh>
   );
 }
 
 // --- Commercial/Retail areas (terrain-snapped) ---
-function MergedCommercial({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) {
+function MergedCommercial({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
@@ -430,15 +1053,15 @@ function MergedCommercial({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | nul
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
-        polygonOffset polygonOffsetFactor={-0.5} polygonOffsetUnits={-0.5} />
+    <mesh geometry={geometry}>
+      <meshBasicMaterial color={darkMode ? '#0e0e14' : '#f4f4f4'}
+        polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
     </mesh>
   );
 }
 
 // --- School/University areas (terrain-snapped) ---
-function MergedSchools({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) {
+function MergedSchools({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
@@ -454,15 +1077,15 @@ function MergedSchools({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#0e0e14' : '#ffffff'}
         polygonOffset polygonOffsetFactor={-0.5} polygonOffsetUnits={-0.5} />
     </mesh>
   );
 }
 
 // --- Steps/Stairs (terrain-snapped line strips) ---
-function MergedSteps({ steps, hm }: { steps: OSMSteps[]; hm: HeightMap | null }) {
+function MergedSteps({ steps, hm, darkMode = false }: { steps: OSMSteps[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     if (steps.length === 0) return null;
     const segs = steps
@@ -473,15 +1096,15 @@ function MergedSteps({ steps, hm }: { steps: OSMSteps[]; hm: HeightMap | null })
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#0a0a14' : '#ffffff'}
         polygonOffset polygonOffsetFactor={-1.5} polygonOffsetUnits={-1.5} />
     </mesh>
   );
 }
 
 // --- Bridges (elevated surface crossings) ---
-function MergedBridgesNew({ bridges, hm }: { bridges: OSMBridge[]; hm: HeightMap | null }) {
+function MergedBridgesNew({ bridges, hm, darkMode = false }: { bridges: OSMBridge[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     if (bridges.length === 0) return null;
     const segs = bridges
@@ -492,14 +1115,14 @@ function MergedBridgesNew({ bridges, hm }: { bridges: OSMBridge[]; hm: HeightMap
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} castShadow receiveShadow>
-      <meshLambertMaterial color="#ffffff" />
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#0e0e14' : '#ffffff'} />
     </mesh>
   );
 }
 
 // --- Pedestrian plazas (terrain-snapped) ---
-function MergedPedestrian({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) {
+function MergedPedestrian({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
@@ -515,15 +1138,15 @@ function MergedPedestrian({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | nul
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#0e0e14' : '#ffffff'}
         polygonOffset polygonOffsetFactor={-0.8} polygonOffsetUnits={-0.8} />
     </mesh>
   );
 }
 
 // --- Platforms (railway platforms, slightly raised) ---
-function MergedPlatforms({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) {
+function MergedPlatforms({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
@@ -539,15 +1162,15 @@ function MergedPlatforms({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} castShadow receiveShadow>
-      <meshLambertMaterial color="#ffffff"
+    <mesh geometry={geometry}>
+      <meshLambertMaterial color={darkMode ? '#0a0a14' : '#ffffff'}
         polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
     </mesh>
   );
 }
 
 // --- Parking areas (terrain-snapped) ---
-function MergedParking({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }) {
+function MergedParking({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
@@ -563,15 +1186,15 @@ function MergedParking({ areas, hm }: { areas: OSMArea[]; hm: HeightMap | null }
 
   if (!geometry) return null;
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color="#ffffff"
-        polygonOffset polygonOffsetFactor={-0.5} polygonOffsetUnits={-0.5} />
+    <mesh geometry={geometry}>
+      <meshBasicMaterial color={darkMode ? '#0e0e14' : '#f0f0f0'}
+        polygonOffset polygonOffsetFactor={1} polygonOffsetUnits={1} />
     </mesh>
   );
 }
 
-// --- Terrain ground with elevation + grid texture ---
-function TerrainGround({ hm }: { hm: HeightMap | null }) {
+// --- Terrain ground ---
+function TerrainGround({ hm, darkMode = false }: { hm: HeightMap | null; darkMode?: boolean }) {
   const geometry = useMemo(() => {
     if (!hm) return null;
     const geo = new PlaneGeometry(GROUND_SIZE, GROUND_SIZE, GROUND_SEGS, GROUND_SEGS);
@@ -579,38 +1202,49 @@ function TerrainGround({ hm }: { hm: HeightMap | null }) {
 
     const pos = geo.attributes.position;
     const n = GROUND_SEGS + 1;
+    const edgeFade = 30; // fade last N cells to 0 for seamless edge
     for (let i = 0; i < pos.count; i++) {
       const col = i % n;
       const row = Math.floor(i / n);
-      pos.setY(i, hm.heights[row * n + col] - 0.05);
+      // Fade height to 0 near edges for seamless blend with base plane
+      const ex = Math.min(col, GROUND_SEGS - col) / edgeFade;
+      const ez = Math.min(row, GROUND_SEGS - row) / edgeFade;
+      const fade = Math.min(1, Math.min(ex, ez));
+      pos.setY(i, (hm.heights[row * n + col] - 0.05) * fade);
     }
     pos.needsUpdate = true;
     geo.computeVertexNormals();
     return geo;
   }, [hm]);
 
-  const gridMap = useMemo(() => {
-    const tex = getGroundGrid().clone();
-    tex.repeat.set(80, 80);
-    tex.needsUpdate = true;
-    return tex;
-  }, []);
-
-  if (!geometry) {
-    return (
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
-        <planeGeometry args={[4000, 4000]} />
-        <meshLambertMaterial map={gridMap}
-          polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
-      </mesh>
-    );
-  }
+  const groundColor = darkMode ? '#0a0a0f' : '#ffffff';
 
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial map={gridMap}
-        polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
-    </mesh>
+    <group>
+      {/* Infinite-feel base plane — extends far beyond city */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]} receiveShadow>
+        <planeGeometry args={[20000, 20000]} />
+        <meshLambertMaterial color={groundColor}
+          polygonOffset polygonOffsetFactor={3} polygonOffsetUnits={3} />
+      </mesh>
+
+      {/* Detail terrain with elevation (if available) */}
+      {geometry && (
+        <mesh geometry={geometry} receiveShadow>
+          <meshLambertMaterial color={groundColor}
+            polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
+        </mesh>
+      )}
+
+      {/* Flat fallback if no elevation data */}
+      {!geometry && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+          <planeGeometry args={[20000, 20000]} />
+          <meshLambertMaterial color={groundColor}
+            polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
+        </mesh>
+      )}
+    </group>
   );
 }
 
@@ -640,7 +1274,7 @@ function computeLabelHeights(
 }
 
 // All dot poles combined into one InstancedMesh
-function DotPoles({ districts, heights }: { districts: OSMDistrict[]; heights: number[] }) {
+function DotPoles({ districts, heights, darkMode = false }: { districts: OSMDistrict[]; heights: number[]; darkMode?: boolean }) {
   const meshRef = useRef<InstancedMesh>(null);
   const { camera } = useThree();
 
@@ -659,7 +1293,7 @@ function DotPoles({ districts, heights }: { districts: OSMDistrict[]; heights: n
   }, [districts, heights]);
 
   const geo = useMemo(() => new SphereGeometry(DOT_SIZE, 6, 6), []);
-  const mat = useMemo(() => new MeshBasicMaterial({ color: '#c0c0c0', transparent: true }), []);
+  const mat = useMemo(() => new MeshBasicMaterial({ color: darkMode ? '#404050' : '#c0c0c0', depthWrite: true }), [darkMode]);
 
   // Set initial transforms
   useEffect(() => {
@@ -673,13 +1307,10 @@ function DotPoles({ districts, heights }: { districts: OSMDistrict[]; heights: n
     meshRef.current.instanceMatrix.needsUpdate = true;
   }, [totalDots, dotPositions]);
 
-  // Distance-based fog fade
+  // Distance-based visibility toggle (no transparency to avoid render order flickering)
   useFrame(() => {
     if (!meshRef.current) return;
     const camPos = camera.position;
-    // Group dots by district and set opacity on the whole mesh
-    // Since InstancedMesh shares one material, use per-instance color alpha workaround
-    // Simpler: just fade the whole material based on nearest visible distance
     let minDist = Infinity;
     for (const d of districts) {
       const dx = d.position[0] - camPos.x;
@@ -687,8 +1318,7 @@ function DotPoles({ districts, heights }: { districts: OSMDistrict[]; heights: n
       const dist = Math.sqrt(dx * dx + dz * dz);
       if (dist < minDist) minDist = dist;
     }
-    // Keep dots visible if any district is close
-    mat.opacity = minDist < FOG_END ? 1.0 : 0.0;
+    meshRef.current.visible = minDist < FOG_END;
   });
 
   if (totalDots === 0) return null;
@@ -696,7 +1326,7 @@ function DotPoles({ districts, heights }: { districts: OSMDistrict[]; heights: n
 }
 
 // Single label with distance-based fog
-function FogLabel({ district, height }: { district: OSMDistrict; height: number }) {
+function FogLabel({ district, height, darkMode = false }: { district: OSMDistrict; height: number; darkMode?: boolean }) {
   const groupRef = useRef<any>(null);
   const { camera } = useThree();
 
@@ -705,30 +1335,24 @@ function FogLabel({ district, height }: { district: OSMDistrict; height: number 
     const [dx, dz] = district.position;
     const cx = camera.position.x, cz = camera.position.z;
     const dist = Math.sqrt((dx - cx) ** 2 + (dz - cz) ** 2);
-    const opacity = 1.0 - Math.min(1.0, Math.max(0.0, (dist - FOG_START) / (FOG_END - FOG_START)));
-    groupRef.current.visible = opacity > 0.01;
-    // Update children materials
-    groupRef.current.traverse((child: any) => {
-      if (child.material) {
-        child.material.opacity = opacity;
-        child.material.transparent = true;
-      }
-    });
+    // Simple visibility toggle instead of transparency to avoid render order flickering
+    groupRef.current.visible = dist < FOG_END;
   });
 
+  const labelColor = darkMode ? '#FF3355' : '#DC143C';
+
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} renderOrder={999}>
       <Billboard position={[district.position[0], height, district.position[1]]} follow>
         <Text
           fontSize={12}
-          color="#DC143C"
+          color={labelColor}
           anchorX="center"
           anchorY="middle"
           fontWeight={700}
           letterSpacing={0.1}
           material-toneMapped={false}
-          material-depthTest={false}
-          material-transparent={true}
+          material-depthWrite={false}
         >
           {district.name}
         </Text>
@@ -736,14 +1360,13 @@ function FogLabel({ district, height }: { district: OSMDistrict; height: number 
           <Text
             position={[0, -14, 0]}
             fontSize={6}
-            color="#DC143C"
+            color={labelColor}
             anchorX="center"
             anchorY="middle"
             fontWeight={400}
             letterSpacing={0.08}
             material-toneMapped={false}
-            material-depthTest={false}
-            material-transparent={true}
+            material-depthWrite={false}
           >
             {district.nameEn}
           </Text>
@@ -753,7 +1376,7 @@ function FogLabel({ district, height }: { district: OSMDistrict; height: number 
   );
 }
 
-function DistrictLabels({ districts, buildings }: { districts: OSMDistrict[]; buildings: OSMBuilding[] }) {
+function DistrictLabels({ districts, buildings, darkMode = false }: { districts: OSMDistrict[]; buildings: OSMBuilding[]; darkMode?: boolean }) {
   const heights = useMemo(
     () => computeLabelHeights(districts, buildings),
     [districts, buildings]
@@ -761,16 +1384,16 @@ function DistrictLabels({ districts, buildings }: { districts: OSMDistrict[]; bu
 
   return (
     <group>
-      <DotPoles districts={districts} heights={heights} />
+      <DotPoles districts={districts} heights={heights} darkMode={darkMode} />
       {districts.map((d, i) => (
-        <FogLabel key={`d-${i}`} district={d} height={heights[i]} />
+        <FogLabel key={`d-${i}`} district={d} height={heights[i]} darkMode={darkMode} />
       ))}
     </group>
   );
 }
 
 // --- Main ---
-export function OSMCity({ area = 'shinjuku' }: { area?: CityAreaKey }) {
+export function OSMCity({ area = 'shinjuku', darkMode = false, onBuildingSelect }: { area?: CityAreaKey; darkMode?: boolean; onBuildingSelect?: (b: OSMBuilding | null) => void }) {
   const [buildings, setBuildings] = useState<OSMBuilding[]>([]);
   const [areas, setAreas] = useState<OSMArea[]>([]);
   const [railways, setRailways] = useState<OSMRailway[]>([]);
@@ -793,42 +1416,42 @@ export function OSMCity({ area = 'shinjuku' }: { area?: CityAreaKey }) {
       setBridges(br);
     }).catch(() => {});
     fetchOSMDistricts(area).then(setDistricts).catch(() => {});
-    fetchElevation(area).then(e => setElev(e)).catch(() => {});
+    // Elevation disabled — flat ground for clean look
+    // fetchElevation(area).then(e => setElev(e)).catch(() => {});
   }, [area]);
 
   return (
     <group>
       {/* Terrain ground (with elevation if available) */}
-      <TerrainGround hm={hm} />
+      <TerrainGround hm={hm} darkMode={darkMode} />
+      {/* Invisible ground plane for deselect on empty click */}
+      <mesh
+        visible={false}
+        position={[0, -0.5, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        onClick={(e) => {
+          e.stopPropagation();
+          onBuildingSelect?.(null);
+        }}
+      >
+        <planeGeometry args={[20000, 20000]} />
+        <meshBasicMaterial />
+      </mesh>
 
       {/* Water: areas + waterway lines */}
-      <MergedWater areas={areas} hm={hm} />
-      <MergedWaterways waterways={waterways} hm={hm} />
+      {/* Water & waterways disabled — cause shadow artifacts on ground */}
 
-      {/* Railways */}
-      <MergedRailways railways={railways} hm={hm} />
-
-      {/* Steps/Stairs */}
-      <MergedSteps steps={steps} hm={hm} />
-
-      {/* Bridges */}
-      <MergedBridgesNew bridges={bridges} hm={hm} />
+      {/* Railways, steps, bridges — disabled (shadow artifacts) */}
 
       {/* Area zones */}
-      <MergedParks areas={areas} hm={hm} />
-      <MergedCommercial areas={areas} hm={hm} />
-      <MergedSchools areas={areas} hm={hm} />
-      <MergedPedestrian areas={areas} hm={hm} />
-      <MergedPlatforms areas={areas} hm={hm} />
-      <MergedParking areas={areas} hm={hm} />
+      {/* Area zones — parking only (commercial removed: large zones cause visual split) */}
+      <MergedParking areas={areas} hm={hm} darkMode={darkMode} />
 
       {/* Buildings */}
-      <MergedBuildings buildings={buildings} hm={hm} />
-
-      {/* District boundary lines */}
+      <MergedBuildings buildings={buildings} hm={hm} darkMode={darkMode} onBuildingClick={onBuildingSelect} />
 
       {/* Labels */}
-      <DistrictLabels districts={districts} buildings={buildings} />
+      {/* District labels disabled */}
     </group>
   );
 }

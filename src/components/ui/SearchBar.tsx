@@ -5,9 +5,10 @@ import { CITY_AREAS, type CityAreaKey } from '../../lib/osmLoader';
 type SearchBarProps = {
   area: CityAreaKey;
   onNavigate: (position: [number, number]) => void;
+  darkMode?: boolean;
 };
 
-export function SearchBar({ area, onNavigate }: SearchBarProps) {
+export function SearchBar({ area, onNavigate, darkMode = false }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function SearchBar({ area, onNavigate }: SearchBarProps) {
       style={{
         position: 'absolute',
         top: 24,
-        right: 24,
+        right: 76,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
@@ -47,12 +48,13 @@ export function SearchBar({ area, onNavigate }: SearchBarProps) {
         style={{
           display: 'flex',
           gap: 6,
-          background: 'rgba(255,255,255,0.7)',
+          background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderRadius: 14,
           padding: '6px 8px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+          boxShadow: darkMode ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.08)',
+          transition: 'all 0.4s ease',
         }}
       >
         <input
@@ -68,7 +70,7 @@ export function SearchBar({ area, onNavigate }: SearchBarProps) {
             background: 'transparent',
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize: 12,
-            color: '#1a1a2e',
+            color: darkMode ? '#e0e0e8' : '#1a1a2e',
             outline: 'none',
           }}
         />
@@ -79,13 +81,14 @@ export function SearchBar({ area, onNavigate }: SearchBarProps) {
             padding: '6px 14px',
             borderRadius: 10,
             border: 'none',
-            background: '#1a1a2e',
-            color: '#fff',
+            background: darkMode ? '#e0e0e8' : '#1a1a2e',
+            color: darkMode ? '#0a0a0f' : '#fff',
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize: 11,
             fontWeight: 600,
             cursor: loading ? 'wait' : 'pointer',
             opacity: loading ? 0.6 : 1,
+            transition: 'all 0.4s ease',
           }}
         >
           {loading ? '...' : 'Go'}
@@ -96,7 +99,7 @@ export function SearchBar({ area, onNavigate }: SearchBarProps) {
           style={{
             padding: '4px 10px',
             borderRadius: 8,
-            background: 'rgba(255,255,255,0.6)',
+            background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.6)',
             backdropFilter: 'blur(10px)',
             fontFamily: "'IBM Plex Mono', monospace",
             fontSize: 10,
