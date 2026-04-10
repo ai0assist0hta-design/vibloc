@@ -10,6 +10,9 @@ import {
   type SunPosition,
 } from '../../lib/sunPosition';
 import { CITY_AREAS, type CityAreaKey } from '../../lib/osmLoader';
+import { useWeatherStore } from '../../stores/useWeatherStore';
+import { useTimeStore } from '../../stores/useTimeStore';
+import { weatherEmoji, weatherLabel } from '../../lib/weather/openMeteo';
 
 type TimeSliderProps = {
   area: CityAreaKey;
@@ -65,6 +68,20 @@ export function TimeSlider({ area, enabled, onToggle, onSunUpdate, darkMode }: T
     const { isDark } = getSkyState(sun.altitude);
     onSunUpdate(lightPos, isDark);
   }, [enabled, hour, area, tz, config.refLat, config.refLon, onSunUpdate]);
+
+  // Mirror the current slider time into the shared time store so the
+  // recommendation engine can read a synchronous snapshot without a
+  // React dependency (same pattern as useWeatherStore). Silent — the
+  // engine uses it for a tiny mood bias; the UI never labels it.
+  useEffect(() => {
+    const date = dateAtHour(hour, tz);
+    useTimeStore.getState().set({
+      hour,
+      tz,
+      localDate: date,
+      lat: config.refLat,
+    });
+  }, [hour, tz, config.refLat]);
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseFloat(e.target.value);
@@ -135,9 +152,9 @@ export function TimeSlider({ area, enabled, onToggle, onSunUpdate, darkMode }: T
           transition: 'all 0.4s ease',
           whiteSpace: 'nowrap',
         }}
-        title="Live Time Mode"
+        title="Real-Time Mode"
       >
-        {'\u23F0'} LIVE
+        {'\u23F0'} REAL-TIME
       </button>
 
       {/* Slider panel — only visible when enabled */}
@@ -241,18 +258,57 @@ export function TimeSlider({ area, enabled, onToggle, onSunUpdate, darkMode }: T
 
           {isLive && (
             <span
+              title={`Real-time · synced ${formatHour(hour)} ${tz}`}
               style={{
                 fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: 9,
-                fontWeight: 600,
+                fontWeight: 700,
                 color: '#4CAF50',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                letterSpacing: 0.4,
               }}
             >
-              {'\u25CF'} LIVE
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#4CAF50',
+                  boxShadow: '0 0 6px rgba(76,175,80,0.7)',
+                }}
+              />
+              REAL-TIME
             </span>
           )}
+
+          {/* Live weather glyph — only present in LIVE mode and only
+              once Open-Meteo has answered. Pure icon, no temperature
+              text, per the explicit "icon only, no graphic chrome"
+              brief. The same store that backs this glyph is read by
+              the recommendation engine for silent mood biasing. */}
+          <WeatherGlyph />
         </div>
       )}
     </div>
+  );
+}
+
+function WeatherGlyph() {
+  const snap = useWeatherStore((s) => s.snapshot);
+  if (!snap) return null;
+  return (
+    <span
+      title={weatherLabel(snap)}
+      style={{
+        fontSize: 14,
+        lineHeight: 1,
+        marginLeft: 2,
+      }}
+    >
+      {weatherEmoji(snap)}
+    </span>
   );
 }

@@ -41,6 +41,7 @@ export function geoToLocalMeters(
   refLon: number
 ): [number, number] {
   const x = (lon - refLon) * 111320 * Math.cos((refLat * Math.PI) / 180);
-  const z = -(lat - refLat) * 110540;
+  const z = (lat - refLat) * 110540;
   return [x, z];
 }
+

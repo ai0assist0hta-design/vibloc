@@ -1,6 +1,10 @@
 import type { Building, GenreKey } from '../types';
 
-const GENRES: GenreKey[] = ['jazz', 'electronic', 'pop', 'rnb', 'indie', 'rock', 'classical'];
+const GENRES: GenreKey[] = [
+  'pop', 'rock', 'hiphop', 'rnb', 'electronic', 'alternative',
+  'jazz', 'classical', 'country', 'latin', 'kpop', 'jpop',
+  'soundtrack', 'singer', 'reggae', 'world', 'blues', 'anime',
+];
 const DEMO_USERS = ['minjae', 'yuna', 'hyunwoo', 'soyeon', 'jiwon', 'taeho', 'eunji'];
 
 function pick<T>(arr: T[]): T {

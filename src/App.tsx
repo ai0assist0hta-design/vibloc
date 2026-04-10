@@ -1,18 +1,165 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { PlateauScene } from './components/canvas/PlateauScene';
+import { PlateauScene, type NavTarget } from './components/canvas/PlateauScene';
 import { SearchBar } from './components/ui/SearchBar';
 import { Compass } from './components/ui/Compass';
 import { TimeSlider } from './components/ui/TimeSlider';
-import { CITY_AREAS, type CityAreaKey, type OSMBuilding, type BuildingTag, metersToLatLon, reverseGeocode } from './lib/osmLoader';
+import { LanguageToggle } from './components/ui/LanguageToggle';
+import { CanvasTour } from './components/ui/CanvasTour';
+import { LocalePrompt } from './components/ui/LocalePrompt';
+import { useT, translateTagLabel, useI18nStore } from './lib/i18n';
+import { CITY_AREAS, type CityAreaKey, type OSMBuilding, type OSMRoad, type BuildingTag, metersToLatLon, reverseGeocode, fetchOSMTerrain } from './lib/osmLoader';
+import {
+  googleMapsLink,
+  appleMapsLink,
+  bingMapsLink,
+  naverMapLink,
+  kakaoMapLink,
+  yahooJapanMapLink,
+} from './lib/plusCode';
+import { StreetViewBox } from './components/ui/StreetViewBox';
+import { RecommendedList } from './components/ui/music/RecommendedList';
+import { BuildingPlaylist } from './components/ui/music/BuildingPlaylist';
+import { AddTrackComposer } from './components/ui/music/AddTrackComposer';
+import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
+import { getCityVibe } from './lib/music/cityProfile';
+import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetViewViewpoint';
+import { loadAppleGenreColors } from './lib/music/genreColorSource';
+import { useArtworkTint } from './lib/music/headerTint';
+import { usePlaylist } from './lib/music/buildingPlaylist';
+import { STATIC_GENRE_COLORS } from './data/genres';
+import { useWeatherStore } from './stores/useWeatherStore';
+
+/**
+ * Country code per city area — used to pick locale-appropriate map deeplinks.
+ * Kept as a flat lookup so the panel renders zero-cost fallback links for the
+ * map app the user actually has installed (Naver/Kakao for KR, Yahoo for JP).
+ */
+const AREA_COUNTRY: Record<string, 'JP' | 'KR' | 'US'> = {
+  shinjuku: 'JP',
+  shibuya: 'JP',
+  itaewon: 'KR',
+  gangnam: 'KR',
+  manhattan: 'US',
+  la: 'US',
+};
 import './index.css';
 
+/**
+ * Country-specific deeplinks collapsed under a "더보기 / more" toggle.
+ *
+ * NN/g Disclosure pattern: keeps the primary actions (Google + Apple) always
+ * visible while moving locale-specific apps one tap away. Lower visual noise
+ * for the 99% case where the user just wants Google/Apple, no loss of
+ * functionality for the locals who actually use 네이버/카카오/Yahoo!地図/Bing.
+ */
+function LocaleDeeplinks({
+  urls,
+  ghostBtn,
+  lang,
+}: {
+  urls: { label: string; href: string }[];
+  ghostBtn: React.CSSProperties;
+  lang: 'ko' | 'ja' | 'en';
+}) {
+  const [open, setOpen] = useState(false);
+  if (urls.length === 0) return null;
+  const moreLabel = lang === 'ko' ? '더보기' : lang === 'ja' ? 'もっと見る' : 'more';
+  const lessLabel = lang === 'ko' ? '접기' : lang === 'ja' ? '閉じる' : 'less';
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        style={{ ...ghostBtn, cursor: 'pointer' }}
+      >
+        {open ? `${lessLabel} ▴` : `${moreLabel} ▾`}
+      </button>
+      {open &&
+        urls.map((u) => (
+          <a key={u.label} href={u.href} target="_blank" rel="noopener noreferrer" style={ghostBtn}>
+            {u.label} ↗
+          </a>
+        ))}
+    </>
+  );
+}
+
 function App() {
+  const t = useT();
+  const lang = useI18nStore((s) => s.lang);
   const [area, setArea] = useState<CityAreaKey>('shinjuku');
-  const [navigateTarget, setNavigateTarget] = useState<[number, number] | null>(null);
+  // Navigation target: world (x, z) plus optional height and footprint.
+  // The footprint lets CameraNavigator orient the fly-to along the building's
+  // actual long axis (OBB), so long Manhattan slabs and rotated towers get a
+  // proper 3/4 view instead of an edge-on shot from a hard-coded SE diagonal.
+  const [navigateTarget, setNavigateTarget] = useState<NavTarget | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [liveTimeEnabled, setLiveTimeEnabled] = useState(false);
   const [sunLightPos, setSunLightPos] = useState<[number, number, number] | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<OSMBuilding | null>(null);
+  // Coordinate sanitized by StreetViewBox's OSM-station Overpass query.
+  // When the building's raw entry coord is within ~40 m of a subway /
+  // station entrance, this gets shifted ~70 m away in the bearing
+  // facing the building, so the Google/Apple Maps deeplinks below
+  // open above ground instead of on top of the subway exit.
+  const [sanitizedCoord, setSanitizedCoord] = useState<{ lat: number; lon: number } | null>(null);
+  // Currently expanded tag chip in the panel — null = nothing open. Reset
+  // automatically when the user picks a different building.
+  const [expandedTagKey, setExpandedTagKey] = useState<string | null>(null);
+  useEffect(() => { setExpandedTagKey(null); }, [selectedBuilding?.id]);
+  // Apple Look Around convention (Apple HIG, 2026): immersive
+  // imagery is shown on-demand, never embedded above the fold. The
+  // Street View block stays collapsed to a small thumbnail button
+  // and only mounts the iframe once the user explicitly opts in,
+  // reclaiming ~260px of vertical space for the actual tagging flow.
+  const [streetViewExpanded, setStreetViewExpanded] = useState(false);
+  useEffect(() => { setStreetViewExpanded(false); }, [selectedBuilding?.id]);
+  // Apple Music iOS 26.4 paired-color header tint (#10): read the
+  // top pinned track's artwork and derive a complementary wash for
+  // the panel header. Hooks must run unconditionally, so we always
+  // call them with a safe fallback id and let the result be null
+  // when no building/track is active.
+  const _playlistForTint = usePlaylist(selectedBuilding?.id ?? '__no_building__');
+  const _topPinnedArtwork = _playlistForTint.tracks[0]?.artworkUrl ?? null;
+  const headerTint = useArtworkTint(_topPinnedArtwork);
+  const [buildings, setBuildings] = useState<OSMBuilding[]>([]);
+  // Roads for the current area — loaded once per area and reused to snap
+  // the Street View viewpoint onto real drivable segments (Google SV panos
+  // only exist where cars drove, so road-snapping is the most reliable way
+  // to avoid interior/lobby panoramas).
+  const [roads, setRoads] = useState<OSMRoad[]>([]);
+  // ── Apple-derived genre color hydration ───────────────────────────
+  // Fire-and-forget: query iTunes Search for one canonical track per
+  // Apple GenreKey, extract the dominant hue from each artwork, and
+  // cache the result in localStorage. The current session keeps using
+  // the static palette in `genres.ts`; the next reload hydrates from
+  // the Apple-derived cache so every genre swatch is sourced from real
+  // Apple Music data instead of editorial HIG picks.
+  useEffect(() => {
+    void loadAppleGenreColors(
+      Object.fromEntries(
+        Object.entries(STATIC_GENRE_COLORS).map(([k, v]) => [k, v.color]),
+      ) as Record<keyof typeof STATIC_GENRE_COLORS, string>,
+    );
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    fetchOSMTerrain(area)
+      .then((t) => {
+        if (cancelled) return;
+        setRoads(t.roads);
+        if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+          (window as unknown as { __VIBLOC_ROADS__?: OSMRoad[] }).__VIBLOC_ROADS__ = t.roads;
+        }
+      })
+      .catch(() => { if (!cancelled) setRoads([]); });
+    return () => { cancelled = true; };
+  }, [area]);
+  // Dev-only: expose buildings on window for verification scripts.
+  if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+    (window as unknown as { __VIBLOC_BUILDINGS__?: OSMBuilding[] }).__VIBLOC_BUILDINGS__ = buildings;
+  }
   const [geocodedInfo, setGeocodedInfo] = useState<{ name: string; address: string } | null>(null);
   const [geocoding, setGeocoding] = useState(false);
   const manualDarkRef = useRef(false); // track if user manually toggled dark mode
@@ -26,6 +173,23 @@ function App() {
   //   5. Avoid excessive blur (>20px is harsh)
   const [reducedTransparency, setReducedTransparency] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // Mobile bottom-sheet (#8): desktop keeps the 440px right rail,
+  // mobile (<768px) switches to a 3-snap non-modal bottom sheet
+  // (NN/g bottom sheets, M3 standard side sheet adaptive). Snap
+  // cycles peek → half → full on tapping the drag handle so the
+  // canvas remains visible at "peek" and the user never loses the
+  // 3D context. Reset to peek on every new building selection.
+  const [isMobile, setIsMobile] = useState<boolean>(
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  );
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const [sheetSnap, setSheetSnap] = useState<'peek' | 'half' | 'full'>('half');
+  useEffect(() => { setSheetSnap('half'); }, [selectedBuilding?.id]);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const mqT = window.matchMedia('(prefers-reduced-transparency: reduce)');
@@ -43,15 +207,27 @@ function App() {
     };
   }, []);
 
-  const handleNavigate = useCallback((pos: [number, number]) => {
+  const handleNavigate = useCallback((pos: [number, number], height?: number, footprint?: [number, number][]) => {
     setNavigateTarget(null);
-    requestAnimationFrame(() => setNavigateTarget(pos));
+    requestAnimationFrame(() =>
+      setNavigateTarget({ x: pos[0], z: pos[1], height, footprint })
+    );
   }, []);
 
   const handleBuildingSelect = useCallback((b: OSMBuilding | null) => {
     setSelectedBuilding(b);
     setGeocodedInfo(null);
+    setSanitizedCoord(null);
     if (b) {
+      // Mirror the search-bar interaction: any building selection (3D click,
+      // search, address-jump) should fly the camera to a consistent framing.
+      // Standard pattern in BIM viewers (xeokit, Forge) and map libraries
+      // (Mapbox flyTo, deck.gl FlyToInterpolator) — clicks are the user's
+      // strongest "I want to see this" signal, so the viewport should follow.
+      // Pass the full footprint so CameraNavigator can orient the 3/4 view
+      // along the building's actual long axis.
+      handleNavigate([b.center[0], b.center[1]], b.height, b.footprint);
+
       // Reverse geocode to get real name/address
       const config = CITY_AREAS[area];
       const { lat, lon } = metersToLatLon(b.center[0], b.center[1], config.refLat, config.refLon);
@@ -61,7 +237,11 @@ function App() {
         setGeocoding(false);
       });
     }
-  }, [area]);
+  }, [area, handleNavigate]);
+
+  const handleSearchSelect = useCallback((b: OSMBuilding) => {
+    handleBuildingSelect(b);
+  }, [handleBuildingSelect]);
 
   const handleSunUpdate = useCallback((lightPos: [number, number, number], isDark: boolean) => {
     setSunLightPos(lightPos);
@@ -88,14 +268,36 @@ function App() {
     if (!enabled) {
       setSunLightPos(null); // revert to default light position
       manualDarkRef.current = false;
+      // Hide the weather glyph as soon as the user leaves LIVE mode.
+      useWeatherStore.getState().clear();
     } else {
       manualDarkRef.current = false; // let sun control dark mode
     }
   }, []);
 
+  // ── Live weather hydration ────────────────────────────────────────
+  // Whenever LIVE mode is on, fetch the current weather for the
+  // city's reference coordinate. The fetch is cached for 10 minutes
+  // (Open-Meteo refreshes hourly) and re-runs on area changes so
+  // hopping cities updates the icon. The recommendation engine reads
+  // the same store synchronously, so weather feeds both the visible
+  // glyph AND the silent genre-mood bias without any extra plumbing.
+  useEffect(() => {
+    if (!liveTimeEnabled) return;
+    const cfg = CITY_AREAS[area];
+    if (!cfg) return;
+    void useWeatherStore.getState().loadFor(cfg.refLat, cfg.refLon);
+    // Refresh every 10 minutes while LIVE mode stays on so the glyph
+    // tracks reality through long sessions (rain rolling in, etc.).
+    const id = setInterval(() => {
+      void useWeatherStore.getState().loadFor(cfg.refLat, cfg.refLon);
+    }, 10 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [liveTimeEnabled, area]);
+
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <PlateauScene area={area} navigateTarget={navigateTarget} darkMode={darkMode} sunLightPos={sunLightPos} onBuildingSelect={handleBuildingSelect} />
+      <PlateauScene area={area} navigateTarget={navigateTarget} darkMode={darkMode} sunLightPos={sunLightPos} selectedBuilding={selectedBuilding} onBuildingSelect={handleBuildingSelect} onBuildingsLoaded={setBuildings} />
 
       {/* Logo */}
       <div
@@ -151,20 +353,24 @@ function App() {
         {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
       </button>
 
-      {/* Area selector */}
+      {/* Area selector — bottom-center per Mapbox/Apple Maps thumb-zone
+          convention (#11). City switching is the most-used chrome
+          control, so it lives in the most reachable spot. */}
       <div
         style={{
           position: 'absolute',
           bottom: 24,
-          left: 24,
+          left: '50%',
+          transform: 'translateX(-50%)',
           display: 'flex',
           gap: 6,
+          zIndex: 15,
         }}
       >
         {(Object.keys(CITY_AREAS) as CityAreaKey[]).map((key) => (
           <button
             key={key}
-            onClick={() => { setArea(key); setSelectedBuilding(null); }}
+            onClick={() => { setArea(key); setSelectedBuilding(null); setSanitizedCoord(null); }}
             style={{
               padding: '8px 14px',
               borderRadius: 12,
@@ -185,14 +391,19 @@ function App() {
               transition: 'all 0.4s ease',
             }}
           >
-            {CITY_AREAS[key].label}
+            {t(`city.${key}`)}
           </button>
         ))}
+        <LanguageToggle darkMode={darkMode} />
       </div>
 
-      <SearchBar area={area} onNavigate={handleNavigate} darkMode={darkMode} />
+      <SearchBar area={area} buildings={buildings} onSelectBuilding={handleSearchSelect} onNavigate={handleNavigate} darkMode={darkMode} />
 
       <Compass darkMode={darkMode} />
+
+      <CanvasTour darkMode={darkMode} />
+
+      <LocalePrompt area={area} darkMode={darkMode} />
 
       <div
         style={{
@@ -287,7 +498,14 @@ function App() {
         // For famous / wikidata-matched landmarks, the building name appears
         // as a small kicker label above the address.
         const rawName = (geocodedInfo?.name || selectedBuilding.name || '').trim();
-        const addr = (geocodedInfo?.address || selectedBuilding.address || '').trim();
+        // Prefer the building's own address when it came from authoritative
+        // sources (own addr:* tags or manual override). Only fall back to the
+        // external reverseGeocode when our local data is borrowed/locality.
+        const addr = (
+          selectedBuilding.addressOriginal
+            ? (selectedBuilding.address || geocodedInfo?.address || '')
+            : (geocodedInfo?.address || selectedBuilding.address || '')
+        ).trim();
         const hasRealName = !!rawName && rawName !== 'Building' && rawName !== addr;
         const allTags = selectedBuilding.tags || [];
 
@@ -302,12 +520,36 @@ function App() {
         const title = addr || rawName || 'Building';
         const subtitle = ''; // address IS the title now — no subtitle line
 
+        // Hoisted lat/lon for the building — needed both by the
+        // deeplinks IIFE below AND by the music recommendation
+        // engine in the scrollable body. Computed once here so the
+        // two consumers stay in sync. Sanitized coord (from the
+        // StreetViewBox subway-avoid sanitizer) overrides the raw
+        // entry/centroid the moment Overpass resolves.
+        const _cfg = CITY_AREAS[area];
+        const [_px, _pz] = selectedBuilding.entry ?? selectedBuilding.center;
+        const { lat: hoistedRawLat, lon: hoistedRawLon } = metersToLatLon(
+          _px,
+          _pz,
+          _cfg.refLat,
+          _cfg.refLon,
+        );
+        const buildingLat = sanitizedCoord?.lat ?? hoistedRawLat;
+        const buildingLon = sanitizedCoord?.lon ?? hoistedRawLon;
+
         // ---- Generic-only listing ----
         // Show types ("Thai Restaurant", "Fashion Shop") instead of brand names.
         // Wiki-credit rows (Owner/Architect/Developer/Operator) are filtered out.
         const META_LABELS = new Set(['owner', 'operator', 'developer', 'architect']);
+        // "Skyscraper" is a structural classification, not a tenant — it's
+        // surfaced as a small header badge instead of cluttering the list.
+        const isSkyscraper = allTags.some(
+          (t) => (t.label || '').toLowerCase() === 'skyscraper'
+        );
         const usefulTags = allTags.filter(
-          (t) => !META_LABELS.has((t.label || '').toLowerCase())
+          (t) =>
+            !META_LABELS.has((t.label || '').toLowerCase()) &&
+            (t.label || '').toLowerCase() !== 'skyscraper'
         );
 
         // Tenant ordering: on large/tall buildings, push food & shop to the bottom.
@@ -323,32 +565,55 @@ function App() {
         };
 
         // Deduplicate by label so identical generic types collapse into one row
-        // with a count badge ("Thai Restaurant ×3").
-        const labelMap = new Map<string, { label: string; category: string; count: number }>();
+        // with a count badge ("Thai Restaurant ×3"). We also collect the actual
+        // tenant names per row so the expansion card can reveal real business
+        // names ("Starbucks", "스타벅스") rather than just the generic type.
+        type LabelRow = {
+          label: string;
+          category: string;
+          count: number;
+          names: string[];
+        };
+        const labelMap = new Map<string, LabelRow>();
         for (const t of usefulTags) {
           const key = `${t.category}|${t.label.toLowerCase()}`;
           const existing = labelMap.get(key);
-          if (existing) existing.count++;
-          else labelMap.set(key, { label: t.label, category: t.category, count: 1 });
+          if (existing) {
+            existing.count++;
+            if (t.name && t.name.trim() && !existing.names.includes(t.name.trim())) {
+              existing.names.push(t.name.trim());
+            }
+          } else {
+            labelMap.set(key, {
+              label: t.label,
+              category: t.category,
+              count: 1,
+              names: t.name && t.name.trim() ? [t.name.trim()] : [],
+            });
+          }
         }
         const genericRows = Array.from(labelMap.values()).sort(
           (a, b) => tenantRank(a.category) - tenantRank(b.category)
         );
-        // Pills mirror the generic rows but only one per category.
-        type Pill = { label: string; category: string };
-        const CATEGORY_PILL: Record<string, string> = {
-          food: 'Restaurant', shop: 'Shop', hotel: 'Hotel', office: 'Office',
-          residential: 'Residential', entertainment: 'Entertainment',
-          religious: 'Religious', education: 'Education', medical: 'Medical',
-          government: 'Government', other: 'Other',
+        // Tag chips were previously collapsed to one-per-category ("Restaurant",
+        // "Shop"). Per user request the scope was widened — every distinct
+        // generic row is its own clickable chip ("Thai Restaurant", "Bakery",
+        // "Cafe ×2"...). Clicking a chip reveals its expanded card.
+        type Pill = {
+          key: string;
+          label: string;
+          category: string;
+          count: number;
+          names: string[];
         };
-        const pillSeen = new Set<string>();
-        const pills: Pill[] = [];
-        for (const row of genericRows) {
-          if (pillSeen.has(row.category)) continue;
-          pillSeen.add(row.category);
-          pills.push({ label: CATEGORY_PILL[row.category] || row.category, category: row.category });
-        }
+        const pills: Pill[] = genericRows.map((r) => ({
+          key: `${r.category}|${r.label.toLowerCase()}`,
+          label: r.label,
+          category: r.category,
+          count: r.count,
+          names: r.names,
+        }));
+        const activePill = pills.find((p) => p.key === expandedTagKey) || null;
 
         const titleId = 'vibloc-place-title';
         return (
@@ -358,28 +623,86 @@ function App() {
             aria-labelledby={titleId}
             style={{
               position: 'fixed',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: 380,
+              ...(isMobile
+                ? {
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    top: 'auto',
+                    width: 'auto',
+                    height:
+                      sheetSnap === 'full'
+                        ? '92vh'
+                        : sheetSnap === 'half'
+                        ? '60vh'
+                        : '22vh',
+                    borderTopLeftRadius: 22,
+                    borderTopRightRadius: 22,
+                    borderTop: `1px solid ${divider}`,
+                    borderLeft: 'none',
+                  }
+                : {
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: 440,
+                    borderLeft: `1px solid ${divider}`,
+                  }),
               background: surface,
               // Very low opacity → rely more heavily on blur + saturation to keep
               // text legible against any map background.
               backdropFilter: opaque ? undefined : 'blur(32px) saturate(170%)',
               WebkitBackdropFilter: opaque ? undefined : 'blur(32px) saturate(170%)',
-              borderLeft: `1px solid ${divider}`,
               boxShadow: darkMode
-                ? '-16px 0 50px rgba(0,0,0,0.55)'
-                : '-16px 0 50px rgba(15,23,42,0.12)',
+                ? (isMobile ? '0 -16px 50px rgba(0,0,0,0.55)' : '-16px 0 50px rgba(0,0,0,0.55)')
+                : (isMobile ? '0 -16px 50px rgba(15,23,42,0.12)' : '-16px 0 50px rgba(15,23,42,0.12)'),
               fontFamily: "'IBM Plex Mono', monospace",
               color: text,
               display: 'flex',
               flexDirection: 'column',
               zIndex: 30,
-              transition: reducedMotion ? 'none' : `background ${transitionMs}ms ease`,
+              transition: reducedMotion
+                ? 'none'
+                : `background ${transitionMs}ms ease, height 320ms cubic-bezier(0.22,1,0.36,1)`,
               overflow: 'hidden', // contain the gradient glow
             }}
           >
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() =>
+                  setSheetSnap((s) =>
+                    s === 'peek' ? 'half' : s === 'half' ? 'full' : 'peek',
+                  )
+                }
+                aria-label="Adjust sheet height"
+                style={{
+                  position: 'absolute',
+                  top: 6,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 60,
+                  height: 22,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 5,
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 38,
+                    height: 4,
+                    borderRadius: 2,
+                    background: divider,
+                  }}
+                />
+              </button>
+            )}
             {/* Soft corner gradient glow — inspired by the Active Tasks reference.
                 Kept subtle, low-contrast, and NEVER behind body text (sits in the header
                 area only). Hidden when user prefers reduced transparency. */}
@@ -426,6 +749,16 @@ function App() {
                 borderBottom: `1px solid ${divider}`,
                 position: 'relative',
                 zIndex: 1, // sit above the gradient glow
+                // Apple Music iOS 26.4 paired-color tint (#10): a
+                // very subtle wash derived from the top pinned
+                // track's artwork. Sits behind the title only —
+                // never behind body text, where it would risk
+                // contrast. Falls through to neutral when no
+                // playlist exists yet.
+                background: headerTint
+                  ? `linear-gradient(180deg, ${headerTint}33 0%, transparent 100%)`
+                  : undefined,
+                transition: reducedMotion ? 'none' : 'background 600ms ease',
               }}
             >
               <button
@@ -484,7 +817,7 @@ function App() {
                     flexShrink: 0,
                   }}
                 />
-                Place
+                {t('panel.place')}
               </div>
               {kicker ? (
                 <div
@@ -519,28 +852,256 @@ function App() {
               >
                 {title}
               </div>
-              {(selectedBuilding.height > 0 || selectedBuilding.levels > 0) ? (
+              {(selectedBuilding.height > 0 || selectedBuilding.levels > 0 || isSkyscraper) ? (
                 <div
                   style={{
-                    fontSize: 11,
-                    color: text2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
                     marginTop: 6,
-                    fontWeight: 600,
-                    letterSpacing: 0.4,
-                    textTransform: 'uppercase',
-                    opacity: 0.75,
                   }}
                 >
-                  {selectedBuilding.height > 0 ? `${Math.round(selectedBuilding.height)} m` : ''}
-                  {selectedBuilding.height > 0 && selectedBuilding.levels > 0 ? ' · ' : ''}
-                  {selectedBuilding.levels > 0 ? `${selectedBuilding.levels} F` : ''}
+                  {(selectedBuilding.height > 0 || selectedBuilding.levels > 0) ? (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: text2,
+                        fontWeight: 600,
+                        letterSpacing: 0.4,
+                        textTransform: 'uppercase',
+                        opacity: 0.75,
+                      }}
+                    >
+                      {selectedBuilding.height > 0 ? `${Math.round(selectedBuilding.height)} m` : ''}
+                      {selectedBuilding.height > 0 && selectedBuilding.levels > 0 ? ' · ' : ''}
+                      {selectedBuilding.levels > 0 ? `${selectedBuilding.levels} F` : ''}
+                    </span>
+                  ) : null}
+                  {isSkyscraper ? (
+                    <span
+                      title={t('panel.skyscraper')}
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        background: darkMode
+                          ? 'rgba(129,140,248,0.18)'
+                          : 'rgba(99,102,241,0.12)',
+                        color: darkMode ? '#a5b4fc' : '#4f46e5',
+                        fontSize: 9.5,
+                        fontWeight: 800,
+                        letterSpacing: 0.6,
+                        textTransform: 'uppercase',
+                        border: darkMode
+                          ? '1px solid rgba(165,180,252,0.25)'
+                          : '1px solid rgba(99,102,241,0.25)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {t('panel.skyscraper')}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
               {geocoding && !kicker ? (
                 <div style={{ fontSize: 12, color: text2, marginTop: 10 }} aria-live="polite">
-                  Loading address…
+                  {t('panel.loadingAddr')}
                 </div>
               ) : null}
+              {/* Plus Code + open-in-maps links.
+                  The displayed address is composed from OSM tags and may not
+                  match Google's canonical format for that exact building.
+                  These deeplinks bypass the address text entirely — they
+                  send Google Maps / Apple Maps to the BUILDING'S CENTER
+                  COORDINATES, so the pin always lands on the right spot.
+                  The Plus Code is shown next to them as a copy-pasteable
+                  global identifier that also resolves in both apps. */}
+              {(() => {
+                const config = CITY_AREAS[area];
+                // Prefer the OSM `entrance=*` node when available — it's the
+                // pedestrian-walkable doorway, not the geometric centroid.
+                // Falls back to the footprint centroid for buildings without
+                // any tagged entrance node.
+                const [px, pz] = selectedBuilding.entry ?? selectedBuilding.center;
+                const { lat: rawLat, lon: rawLon } = metersToLatLon(
+                  px,
+                  pz,
+                  config.refLat,
+                  config.refLon,
+                );
+                // The StreetViewBox runs an OSM-based subway/station
+                // sanitizer (Overpass) and reports the shifted lat/lon
+                // back via `onSanitizedCoord`. We feed THAT into the
+                // Google/Apple/locale deeplinks so when the user
+                // clicks "Google Maps ↗" they land on a corrected
+                // outdoor coordinate — not on top of a subway exit
+                // that would open Street View into the concourse.
+                // Until the sanitizer resolves we use the raw entry
+                // coord; the deeplinks live-update the moment the
+                // Overpass query lands.
+                const lat = sanitizedCoord?.lat ?? rawLat;
+                const lon = sanitizedCoord?.lon ?? rawLon;
+                const gURL = googleMapsLink(lat, lon);
+                const aURL = appleMapsLink(lat, lon, addr || rawName || 'Building');
+                // Locale-aware secondary deeplinks. Naver/Kakao for KR users,
+                // Yahoo Japan for JP users — these are the maps people in
+                // those countries actually open. All free, no API.
+                // Country-specific deeplinks ONLY render in their home
+                // country — Naver/Kakao for KR, Yahoo!Japan for JP, Bing for
+                // US. Everything else (Street View link, OSM, Directions,
+                // geohash) was removed at the user's request to keep the
+                // deeplink row minimal: Google + Apple + locale apps only.
+                const country = AREA_COUNTRY[area];
+                const naverURL = country === 'KR' ? naverMapLink(lat, lon, rawName || 'Building') : null;
+                const kakaoURL = country === 'KR' ? kakaoMapLink(lat, lon) : null;
+                const yahooURL = country === 'JP' ? yahooJapanMapLink(lat, lon) : null;
+                const bingURL = country === 'US' ? bingMapsLink(lat, lon) : null;
+                return (
+                  <>
+                    {/* Inline Google Street View preview. Chrome (address
+                        bar + zoom controls) is hidden via overlay clipping
+                        — wheel-on-hover handles zoom natively.
+
+                        We DON'T reuse the entry/center point here: Google
+                        snaps to the closest pano, which for mid-block
+                        towers often resolves to an interior arcade pano.
+                        Instead we pick an "outside viewpoint" — a point
+                        just past the closest wall — and aim the camera
+                        back at the building. */}
+                    {streetViewExpanded ? (() => {
+                      // Two-stage strategy: pick a viewpoint just
+                      // outside the footprint, snap to the nearest
+                      // drivable road, fall back to the seed if no
+                      // road is within 60m.
+                      const seed = pickOutsideViewpoint(selectedBuilding);
+                      const snapped = snapToNearestRoad(
+                        seed.x,
+                        seed.z,
+                        selectedBuilding.center,
+                        roads,
+                      );
+                      const vp = snapped ?? seed;
+                      const { lat: svLat, lon: svLon } = metersToLatLon(
+                        vp.x,
+                        vp.z,
+                        config.refLat,
+                        config.refLon,
+                      );
+                      return (
+                        <StreetViewBox
+                          lat={svLat}
+                          lon={svLon}
+                          headingDeg={vp.headingDeg}
+                          buildingName={rawName || null}
+                          divider={divider}
+                          darkMode={darkMode}
+                          onSanitizedCoord={(slat, slon) =>
+                            setSanitizedCoord({ lat: slat, lon: slon })
+                          }
+                        />
+                      );
+                    })() : (
+                      <button
+                        type="button"
+                        onClick={() => setStreetViewExpanded(true)}
+                        style={{
+                          marginTop: 12,
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: 12,
+                          border: `1px dashed ${divider}`,
+                          background: 'transparent',
+                          fontFamily: "'IBM Plex Mono', monospace",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: 0.6,
+                          textTransform: 'uppercase',
+                          color: text2,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                        }}
+                        aria-expanded={false}
+                      >
+                        <span aria-hidden="true">📷</span>
+                        Open Street View
+                      </button>
+                    )}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 6,
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      marginTop: 12,
+                    }}
+                  >
+                    <a
+                      href={gURL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: 0.4,
+                        padding: '4px 10px',
+                        borderRadius: 8,
+                        textDecoration: 'none',
+                        color: darkMode ? '#0a0a0f' : '#fff',
+                        background: darkMode ? '#e0e0e8' : '#1a1a2e',
+                      }}
+                    >
+                      Google Maps ↗
+                    </a>
+                    <a
+                      href={aURL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: 0.4,
+                        padding: '4px 10px',
+                        borderRadius: 8,
+                        textDecoration: 'none',
+                        color: text,
+                        background: 'transparent',
+                        border: `1px solid ${divider}`,
+                      }}
+                    >
+                      Apple Maps ↗
+                    </a>
+                    {/* Country-specific map apps — only render in their
+                        home country so JP users get Yahoo!地図, KR users
+                        get 네이버/카카오, US users get Bing. */}
+                    {(() => {
+                      const ghostBtn: React.CSSProperties = {
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: 0.4,
+                        padding: '4px 10px',
+                        borderRadius: 8,
+                        textDecoration: 'none',
+                        color: text,
+                        background: 'transparent',
+                        border: `1px solid ${divider}`,
+                        whiteSpace: 'nowrap',
+                      };
+                      const localeUrls: { label: string; href: string }[] = [];
+                      if (naverURL) localeUrls.push({ label: '네이버맵', href: naverURL });
+                      if (kakaoURL) localeUrls.push({ label: '카카오맵', href: kakaoURL });
+                      if (yahooURL) localeUrls.push({ label: 'Yahoo!地図', href: yahooURL });
+                      if (bingURL) localeUrls.push({ label: 'Bing', href: bingURL });
+                      return <LocaleDeeplinks urls={localeUrls} ghostBtn={ghostBtn} lang={lang} />;
+                    })()}
+                  </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Scrollable body */}
@@ -557,18 +1118,74 @@ function App() {
                 zIndex: 1, // above gradient glow
               }}
             >
-              {/* Compact category chips — single row, minimal vertical footprint */}
+              {/* Music sections — actions-first ordering per Google
+                    Place Card convention (verbs above the fold) and
+                    the 2026 UI/UX research synthesis (#1 priority):
+                      1. Tag a Track — primary verb, always above the
+                         fold so the user knows what this app is for.
+                      2. AI Top Pick — single recommendation visible
+                         immediately, "Show 4 more" reveals the rest
+                         (progressive disclosure).
+                      3. My Playlist — what the user has already
+                         curated for this building.
+                      4. City Vibe — ambient context, lowest priority. */}
+              <AddTrackComposer
+                buildingId={selectedBuilding.id}
+                vibe={getCityVibe(area)}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+              />
+
+              <RecommendedList
+                area={area}
+                lat={buildingLat}
+                lon={buildingLon}
+                buildingName={hasRealName ? rawName : null}
+                buildingId={selectedBuilding.id}
+                buildingTags={selectedBuilding.tags}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+              />
+
+              <BuildingPlaylist
+                buildingId={selectedBuilding.id}
+                cityVibe={getCityVibe(area)}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+              />
+
+              <CityVibeBlock
+                vibe={getCityVibe(area)}
+                text={text}
+                text3={text3}
+                divider={divider}
+              />
+
+              {/* Tag chips — every distinct generic tag is its own clickable
+                  chip. Click toggles the expansion card directly below. */}
               {pills.length > 0 && (
                 <div
                   role="group"
-                  aria-label="Place categories"
+                  aria-label="Place tags"
                   style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}
                 >
-                  {pills.map((tag, i) => {
+                  {pills.map((tag) => {
                     const s = swatch(tag.category);
+                    const active = expandedTagKey === tag.key;
                     return (
-                      <span
-                        key={`cat-${i}`}
+                      <button
+                        key={tag.key}
+                        type="button"
+                        onClick={() =>
+                          setExpandedTagKey((prev) => (prev === tag.key ? null : tag.key))
+                        }
+                        aria-pressed={active}
                         style={{
                           padding: '4px 10px',
                           borderRadius: 999,
@@ -578,132 +1195,164 @@ function App() {
                           fontWeight: 700,
                           letterSpacing: 0.4,
                           textTransform: 'uppercase',
-                          border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
+                          border: `1px solid ${
+                            active
+                              ? darkMode
+                                ? 'rgba(255,255,255,0.55)'
+                                : 'rgba(15,23,42,0.55)'
+                              : darkMode
+                              ? 'rgba(255,255,255,0.10)'
+                              : 'rgba(0,0,0,0.08)'
+                          }`,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          transform: active ? 'translateY(-1px)' : 'none',
+                          boxShadow: active
+                            ? darkMode
+                              ? '0 4px 12px rgba(0,0,0,0.45)'
+                              : '0 4px 12px rgba(15,23,42,0.18)'
+                            : 'none',
+                          transition: reducedMotion
+                            ? 'none'
+                            : 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
                         }}
                       >
-                        {tag.label}
-                      </span>
+                        {translateTagLabel(tag.label, lang)}
+                        {tag.count > 1 && (
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              fontSize: 9.5,
+                              fontWeight: 800,
+                              opacity: 0.7,
+                            }}
+                          >
+                            ×{tag.count}
+                          </span>
+                        )}
+                      </button>
                     );
                   })}
                 </div>
               )}
 
-              {/* Inside-this-place card — generic types only, no brand names */}
-              {genericRows.length > 0 && (
-                <div
-                  role="list"
-                  aria-label="Inside this place"
-                  style={{
-                    background: card,
-                    border: `1px solid ${divider}`,
-                    borderRadius: 16,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: '16px 16px 10px',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: 1.3,
-                      color: text2,
-                      textTransform: 'uppercase',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
-                      Inside this place
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: text2,
-                        letterSpacing: 0.3,
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        background: cardSub,
-                        border: `1px solid ${divider}`,
-                        borderRadius: 999,
-                      }}
-                    >
-                      {genericRows.length}
-                    </span>
-                  </div>
-                  <div>
-                    {genericRows.map((row, i) => {
-                      const s = swatch(row.category);
-                      return (
+              {/* Animated expansion container — uses the modern grid-rows
+                  trick to animate height from 0 to auto smoothly. The inner
+                  child must have overflow:hidden so the collapsing row
+                  doesn't bleed past its container. */}
+              <div
+                aria-live="polite"
+                style={{
+                  display: 'grid',
+                  gridTemplateRows: activePill ? '1fr' : '0fr',
+                  opacity: activePill ? 1 : 0,
+                  transition: reducedMotion
+                    ? 'none'
+                    : 'grid-template-rows 320ms cubic-bezier(0.22,1,0.36,1), opacity 220ms ease',
+                  marginTop: activePill ? 0 : -14, // collapse the parent gap when closed
+                }}
+              >
+                <div style={{ overflow: 'hidden', minHeight: 0 }}>
+                  {activePill && (() => {
+                    const s = swatch(activePill.category);
+                    // Headline should be the actual business name(s) when we
+                    // have them ("Starbucks", "Doutor Coffee"), falling back
+                    // to the translated generic type ("Cafe") only when the
+                    // OSM POI was generic with no name. The label moves down
+                    // to the subtitle row in that case so users always see
+                    // the most specific identity available.
+                    const hasNames = activePill.names.length > 0;
+                    const headline = hasNames
+                      ? activePill.names.join(', ')
+                      : translateTagLabel(activePill.label, lang);
+                    const subtitle = hasNames
+                      ? `${translateTagLabel(activePill.label, lang)} · ${activePill.category}`
+                      : activePill.category;
+                    return (
+                      <div
+                        role="group"
+                        aria-label={headline}
+                        style={{
+                          background: card,
+                          border: `1px solid ${divider}`,
+                          borderRadius: 16,
+                          padding: '14px 16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                        }}
+                      >
                         <div
-                          role="listitem"
-                          key={`type-${i}`}
+                          aria-hidden="true"
                           style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 12,
+                            background: s.fill,
+                            color: s.ink,
+                            border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 12,
-                            padding: '12px 16px',
-                            borderTop: i === 0 ? 'none' : `1px solid ${divider}`,
+                            justifyContent: 'center',
+                            fontSize: 16,
+                            fontWeight: 800,
+                            flexShrink: 0,
                           }}
                         >
+                          {glyph[activePill.category] || '·'}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div
-                            aria-hidden="true"
+                            title={headline}
                             style={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: 11,
-                              background: s.fill,
-                              color: s.ink,
-                              border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
                               fontSize: 14,
-                              fontWeight: 800,
+                              fontWeight: 600,
+                              color: text,
+                              lineHeight: 1.35,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {headline}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 10.5,
+                              color: text2,
+                              marginTop: 2,
+                              letterSpacing: 0.3,
+                              textTransform: 'uppercase',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {subtitle}
+                          </div>
+                        </div>
+                        {activePill.count > 1 && (
+                          <span
+                            aria-label={`${activePill.count} of this type`}
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: text2,
+                              padding: '3px 10px',
+                              background: cardSub,
+                              border: `1px solid ${divider}`,
+                              borderRadius: 999,
                               flexShrink: 0,
                             }}
                           >
-                            {glyph[row.category] || '·'}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontSize: 14,
-                                fontWeight: 600,
-                                color: text,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                lineHeight: 1.35,
-                              }}
-                            >
-                              {row.label}
-                            </div>
-                          </div>
-                          {row.count > 1 && (
-                            <span
-                              aria-label={`${row.count} of this type`}
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: text2,
-                                padding: '2px 8px',
-                                background: cardSub,
-                                border: `1px solid ${divider}`,
-                                borderRadius: 999,
-                                flexShrink: 0,
-                              }}
-                            >
-                              ×{row.count}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            ×{activePill.count}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         );

@@ -41,6 +41,7 @@ import {
   type ElevationGrid,
   type CityAreaKey,
 } from '../../lib/osmLoader';
+import { Quadtree } from '../../lib/quadtree';
 
 // --- Building facade normal map: clean geometric grid ---
 function createFacadeNormalMap(): CanvasTexture {
@@ -151,6 +152,9 @@ function groundHeightAt(x: number, z: number, hm: HeightMap): number {
 
 // Shared shader ref for per-frame uniform updates (uTime)
 let _buildingShader: any = null;
+// Ghost-pass shader (drawn on top with depthWrite=false). Same uniforms
+// as the opaque pass but only the ring fragments are kept.
+let _ghostShader: any = null;
 
 // --- Building click detection ---
 // Point-in-polygon (ray casting)
@@ -175,12 +179,13 @@ function distToSeg(px: number, pz: number, ax: number, az: number, bx: number, b
   return Math.sqrt((px - ax - t * dx) ** 2 + (pz - az - t * dz) ** 2);
 }
 
-// Pre-computed bounding boxes for fast spatial lookup
+// Pre-computed bounding boxes for fast spatial lookup, indexed by a quadtree
+// so click hit-tests skip the linear walk over every polygon in the area.
 type BuildingBBox = { minX: number; maxX: number; minZ: number; maxZ: number; idx: number };
-let _bboxCache: { buildings: OSMBuilding[]; bboxes: BuildingBBox[] } | null = null;
+let _bboxCache: { buildings: OSMBuilding[]; tree: Quadtree<BuildingBBox> } | null = null;
 
-function getBBoxes(buildings: OSMBuilding[]): BuildingBBox[] {
-  if (_bboxCache && _bboxCache.buildings === buildings) return _bboxCache.bboxes;
+function getBBoxIndex(buildings: OSMBuilding[]): Quadtree<BuildingBBox> {
+  if (_bboxCache && _bboxCache.buildings === buildings) return _bboxCache.tree;
   const bboxes: BuildingBBox[] = [];
   for (let idx = 0; idx < buildings.length; idx++) {
     const fp = buildings[idx].footprint;
@@ -192,25 +197,29 @@ function getBBoxes(buildings: OSMBuilding[]): BuildingBBox[] {
     }
     bboxes.push({ minX, maxX, minZ, maxZ, idx });
   }
-  _bboxCache = { buildings, bboxes };
-  return bboxes;
+  const tree = Quadtree.fromItems(bboxes);
+  _bboxCache = { buildings, tree };
+  return tree;
 }
 
 function findBuildingAt(x: number, y: number, z: number, buildings: OSMBuilding[]): OSMBuilding | null {
   const SEARCH_R = 15; // search radius in meters
-  const bboxes = getBBoxes(buildings);
+  const tree = getBBoxIndex(buildings);
 
   // Collect all candidates within search radius
   type Candidate = { b: OSMBuilding; dist: number; inside: boolean };
   const candidates: Candidate[] = [];
+  const queryRect = {
+    minX: x - SEARCH_R,
+    maxX: x + SEARCH_R,
+    minZ: z - SEARCH_R,
+    maxZ: z + SEARCH_R,
+  };
 
-  for (const bb of bboxes) {
-    // Quick reject: too far from bounding box
-    if (x < bb.minX - SEARCH_R || x > bb.maxX + SEARCH_R ||
-        z < bb.minZ - SEARCH_R || z > bb.maxZ + SEARCH_R) continue;
+  tree.query(queryRect, (bb) => {
     const b = buildings[bb.idx];
     // Height check: generous — click y should be within building + margin
-    if (y > b.height + 5) continue;
+    if (y > b.height + 5) return;
 
     const fp = b.footprint;
     const inside = pipTest(x, z, fp);
@@ -233,7 +242,7 @@ function findBuildingAt(x: number, y: number, z: number, buildings: OSMBuilding[
     if (dist < SEARCH_R) {
       candidates.push({ b, dist, inside });
     }
-  }
+  });
 
   if (candidates.length === 0) return null;
 
@@ -256,21 +265,59 @@ function findBuildingAt(x: number, y: number, z: number, buildings: OSMBuilding[
 let _faceToBuilding: Int32Array | null = null;
 let _faceBuildingsList: OSMBuilding[] | null = null;
 
-function MergedBuildings({ buildings, hm, darkMode = false, onBuildingClick }: { buildings: OSMBuilding[]; hm: HeightMap | null; darkMode?: boolean; onBuildingClick?: (b: OSMBuilding | null) => void }) {
+function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = null, onBuildingClick }: { buildings: OSMBuilding[]; hm: HeightMap | null; darkMode?: boolean; selectedBuilding?: OSMBuilding | null; onBuildingClick?: (b: OSMBuilding | null) => void }) {
   const geometry = useMemo(() => {
     if (buildings.length === 0) return null;
     const geos: BufferGeometry[] = [];
     // Track which building index each geometry belongs to
     const buildingIndices: number[] = [];
 
+    // Noise pre-filter — drop OSM polygons that are unmistakably clutter
+    // (sheds, vending kiosks, electrical cabinets, garden walls). A building
+    // is "noise" only when ALL signals say so: tiny height, empty name, no
+    // tenant tags, and a footprint smaller than 25 m². Anything that passes
+    // even one of those tests is kept, so the filter never hides a labelled
+    // or interesting structure. Runs once at merge time → zero per-frame
+    // cost and a smaller merged buffer for the GPU.
+    let droppedNoise = 0;
+    const polyArea = (pts: [number, number][]): number => {
+      let s = 0;
+      for (let i = 0, n = pts.length; i < n; i++) {
+        const [x1, y1] = pts[i];
+        const [x2, y2] = pts[(i + 1) % n];
+        s += x1 * y2 - x2 * y1;
+      }
+      return Math.abs(s) * 0.5;
+    };
+
     for (let bi = 0; bi < buildings.length; bi++) {
       const building = buildings[bi];
       const fp = building.footprint;
       if (fp.length < 3) continue;
+      if (
+        building.height <= 3 &&
+        !building.name &&
+        building.tags.length === 0 &&
+        polyArea(fp) < 25
+      ) {
+        droppedNoise++;
+        continue;
+      }
       try {
+        // Why we negate y AND iterate in reverse order:
+        // - Footprint stores [x, z] in the world frame where +z = north.
+        // - `ExtrudeGeometry` builds the shape in its own XY plane and we
+        //   later `rotateX(-π/2)` to bring depth onto world Y (height up).
+        //   That rotation maps shape vertex (px, py, depth) → world
+        //   (px, depth, -py), i.e. it FLIPS the sign of py.
+        // - To make the rendered world z equal the stored z, we must feed
+        //   shape with (px, -storedZ). The negation also reverses winding,
+        //   so we walk the polygon in reverse to keep the shape CCW (which
+        //   `ExtrudeGeometry` requires for outward normals).
         const shape = new Shape();
-        shape.moveTo(fp[0][0], fp[0][1]);
-        for (let i = 1; i < fp.length; i++) shape.lineTo(fp[i][0], fp[i][1]);
+        const last = fp.length - 1;
+        shape.moveTo(fp[last][0], -fp[last][1]);
+        for (let i = last - 1; i >= 0; i--) shape.lineTo(fp[i][0], -fp[i][1]);
         shape.closePath();
 
         let geo: ExtrudeGeometry;
@@ -301,6 +348,32 @@ function MergedBuildings({ buildings, hm, darkMode = false, onBuildingClick }: {
           geo = new ExtrudeGeometry(shape, { depth: building.height, bevelEnabled: false });
           geo.rotateX(-Math.PI / 2);
         }
+        // Per-vertex building ID. Every vertex of THIS extrude carries the
+        // same float = original building index. After the merge, the fragment
+        // shader compares this against `uSelectedBuildingId` for an exact,
+        // pixel-perfect highlight that can never bleed onto neighbours
+        // (recommended pattern from the Three.js forum thread on selecting
+        // pieces of merged geometry — see commit message for the link).
+        const vCount = geo.getAttribute('position').count;
+        const idArr = new Float32Array(vCount);
+        idArr.fill(bi);
+        geo.setAttribute('aBuildingId', new Float32BufferAttribute(idArr, 1));
+        // Per-building centre XZ baked into every vertex of this extrude.
+        // Because all vertices of one building share the same value the
+        // varying interpolates to a constant across the entire building,
+        // so the focus-ring distance test becomes per-OBJECT instead of
+        // per-fragment — no more "half a building goes transparent"
+        // when the radius slices through its footprint. (Standard pattern
+        // from r/threejs and the BabylonJS forum threads on per-instance
+        // selection in merged geometries: bake an instance attribute
+        // rather than reading world position in the fragment shader.)
+        const [bcx, bcz] = building.center;
+        const cArr = new Float32Array(vCount * 2);
+        for (let v = 0; v < vCount; v++) {
+          cArr[v * 2] = bcx;
+          cArr[v * 2 + 1] = bcz;
+        }
+        geo.setAttribute('aBuildingCenterXZ', new Float32BufferAttribute(cArr, 2));
         geos.push(geo);
         buildingIndices.push(bi);
       } catch { /* skip */ }
@@ -330,6 +403,9 @@ function MergedBuildings({ buildings, hm, darkMode = false, onBuildingClick }: {
 
     const merged = BufferGeometryUtils.mergeGeometries(geos, false);
     for (const g of geos) g.dispose();
+    if (droppedNoise > 0) {
+      console.log(`[MergedBuildings] noise pre-filter dropped ${droppedNoise} of ${buildings.length} polygons`);
+    }
     return merged;
   }, [buildings, hm]);
 
@@ -365,23 +441,51 @@ function MergedBuildings({ buildings, hm, darkMode = false, onBuildingClick }: {
       reflectivity: darkMode ? 1.0 : 0.8,
       specularIntensity: darkMode ? 0.5 : 1.5,
       specularColor: darkMode ? new Color('#404040') : new Color('#c0c0c8'),
+      // Opaque pass: ghost-ring fragments are `discard`-ed in the shader
+      // so they neither write colour nor depth. The translucent ring is
+      // re-drawn by a second mesh (GhostMesh) with depthWrite=false, so
+      // ghosts can never occlude the selected tower behind them.
+      transparent: false,
+      depthWrite: true,
     });
 
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uDarkMode = { value: darkMode ? 1.0 : 0.0 };
       shader.uniforms.uTime = { value: 0.0 };
+      // Focus / isolation mode — per-vertex ID equality test.
+      // - uSelectedBuildingId : float index of the currently focused building
+      //   (-1 = none). Every vertex carries `aBuildingId` so the fragment
+      //   shader can do an exact `id == selected` test — pixel-perfect, no
+      //   chance of spatial bleed onto an overlapping neighbour. This is the
+      //   pattern recommended on the Three.js forum for selecting pieces of
+      //   a merged BufferGeometry.
+      // - uFocusActive ∈ [0,1]: JS-animated so dim/restore feels smooth.
+      shader.uniforms.uSelectedBuildingId = { value: -1.0 };
+      shader.uniforms.uFocusActive = { value: 0.0 };
+      // Centre + radius of the "ghost ring" — neighbours INSIDE this disk
+      // around the selected building fade to ~10 % alpha so the user can
+      // see the focused tower clearly. Buildings outside the radius keep
+      // their normal opacity so the rest of the city stays as context.
+      shader.uniforms.uFocusCenterXZ = { value: [0, 0] };
+      shader.uniforms.uFocusRadius = { value: 0.0 };
       _buildingShader = shader;
 
       // Inject varyings
       shader.vertexShader = shader.vertexShader.replace(
         '#include <common>',
         `#include <common>
+attribute float aBuildingId;
+attribute vec2 aBuildingCenterXZ;
+varying float vBuildingId;
+varying vec2 vBuildingCenterXZ;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;`
       );
       shader.vertexShader = shader.vertexShader.replace(
         '#include <worldpos_vertex>',
         `#include <worldpos_vertex>
+vBuildingId = aBuildingId;
+vBuildingCenterXZ = aBuildingCenterXZ;
 vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
 vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);`
       );
@@ -391,6 +495,12 @@ vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);`
         `#include <common>
 uniform float uDarkMode;
 uniform float uTime;
+uniform float uSelectedBuildingId;
+uniform float uFocusActive;
+uniform vec2 uFocusCenterXZ;
+uniform float uFocusRadius;
+varying float vBuildingId;
+varying vec2 vBuildingCenterXZ;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 
@@ -554,6 +664,49 @@ float roofFresnel = pow(1.0 - abs(dot(viewDir, vec3(0.0, 1.0, 0.0))), 2.5);
 vec3 skyReflect = mix(vec3(0.75, 0.75, 0.78), vec3(0.12, 0.12, 0.15), uDarkMode);
 gl_FragColor.rgb += skyReflect * roofFresnel * roofMask * mix(0.25, 0.4, uDarkMode);
 
+// ====== Focus / isolation (per-vertex ID + radius discard) ======
+// vBuildingId is the original building index baked into every vertex.
+// Comparing IDs is pixel-exact so the highlight cannot bleed onto an
+// overlapping neighbour. The ghost ring effect: neighbours within
+// uFocusRadius metres of the selected building are DISCARDED in this
+// opaque pass so they neither write colour nor depth. A second mesh
+// (GhostMesh) re-draws those same fragments at ~10 percent alpha with
+// depthWrite=false — that way ghosts can never occlude the selected
+// tower behind them.
+float insideFocus = step(abs(vBuildingId - uSelectedBuildingId), 0.5);
+// Distance from THIS building's centre to the focus centre — not the
+// fragment's world XZ. Because every vertex of one building shares the
+// same aBuildingCenterXZ, the varying is constant across the whole
+// building, so the ring test is per-OBJECT (no half-sliced buildings).
+float dxz = distance(vBuildingCenterXZ, uFocusCenterXZ);
+float inRing = (uFocusRadius > 0.0)
+  ? step(dxz, uFocusRadius)
+  : 0.0;
+float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
+if (ghostMask > 0.5) discard;
+
+// ====== Selection glow — subtle, visibility-friendly ======
+// Per-fragment boost ONLY on the selected building. The goal is "이
+// 건물이 선택됐다는 게 한눈에 보이지만, 막 빛나지는 않는다" — soft cool
+// rim + a slow ~3s breath that never overrides the underlying texture.
+//   - selFocus = uFocusActive on the selected building, 0 elsewhere.
+//   - selBreath gives a 0.78..1.0 envelope so the rim never fully drops.
+//   - Cool blueish white in light mode, slightly bluer in dark mode.
+//   - Two layers: a tiny base lift across the whole building so it
+//     reads as illuminated, and a stronger fresnel rim so the
+//     silhouette is the most visible part.
+float selFocus = insideFocus * uFocusActive;
+if (selFocus > 0.001) {
+  float selBreath = 0.78 + 0.22 * (sin(uTime * 1.6) * 0.5 + 0.5);
+  vec3 selGlow = mix(vec3(0.92, 0.96, 1.0), vec3(0.65, 0.82, 1.0), uDarkMode);
+  // Soft, even base lift across the whole selected building.
+  gl_FragColor.rgb += selGlow * 0.06 * selBreath * selFocus;
+  // Rim accent — strongest at silhouette edges, kept on facade only
+  // so the roof doesn't pick up a stripe from the upward fresnel.
+  float selRim = pow(fresnel, 2.0);
+  gl_FragColor.rgb += selGlow * selRim * 0.40 * selBreath * selFocus * facadeMask;
+}
+
 #include <dithering_fragment>`
       );
     };
@@ -561,41 +714,178 @@ gl_FragColor.rgb += skyReflect * roofFresnel * roofMask * mix(0.25, 0.4, uDarkMo
     return mat;
   }, [normalMap, darkMode]);
 
-  // Update uTime each frame
-  useFrame(({ clock }) => {
-    if (_buildingShader) {
-      _buildingShader.uniforms.uTime.value = clock.getElapsedTime();
+  // Ghost-pass material — second mesh on the same merged geometry that
+  // ONLY draws the ring fragments (insideFocus==0 && inRing==1) at ~10 %
+  // alpha with depthWrite=false. Because it doesn't write depth, the
+  // selected tower behind it (drawn opaquely in pass 1) is never hidden.
+  // Kept dead-simple (MeshBasicMaterial, no lighting) — the ring is
+  // basically a flat translucent silhouette.
+  const ghostMat = useMemo(() => {
+    const mat = new MeshBasicMaterial({
+      color: darkMode ? new Color('#1c1d24') : new Color('#b8b9c0'),
+      transparent: true,
+      opacity: 0.28,
+      depthWrite: false,
+      depthTest: true,
+    });
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uSelectedBuildingId = { value: -1.0 };
+      shader.uniforms.uFocusActive = { value: 0.0 };
+      shader.uniforms.uFocusCenterXZ = { value: [0, 0] };
+      shader.uniforms.uFocusRadius = { value: 0.0 };
+      _ghostShader = shader;
+
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <common>',
+        `#include <common>
+attribute float aBuildingId;
+attribute vec2 aBuildingCenterXZ;
+varying float vBuildingId;
+varying vec2 vBuildingCenterG;`
+      );
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <worldpos_vertex>',
+        `#include <worldpos_vertex>
+vBuildingId = aBuildingId;
+vBuildingCenterG = aBuildingCenterXZ;`
+      );
+
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <common>',
+        `#include <common>
+uniform float uSelectedBuildingId;
+uniform float uFocusActive;
+uniform vec2 uFocusCenterXZ;
+uniform float uFocusRadius;
+varying float vBuildingId;
+varying vec2 vBuildingCenterG;`
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <dithering_fragment>',
+        `float insideFocus = step(abs(vBuildingId - uSelectedBuildingId), 0.5);
+// Per-OBJECT ring test using the building's own centre (not fragment XZ).
+float dxz = distance(vBuildingCenterG, uFocusCenterXZ);
+float inRing = (uFocusRadius > 0.0) ? step(dxz, uFocusRadius) : 0.0;
+float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
+if (ghostMask < 0.5) discard;
+#include <dithering_fragment>`
+      );
+    };
+    return mat;
+  }, [darkMode]);
+
+  // Resolve the selected building → its index in the buildings array. The
+  // index is the same float value baked into `aBuildingId` at merge time, so
+  // a single uniform update is enough to drive the highlight. Identity match
+  // first (object reference), then footprint-coordinate match as a fallback
+  // for cases where a fresh OSM reload reconstructs the array.
+  const selectedBuildingId = useMemo<number>(() => {
+    if (!selectedBuilding) return -1;
+    const idx = buildings.indexOf(selectedBuilding);
+    if (idx >= 0) return idx;
+    // Reference mismatch (geocoder built a fresh object): take the
+    // nearest building by centroid. No upper bound — the geocoder can
+    // shift centroids by 5–20 m after dedup so any cap risks dropping
+    // legitimate matches and leaving the focus mask "off".
+    const [cx, cz] = selectedBuilding.center;
+    let best = -1;
+    let bestD = Infinity;
+    for (let i = 0; i < buildings.length; i++) {
+      const [bx, bz] = buildings[i].center;
+      const dx = bx - cx, dz = bz - cz;
+      const d = dx * dx + dz * dz;
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+  }, [selectedBuilding, buildings]);
+
+  // Smoothly animate uFocusActive 0↔1 instead of snapping. 250ms matches the
+  // panel's CSS slide-in so the dim and the info card arrive together.
+  const focusActiveRef = useRef(0);
+  const focusTargetRef = useRef(0);
+  useEffect(() => {
+    focusTargetRef.current = selectedBuildingId >= 0 ? 1 : 0;
+  }, [selectedBuildingId]);
+
+  // Update uTime + focus uniforms each frame
+  useFrame(({ clock }, dt) => {
+    if (!_buildingShader) return;
+    _buildingShader.uniforms.uTime.value = clock.getElapsedTime();
+
+    // Exponential approach toward target (frame-rate independent).
+    // 1 - exp(-dt / tau): tau≈0.12 s gives ~250ms perceived settle time.
+    const tau = 0.12;
+    const k = 1 - Math.exp(-dt / tau);
+    focusActiveRef.current += (focusTargetRef.current - focusActiveRef.current) * k;
+    if (Math.abs(focusActiveRef.current - focusTargetRef.current) < 0.001) {
+      focusActiveRef.current = focusTargetRef.current;
+    }
+    _buildingShader.uniforms.uFocusActive.value = focusActiveRef.current;
+    _buildingShader.uniforms.uSelectedBuildingId.value = selectedBuildingId;
+    // Push the selected building's centre + a 120 m ghost-ring radius.
+    // 120 m ≈ a tight half-block ring around the selection — close
+    // enough that only the immediate neighbours fade, distant context
+    // stays opaque.
+    let radius = 0.0;
+    let cx = 0, cz = 0;
+    if (selectedBuildingId >= 0 && selectedBuildingId < buildings.length) {
+      const center = buildings[selectedBuildingId].center;
+      cx = center[0]; cz = center[1];
+      radius = 120.0;
+    }
+    {
+      const c = _buildingShader.uniforms.uFocusCenterXZ.value as number[];
+      c[0] = cx; c[1] = cz;
+      _buildingShader.uniforms.uFocusRadius.value = radius;
+    }
+    if (_ghostShader) {
+      _ghostShader.uniforms.uFocusActive.value = focusActiveRef.current;
+      _ghostShader.uniforms.uSelectedBuildingId.value = selectedBuildingId;
+      const gc = _ghostShader.uniforms.uFocusCenterXZ.value as number[];
+      gc[0] = cx; gc[1] = cz;
+      _ghostShader.uniforms.uFocusRadius.value = radius;
     }
   });
 
   if (!geometry) return null;
 
   return (
-    <mesh
-      geometry={geometry}
-      material={frostMat}
-      castShadow
-      receiveShadow
-      onClick={(e) => {
-        if (!onBuildingClick) return;
-        e.stopPropagation();
-        // Use faceIndex for direct triangle→building lookup (100% accurate)
-        const fi = e.faceIndex;
-        if (fi != null && _faceToBuilding && _faceBuildingsList === buildings) {
-          const bi = _faceToBuilding[fi];
-          if (bi != null && bi >= 0 && bi < buildings.length) {
-            onBuildingClick(buildings[bi]);
-            return;
+    <>
+      <mesh
+        geometry={geometry}
+        material={frostMat}
+        castShadow
+        receiveShadow
+        onClick={(e) => {
+          if (!onBuildingClick) return;
+          e.stopPropagation();
+          // Use faceIndex for direct triangle→building lookup (100% accurate)
+          const fi = e.faceIndex;
+          if (fi != null && _faceToBuilding && _faceBuildingsList === buildings) {
+            const bi = _faceToBuilding[fi];
+            if (bi != null && bi >= 0 && bi < buildings.length) {
+              onBuildingClick(buildings[bi]);
+              return;
+            }
           }
-        }
-        // Fallback to coordinate-based detection
-        const p = e.point;
-        const hit = findBuildingAt(p.x, p.y, p.z, buildings);
-        onBuildingClick(hit);
-      }}
-      onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
-      onPointerOut={() => { document.body.style.cursor = 'default'; }}
-    />
+          // Fallback to coordinate-based detection
+          const p = e.point;
+          const hit = findBuildingAt(p.x, p.y, p.z, buildings);
+          onBuildingClick(hit);
+        }}
+        onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { document.body.style.cursor = 'default'; }}
+      />
+      {/* Ghost pass: same merged geometry, but only the ring fragments
+          survive the shader discard. depthWrite=false means these
+          translucent neighbours can never occlude the selected tower. */}
+      <mesh
+        geometry={geometry}
+        material={ghostMat}
+        renderOrder={2}
+        raycast={() => null}
+      />
+    </>
   );
 }
 
@@ -917,10 +1207,11 @@ function buildTerrainPolygon(
 ): BufferGeometry | null {
   if (polygon.length < 3) return null;
   try {
-    // Triangulate the polygon using ear-clipping via Shape
+    // Same y-negation + reverse winding as MergedBuildings — see comment there.
     const shape = new Shape();
-    shape.moveTo(polygon[0][0], polygon[0][1]);
-    for (let i = 1; i < polygon.length; i++) shape.lineTo(polygon[i][0], polygon[i][1]);
+    const last = polygon.length - 1;
+    shape.moveTo(polygon[last][0], -polygon[last][1]);
+    for (let i = last - 1; i >= 0; i--) shape.lineTo(polygon[i][0], -polygon[i][1]);
     shape.closePath();
 
     // Get triangulated indices from ShapeGeometry
@@ -1217,7 +1508,10 @@ function TerrainGround({ hm, darkMode = false }: { hm: HeightMap | null; darkMod
     return geo;
   }, [hm]);
 
-  const groundColor = darkMode ? '#0a0a0f' : '#ffffff';
+  // Slightly off-white / warm-grey so when ghosted buildings around the
+  // selection drop to ~10 % alpha the ground that bleeds through doesn't
+  // look like a blank sheet of paper. Subtle but kills the harsh contrast.
+  const groundColor = darkMode ? '#0c0c12' : '#e8e8ec';
 
   return (
     <group>
@@ -1393,7 +1687,7 @@ function DistrictLabels({ districts, buildings, darkMode = false }: { districts:
 }
 
 // --- Main ---
-export function OSMCity({ area = 'shinjuku', darkMode = false, onBuildingSelect }: { area?: CityAreaKey; darkMode?: boolean; onBuildingSelect?: (b: OSMBuilding | null) => void }) {
+export function OSMCity({ area = 'shinjuku', darkMode = false, selectedBuilding = null, onBuildingSelect, onBuildingsLoaded }: { area?: CityAreaKey; darkMode?: boolean; selectedBuilding?: OSMBuilding | null; onBuildingSelect?: (b: OSMBuilding | null) => void; onBuildingsLoaded?: (b: OSMBuilding[]) => void }) {
   const [buildings, setBuildings] = useState<OSMBuilding[]>([]);
   const [areas, setAreas] = useState<OSMArea[]>([]);
   const [railways, setRailways] = useState<OSMRailway[]>([]);
@@ -1407,7 +1701,7 @@ export function OSMCity({ area = 'shinjuku', darkMode = false, onBuildingSelect 
   const hm = useMemo(() => (elev ? buildHeightMap(elev) : null), [elev]);
 
   useEffect(() => {
-    fetchOSMBuildings(area).then(setBuildings).catch(console.error);
+    fetchOSMBuildings(area).then((b) => { setBuildings(b); onBuildingsLoaded?.(b); }).catch(console.error);
     fetchOSMTerrain(area).then(({ areas: a, railways: rw, waterways: ww, steps: st, bridges: br }) => {
       setAreas(a);
       setRailways(rw);
@@ -1448,7 +1742,7 @@ export function OSMCity({ area = 'shinjuku', darkMode = false, onBuildingSelect 
       <MergedParking areas={areas} hm={hm} darkMode={darkMode} />
 
       {/* Buildings */}
-      <MergedBuildings buildings={buildings} hm={hm} darkMode={darkMode} onBuildingClick={onBuildingSelect} />
+      <MergedBuildings buildings={buildings} hm={hm} darkMode={darkMode} selectedBuilding={selectedBuilding} onBuildingClick={onBuildingSelect} />
 
       {/* Labels */}
       {/* District labels disabled */}

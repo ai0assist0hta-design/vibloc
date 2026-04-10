@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Node Server",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/tmp/vibloc-dev/start-dev.sh"],
+      "port": 5173,
+      "autoPort": true
+    }
+  ]
+}

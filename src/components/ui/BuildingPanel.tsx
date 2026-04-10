@@ -124,14 +124,17 @@ export function BuildingPanel() {
             Recent Tags
           </label>
           <div style={{ marginTop: 6, maxHeight: 120, overflow: 'auto' }}>
-            {tags.slice(-5).reverse().map((t) => (
+            {tags.slice(-5).reverse().map((t) => {
+              const gc = GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop;
+              return (
               <div key={t.id} style={{ fontSize: 11, color: '#555', padding: '3px 0' }}>
-                <span style={{ color: GENRE_COLORS[t.genre].color, fontWeight: 600 }}>
-                  {GENRE_COLORS[t.genre].label.split('/')[0].trim()}
+                <span style={{ color: gc.color, fontWeight: 600 }}>
+                  {gc.label.split('/')[0].trim()}
                 </span>
                 {' '}· F{t.floor}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -17,7 +17,10 @@ export function getBuildingColor(tags: Tag[]): string {
   }
 
   const sorted = Object.entries(genreWeights).sort(([, a], [, b]) => b - a);
-  return GENRE_COLORS[sorted[0][0] as GenreKey].color;
+  // Defensive: a stale tag.genre (e.g. cached pre-migration) may not
+  // be a current GenreKey. Fall back to neutral instead of crashing.
+  const top = GENRE_COLORS[sorted[0][0] as GenreKey];
+  return (top ?? GENRE_COLORS.pop).color;
 }
 
 export function getBuildingOpacity(tagCount: number): number {

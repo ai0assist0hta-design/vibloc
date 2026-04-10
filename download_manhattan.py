@@ -33,7 +33,7 @@ def save_json(name, data):
 if __name__ == "__main__":
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # 1. Buildings
+    # 1. Buildings (+ entrance nodes for pedestrian-walkable entry coords)
     q_buildings = f"""[out:json][timeout:120];
 (
   way["building"]({BBOX});
@@ -41,6 +41,8 @@ if __name__ == "__main__":
 out body;
 >;
 out skel qt;
+node["entrance"]({BBOX});
+out body;
 """
     result = query_overpass(q_buildings, "buildings")
     save_json(f"{NAME}.json", result)

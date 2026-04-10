@@ -73,6 +73,11 @@ def download_area(name, cfg):
     print(f"{'='*50}")
 
     # 1. Buildings
+    # Note on the trailing entrance fetch: `>;` recurses to member nodes via
+    # `out skel qt;` which is small (no tags). We then explicitly fetch any
+    # node tagged `entrance=*` inside the bbox with `out body;` so the loader
+    # can preserve the doorway tag and use it as a preferred entry-point coord
+    # for "navigate here" deeplinks. Adds <2 % to payload size.
     q_buildings = f"""[out:json][timeout:180];
 (
   way["building"]({bbox});
@@ -80,6 +85,8 @@ def download_area(name, cfg):
 out body;
 >;
 out skel qt;
+node["entrance"]({bbox});
+out body;
 """
     result = query_overpass(q_buildings, f"{name} buildings")
     save_json(f"{name}.json", result)

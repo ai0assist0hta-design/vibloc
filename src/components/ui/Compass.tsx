@@ -30,9 +30,13 @@ export function Compass({ darkMode = false }: { darkMode?: boolean }) {
     <div
       onClick={resetToNorth}
       style={{
+        // Mapbox/Apple Maps convention (H.1, 2024–2026): camera-control
+        // glyphs live in the top-right corner so they sit in the
+        // mouse's natural orbit-toward zone. Tucked just below the
+        // dark-mode pill so the two stack as a single chrome column.
         position: 'absolute',
-        bottom: 80,
-        right: 28,
+        top: 76,
+        right: 24,
         width: 56,
         height: 56,
         cursor: 'pointer',

@@ -71,21 +71,25 @@ def download_pois(name, cfg):
     print(f"  {name.upper()} POIs — bbox: {bbox}")
     print(f"{'='*50}")
 
-    # Query all POI nodes inside the bounding box
-    # This captures individual businesses, restaurants, shops, offices etc.
-    # that are mapped as nodes inside buildings
+    # Query ALL POI elements inside the bounding box — nodes, ways, AND
+    # relations. Many real-world businesses (especially restaurants and
+    # standalone shops in JP/KR) are tagged on the building polygon itself
+    # (way) or as a multipolygon (relation) instead of a single point node.
+    # `nwr["..."]` is Overpass shorthand for `node + way + relation`, and
+    # `out center` returns a representative center point for ways/relations
+    # so we can treat them uniformly with point-style POIs downstream.
     q_pois = f"""[out:json][timeout:180];
 (
-  node["amenity"]({bbox});
-  node["shop"]({bbox});
-  node["office"]({bbox});
-  node["tourism"]({bbox});
-  node["leisure"]({bbox});
-  node["craft"]({bbox});
-  node["healthcare"]({bbox});
-  node["club"]({bbox});
+  nwr["amenity"]({bbox});
+  nwr["shop"]({bbox});
+  nwr["office"]({bbox});
+  nwr["tourism"]({bbox});
+  nwr["leisure"]({bbox});
+  nwr["craft"]({bbox});
+  nwr["healthcare"]({bbox});
+  nwr["club"]({bbox});
 );
-out body;
+out center;
 """
     result = query_overpass(q_pois, f"{name} POIs")
     save_json(f"{name}_pois.json", result)

@@ -1,18 +1,56 @@
+import brandBlocklistJson from '../data/brandBlocklist.json';
+
 export type BuildingTag = {
   label: string;
   category: 'office' | 'hotel' | 'food' | 'shop' | 'residential' | 'entertainment' | 'religious' | 'education' | 'medical' | 'government' | 'other';
   name?: string; // actual business/tenant name (e.g. "Starbucks", "7-ELEVEN")
 };
 
+/**
+ * Pre-built blocklist of normalized chain / brand names that show up as
+ * ground-floor tenants in our OSM POI extracts. Generated offline by
+ * build_brand_blocklist.py from the same _pois.json files we ship in
+ * public/data, so the keys are guaranteed to match the runtime normalize()
+ * exactly. Used by verifyBuildingNamesAgainstTenants as a second-line
+ * suppression rule for tall buildings whose OSM `name` is a known brand
+ * even when no perfectly-matching POI was attached to the polygon.
+ */
+const BRAND_BLOCKLIST: ReadonlySet<string> = new Set(
+  (brandBlocklistJson as { names: string[] }).names,
+);
+
 export type OSMBuilding = {
   id: string;
   name: string;
   address: string;
+  /**
+   * True when `address` came from this building's own OSM addr:* tags or a
+   * manual override; false when it was borrowed from a neighbor or filled
+   * with the locality fallback. Used by search to prefer authoritative
+   * holders over propagated copies.
+   */
+  addressOriginal: boolean;
   height: number;
   levels: number;
   footprint: [number, number][];
   center: [number, number];
+  /**
+   * Optional preferred coordinate for "navigate here" links — derived from
+   * an OSM `entrance=*` node on the building's outer ring (or, failing that,
+   * the closest detached entrance node within the polygon). When present,
+   * this is the point a pedestrian should actually walk to. Falls back to
+   * `center` (footprint centroid) when no entrance node exists.
+   */
+  entry?: [number, number];
   tags: BuildingTag[];
+  /** Wikidata Q-id when matched (e.g. "Q863639"). Persisted so the panel can
+   *  hit Wikidata's free CORS-enabled REST API at click time to surface
+   *  verified multilingual names, descriptions, and external IDs. */
+  wikidataId?: string;
+  /** Wikipedia article title for the verified Wikipedia infobox source. */
+  wikipediaTitle?: string;
+  /** Full Wikipedia URL (preserves the language wiki the title came from). */
+  wikipediaUrl?: string;
 };
 
 type OverpassElement = {
@@ -21,9 +59,18 @@ type OverpassElement = {
   nodes?: number[];
   lat?: number;
   lon?: number;
+  /** Overpass `out center` puts the centroid of way/relation geometry here. */
+  center?: { lat: number; lon: number };
   tags?: Record<string, string>;
 };
 
+// Equirectangular projection. We use the convention that the rendered scene's
+// world Z axis points NORTH (+Z = north, -Z = south). This matches the
+// directional-light / sun-position helper in `lib/sunPosition.ts` which is
+// already documented as "0=North(+Z)". Keeping the data layer and the render
+// layer on the *same* sign convention means `building.center` is the actual
+// world position of the rendered building — no flip required when handing it
+// to the camera, focus mask, distance queries, etc.
 function latLonToMeters(
   lat: number,
   lon: number,
@@ -31,18 +78,20 @@ function latLonToMeters(
   refLon: number
 ): [number, number] {
   const x = (lon - refLon) * 111320 * Math.cos((refLat * Math.PI) / 180);
-  const z = -(lat - refLat) * 110540;
+  // North = +Z. Lat increases northwards, so a building north of the ref
+  // gets a positive z, matching the renderer convention.
+  const z = (lat - refLat) * 110540;
   return [x, z];
 }
 
-/** Convert local meters back to lat/lon */
+/** Convert local meters back to lat/lon. Inverse of `latLonToMeters`. */
 export function metersToLatLon(
   x: number,
   z: number,
   refLat: number,
   refLon: number
 ): { lat: number; lon: number } {
-  const lat = refLat - z / 110540;
+  const lat = refLat + z / 110540;
   const lon = refLon + x / (111320 * Math.cos((refLat * Math.PI) / 180));
   return { lat, lon };
 }
@@ -430,10 +479,19 @@ function parseOverpassData(
   refLon: number,
   areaKey?: string
 ): OSMBuilding[] {
-  const nodes = new Map<number, { lat: number; lon: number }>();
+  // Track entrance flag alongside coordinates so building polygons can pick
+  // an entry point from their own outer-ring nodes (entrance=main|yes|*).
+  const nodes = new Map<number, { lat: number; lon: number; entrance?: string }>();
+  const ENTRANCE_RANK: Record<string, number> = {
+    main: 0, yes: 1, home: 2, staircase: 3, service: 4, emergency: 5, exit: 6,
+  };
+  function entranceRank(v: string): number {
+    return ENTRANCE_RANK[v] ?? 1;
+  }
   for (const el of elements) {
     if (el.type === 'node' && el.lat !== undefined && el.lon !== undefined) {
-      nodes.set(el.id, { lat: el.lat, lon: el.lon });
+      const ent = el.tags?.entrance;
+      nodes.set(el.id, { lat: el.lat, lon: el.lon, entrance: ent });
     }
   }
 
@@ -441,6 +499,33 @@ function parseOverpassData(
 
   for (const el of elements) {
     if (el.type !== 'way' || !el.tags?.building || !el.nodes) continue;
+
+    // Skip below-ground structures so the surface scene only contains buildings
+    // a pedestrian could actually walk into. OSM tags this several ways:
+    //   - location=underground   (subway entrances, parking decks, vaults)
+    //   - layer < 0              (negative stacking order)
+    //   - level / building:levels:underground only and no above-ground levels
+    //   - tunnel=yes             (covered passages mapped as buildings)
+    //   - indoor=room|area       (interior rooms, never the building shell)
+    // Each test on its own would over-filter, so we OR them and keep anything
+    // that has at least one above-ground signal (height/levels > 0).
+    {
+      const bt = el.tags;
+      if (bt.location === 'underground') continue;
+      if (bt.tunnel === 'yes') continue;
+      if (bt.indoor === 'room' || bt.indoor === 'area') continue;
+      const layerNum = parseInt((bt.layer || '0').split(';')[0]) || 0;
+      if (layerNum < 0) continue;
+      const lvlTag = bt.level || bt['building:levels'];
+      if (lvlTag) {
+        // "-1" → underground only; "-2;-1" → underground only; "-1;0" → mixed (keep)
+        const lvls = lvlTag
+          .split(/[;,]/)
+          .map((s) => parseFloat(s.trim()))
+          .filter((n) => !Number.isNaN(n));
+        if (lvls.length > 0 && lvls.every((n) => n < 0)) continue;
+      }
+    }
 
     const footprint: [number, number][] = [];
     for (const nodeId of el.nodes) {
@@ -523,10 +608,55 @@ function parseOverpassData(
       ? (parseFloat(ltag.replace(/[^0-9.]/g, '')) || Math.max(1, Math.floor(height / 3.5)))
       : Math.max(1, Math.floor(height / 3.5));
 
+    // Area-weighted polygon centroid (shoelace). The previous version used
+    // a plain vertex average, which is biased toward vertex-dense parts of
+    // the polygon — a curved facade with many nodes shifts the "center"
+    // away from the geometric middle by 5–15 m for irregular footprints.
+    // The shoelace centroid is the true centre of mass and matches what
+    // POI snapping / Street View viewpoint algorithms expect.
     let cx = 0, cz = 0;
-    for (const [x, z] of footprint) { cx += x; cz += z; }
-    cx /= footprint.length;
-    cz /= footprint.length;
+    {
+      let twiceArea = 0;
+      let acx = 0, acz = 0;
+      for (let i = 0; i < footprint.length; i++) {
+        const [x0, z0] = footprint[i];
+        const [x1, z1] = footprint[(i + 1) % footprint.length];
+        const cross = x0 * z1 - x1 * z0;
+        twiceArea += cross;
+        acx += (x0 + x1) * cross;
+        acz += (z0 + z1) * cross;
+      }
+      if (Math.abs(twiceArea) > 1e-6) {
+        const sixA = 3 * twiceArea;
+        cx = acx / sixA;
+        cz = acz / sixA;
+      } else {
+        // Degenerate (zero-area) polygon — fall back to vertex mean.
+        for (const [x, z] of footprint) { cx += x; cz += z; }
+        cx /= footprint.length;
+        cz /= footprint.length;
+      }
+    }
+
+    // ---- Entry point: prefer best-ranked entrance node on the way's ring ----
+    // Walk the way's own node IDs and look for nodes tagged entrance=*. Pick
+    // the lowest-rank (main > yes > home > service > emergency > exit). If
+    // none, fall back to any detached entrance node landing inside the
+    // polygon. Result is the coordinate a pedestrian should actually walk to.
+    let entry: [number, number] | undefined;
+    {
+      let bestRank = Infinity;
+      for (const nodeId of el.nodes) {
+        const node = nodes.get(nodeId);
+        if (!node || !node.entrance) continue;
+        const r = entranceRank(node.entrance);
+        if (r < bestRank) {
+          bestRank = r;
+          const [ex, ez] = latLonToMeters(node.lat, node.lon, refLat, refLon);
+          entry = [ex, ez];
+        }
+      }
+    }
 
     // Build Google-searchable address from available addr:* tags
     const t = el.tags;
@@ -544,6 +674,47 @@ function parseOverpassData(
     if (wayPoiTags.length && rawName) {
       for (const wt of wayPoiTags) {
         if (!wt.name || !wt.name.trim()) wt.name = rawName;
+      }
+    }
+
+    // --- Suppress mis-attributed tenant names on multi-floor buildings ---
+    // OSM mappers often slap `name=Starbucks` on a 5-story building way that
+    // happens to host a Starbucks on the ground floor. The result is that a
+    // huge multi-tenant building gets "represented" by a single small tenant
+    // (the user's complaint: "5층 거대 건물인데 카페 이름으로 대표되어 있다").
+    //
+    // Heuristic: if (a) the building has ≥3 floors, (b) its only POI identity
+    // is a "small-tenant" type (food, drink, narrow shop categories — NOT
+    // dept_store / mall / hotel / school / hospital etc.), and (c) the OSM
+    // building tag is generic (no `building=apartments|hotel|hospital|...`),
+    // then the OSM name almost certainly refers to a tenant, not the building.
+    // We strip it from the building name so the address becomes the headline,
+    // and keep the name as a named tenant tag (already done above).
+    let suppressedRawName = rawName;
+    if (rawName && wayPoiTags.length > 0) {
+      const STRUCTURAL_BUILDING = new Set([
+        'apartments', 'residential', 'house', 'detached', 'dormitory',
+        'hotel', 'hospital', 'school', 'college', 'university',
+        'church', 'temple', 'shrine', 'mosque', 'synagogue', 'cathedral',
+        'theatre', 'public', 'civic', 'government', 'train_station',
+        'stadium', 'sports_hall', 'museum',
+      ]);
+      const SMALL_TENANT_CATS = new Set(['food', 'entertainment']);
+      const isStructural = !!t.building && STRUCTURAL_BUILDING.has(t.building);
+      const allSmallTenant = wayPoiTags.every((wt) => {
+        if (SMALL_TENANT_CATS.has(wt.category)) return true;
+        // Most shops are tenants — except big-box / mall labels which ARE
+        // the building itself.
+        if (wt.category === 'shop') {
+          const lbl = (wt.label || '').toLowerCase();
+          return lbl !== 'dept store' && lbl !== 'mall' && lbl !== 'supermarket';
+        }
+        return false;
+      });
+      if (!isStructural && allSmallTenant && levels >= 3) {
+        // The rawName belongs to a tenant, not the building. Drop it from the
+        // building's display name; address (or "Building") will take over.
+        suppressedRawName = '';
       }
     }
 
@@ -612,14 +783,137 @@ function parseOverpassData(
 
     buildings.push({
       id: `osm-${el.id}`,
-      name: rawName || address || 'Building',
+      name: suppressedRawName || address || 'Building',
       address,
+      addressOriginal: addressIsConcrete(address),
       height,
       levels,
       tags: uniqueTags,
       footprint,
       center: [cx, cz],
+      ...(entry ? { entry } : {}),
     });
+  }
+
+  // ---- Post-pass: drop "envelope" polygons (block-level outlines) --------
+  //
+  // OSM frequently contains a single large `building=*` way that traces an
+  // entire urban block, sitting on top of the ~10 individual building ways
+  // it visually contains. Both render → the envelope appears as a giant
+  // box stamped over the real buildings, producing the visible "intrusion"
+  // overlap the user complained about.
+  //
+  // Detection rule (conservative — never drops a real building):
+  //   1. Build a footprint AABB index.
+  //   2. For each candidate A, count how many other buildings have their
+  //      centroid strictly inside A's polygon.
+  //   3. If ≥ 2 children fall inside A → A is an envelope; drop it.
+  //
+  // Two children is the threshold because a 1:1 inclusion is more likely
+  // a parent + S3DB part pair, while ≥2 inner siblings only happens for
+  // block outlines that someone tagged `building=yes`.
+  //
+  // We also drop a small variant: if A *fully* contains exactly one child
+  // B (>95 % of A's bbox area is shared with B AND A.area > 1.5 × B.area),
+  // A is a redundant outer trace. This catches mappers who duplicated a
+  // building footprint at a coarser resolution.
+  {
+    type Aabb = { minX: number; minZ: number; maxX: number; maxZ: number; area: number; idx: number };
+    const aabbs: Aabb[] = buildings.map((b, idx) => {
+      let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+      for (const [x, z] of b.footprint) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+      }
+      const area = Math.max(0, (maxX - minX) * (maxZ - minZ));
+      return { minX, minZ, maxX, maxZ, area, idx };
+    });
+    // Coarse spatial grid keyed on AABB cells (50 m). For envelope queries
+    // we walk every cell the candidate's bbox overlaps.
+    const CELL_E = 50;
+    const grid = new Map<string, number[]>();
+    const k = (cx: number, cz: number) => `${cx},${cz}`;
+    for (const a of aabbs) {
+      const cx0 = Math.floor(a.minX / CELL_E);
+      const cz0 = Math.floor(a.minZ / CELL_E);
+      const cx1 = Math.floor(a.maxX / CELL_E);
+      const cz1 = Math.floor(a.maxZ / CELL_E);
+      for (let cx = cx0; cx <= cx1; cx++) {
+        for (let cz = cz0; cz <= cz1; cz++) {
+          const key = k(cx, cz);
+          let arr = grid.get(key);
+          if (!arr) { arr = []; grid.set(key, arr); }
+          arr.push(a.idx);
+        }
+      }
+    }
+    const drop = new Uint8Array(buildings.length);
+    // Sort candidate envelopes from largest to smallest so a giant block
+    // outline gets dropped before any of its (legitimately overlapping)
+    // children get a chance to drop *their* small inner courtyards.
+    const order = aabbs.slice().sort((a, b) => b.area - a.area);
+    for (const A of order) {
+      if (drop[A.idx]) continue;
+      // Skip tiny candidates — only block-scale polygons can be envelopes.
+      if (A.area < 200) continue;
+      const Apoly = buildings[A.idx].footprint;
+      // Collect candidate inner buildings via the grid
+      const seen = new Set<number>();
+      const childIdxs: number[] = [];
+      let childAreaSum = 0;
+      const cx0 = Math.floor(A.minX / CELL_E);
+      const cz0 = Math.floor(A.minZ / CELL_E);
+      const cx1 = Math.floor(A.maxX / CELL_E);
+      const cz1 = Math.floor(A.maxZ / CELL_E);
+      for (let cx = cx0; cx <= cx1; cx++) {
+        for (let cz = cz0; cz <= cz1; cz++) {
+          const arr = grid.get(k(cx, cz));
+          if (!arr) continue;
+          for (const j of arr) {
+            if (j === A.idx || drop[j] || seen.has(j)) continue;
+            seen.add(j);
+            const B = aabbs[j];
+            // Children must be smaller than the envelope
+            if (B.area >= A.area * 0.95) continue;
+            // Compute AABB intersection (skip the centroid test — a child
+            // whose centroid lies just outside A's polygon can still cover
+            // most of A's footprint, e.g. an L-shaped envelope).
+            const ix = Math.max(0, Math.min(A.maxX, B.maxX) - Math.max(A.minX, B.minX));
+            const iz = Math.max(0, Math.min(A.maxZ, B.maxZ) - Math.max(A.minZ, B.minZ));
+            const inter = ix * iz;
+            // Child counts only if its AABB is mostly inside A's AABB.
+            if (inter < B.area * 0.6) continue;
+            childIdxs.push(j);
+            childAreaSum += inter;
+          }
+        }
+      }
+      // Decision rules — at least one must hold to drop A as an envelope:
+      //   (a) ≥ 2 distinct children AND their combined AABB-intersection
+      //       covers ≥ 35 % of A → urban-block outline wrapping a row of
+      //       individual buildings (the New Shinjuku Alta failure case)
+      //   (b) 1 child whose AABB is ≥ 65 % of A AND the centroid of that
+      //       child sits inside A's polygon → coarse trace duplicate
+      const coverRatio = childAreaSum / A.area;
+      if (childIdxs.length >= 2 && coverRatio >= 0.35) {
+        drop[A.idx] = 1;
+      } else if (childIdxs.length === 1) {
+        const B = aabbs[childIdxs[0]];
+        if (B.area >= A.area * 0.65) {
+          const [bx, bz] = buildings[childIdxs[0]].center;
+          if (pointInPolygon(bx, bz, Apoly)) drop[A.idx] = 1;
+        }
+      }
+    }
+    let dropped = 0;
+    for (let i = 0; i < drop.length; i++) if (drop[i]) dropped++;
+    if (dropped > 0) {
+      const filtered: OSMBuilding[] = [];
+      for (let i = 0; i < buildings.length; i++) if (!drop[i]) filtered.push(buildings[i]);
+      buildings.length = 0;
+      for (const b of filtered) buildings.push(b);
+      console.log(`[osmLoader] envelope dedup: dropped ${dropped} block-level outlines`);
+    }
   }
 
   // ---- Post-pass: fix addresses that are not Google-searchable ----
@@ -658,6 +952,7 @@ function parseOverpassData(
     const nameIsReal = rawName && rawName !== 'Building' && rawName !== b.address;
     if (nameIsReal && locality) {
       b.address = `${rawName}, ${locality}`;
+      b.addressOriginal = false;
       continue;
     }
 
@@ -684,11 +979,15 @@ function parseOverpassData(
     }
     if (best) {
       b.address = best.address;
+      b.addressOriginal = false;
       continue;
     }
 
     // Step 4: locality fallback
-    if (locality) b.address = locality;
+    if (locality) {
+      b.address = locality;
+      b.addressOriginal = false;
+    }
   }
 
   return buildings;
@@ -716,8 +1015,18 @@ type POINode = {
 function parsePOINodes(elements: OverpassElement[]): POINode[] {
   const pois: POINode[] = [];
   for (const el of elements) {
-    if (el.type === 'node' && el.lat !== undefined && el.lon !== undefined && el.tags) {
+    if (!el.tags) continue;
+    // Node POIs (most common): coordinates are on the element itself.
+    if (el.type === 'node' && el.lat !== undefined && el.lon !== undefined) {
       pois.push({ lat: el.lat, lon: el.lon, tags: el.tags });
+      continue;
+    }
+    // Way / relation POIs: Overpass `out center` puts the centroid in
+    // `el.center`. These cover restaurants, shops, hotels, etc. that are
+    // mapped on the building polygon directly instead of a single node —
+    // a major source of "missing tenant" data before this fix.
+    if ((el.type === 'way' || el.type === 'relation') && el.center) {
+      pois.push({ lat: el.center.lat, lon: el.center.lon, tags: el.tags });
     }
   }
   return pois;
@@ -1173,42 +1482,98 @@ function enrichBuildingsWithPOIs(
     }
   }
 
-  // Pass 2: snap unclaimed POIs to nearest building within 8m
-  // Many real-world POIs are mapped at the entrance/sidewalk just outside the polygon.
-  const snapRadius = 8;
+  // Pass 2: snap unclaimed POIs to the closest building EDGE within snapRadius.
+  //
+  // Why edge-distance (not centroid-distance):
+  //   POIs are commonly mapped at the entrance / on the sidewalk just outside
+  //   the building polygon. For a 50 m wide tower, that POI may be ~25 m from
+  //   the centroid but only ~5 m from the wall. The previous implementation
+  //   compared to centroid with an 8 m radius — so it missed almost every
+  //   real-world sidewalk-tagged POI on a mid-size+ building. Edge distance
+  //   gives a stable physical meaning ("how far is the POI from the building")
+  //   independent of building size.
+  //
+  // Building lookup is now driven by a per-building bbox grid (separate from
+  // the POI cell map used in Pass 1) so we don't iterate every building per
+  // POI — important now that way/relation POIs may be in the thousands.
+  const snapRadius = 18;
+  type BuildingCell = { idx: number; minX: number; maxX: number; minZ: number; maxZ: number };
+  const bldgCellMap = new Map<string, BuildingCell[]>();
+  const bldgBoxes: BuildingCell[] = [];
+  for (let bi = 0; bi < buildings.length; bi++) {
+    const fp = buildings[bi].footprint;
+    if (fp.length < 3) continue;
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const [x, z] of fp) {
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+    }
+    const box: BuildingCell = { idx: bi, minX, maxX, minZ, maxZ };
+    bldgBoxes.push(box);
+    const cx0 = Math.floor((minX - snapRadius) / cellSize);
+    const cx1 = Math.floor((maxX + snapRadius) / cellSize);
+    const cz0 = Math.floor((minZ - snapRadius) / cellSize);
+    const cz1 = Math.floor((maxZ + snapRadius) / cellSize);
+    for (let cx = cx0; cx <= cx1; cx++) {
+      for (let cz = cz0; cz <= cz1; cz++) {
+        const key = `${cx},${cz}`;
+        let bucket = bldgCellMap.get(key);
+        if (!bucket) { bucket = []; bldgCellMap.set(key, bucket); }
+        bucket.push(box);
+      }
+    }
+  }
+
+  // Squared distance from point (px,pz) to segment (ax,az)-(bx,bz)
+  const distSqToSeg = (px: number, pz: number, ax: number, az: number, bx: number, bz: number): number => {
+    const dx = bx - ax, dz = bz - az;
+    const lenSq = dx * dx + dz * dz;
+    if (lenSq === 0) {
+      const ddx = px - ax, ddz = pz - az;
+      return ddx * ddx + ddz * ddz;
+    }
+    let t = ((px - ax) * dx + (pz - az) * dz) / lenSq;
+    if (t < 0) t = 0;
+    else if (t > 1) t = 1;
+    const x = ax + t * dx, z = az + t * dz;
+    const ddx = px - x, ddz = pz - z;
+    return ddx * ddx + ddz * ddz;
+  };
+
   for (let idx = 0; idx < pois.length; idx++) {
     if (claimed[idx]) continue;
     const tags = extractPOITags(pois[idx].tags);
     if (!tags.length) continue;
     const [px, pz] = poiPositions[idx];
 
-    let best: OSMBuilding | null = null;
-    let bestDist = snapRadius;
-    // Look at the cell + 1 ring of neighbors
     const pcx = Math.floor(px / cellSize);
     const pcz = Math.floor(pz / cellSize);
-    // Brute-force over buildings in a small radius — buildings are few; cheap enough
-    for (const building of buildings) {
-      // Bounding-box prefilter
-      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-      for (const [x, z] of building.footprint) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (z < minZ) minZ = z;
-        if (z > maxZ) maxZ = z;
+    const bucket = bldgCellMap.get(`${pcx},${pcz}`);
+    if (!bucket) continue;
+
+    let best: OSMBuilding | null = null;
+    let bestDistSq = snapRadius * snapRadius;
+    const seenIdx = new Set<number>();
+    for (const box of bucket) {
+      if (seenIdx.has(box.idx)) continue;
+      seenIdx.add(box.idx);
+      // Bounding box prefilter (with snapRadius slack already baked in via cell)
+      if (px < box.minX - snapRadius || px > box.maxX + snapRadius ||
+          pz < box.minZ - snapRadius || pz > box.maxZ + snapRadius) continue;
+      const building = buildings[box.idx];
+      const fp = building.footprint;
+      // Min squared distance from POI to any polygon edge.
+      let minDsq = Infinity;
+      for (let i = 0; i < fp.length; i++) {
+        const [ax, az] = fp[i];
+        const [bx, bz] = fp[(i + 1) % fp.length];
+        const dsq = distSqToSeg(px, pz, ax, az, bx, bz);
+        if (dsq < minDsq) minDsq = dsq;
       }
-      if (px < minX - snapRadius || px > maxX + snapRadius ||
-          pz < minZ - snapRadius || pz > maxZ + snapRadius) continue;
-      // Distance to building center as cheap metric
-      const dx = building.center[0] - px;
-      const dz = building.center[1] - pz;
-      const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist < bestDist) {
-        bestDist = dist;
+      if (minDsq < bestDistSq) {
+        bestDistSq = minDsq;
         best = building;
       }
-      // Suppress unused-var warning
-      void pcx; void pcz;
     }
 
     if (best) {
@@ -1224,6 +1589,148 @@ function enrichBuildingsWithPOIs(
       });
       claimed[idx] = 1;
     }
+  }
+}
+
+/**
+ * Post-enrichment building-name verification.
+ *
+ * The way-level heuristic in parseOverpassData only catches mis-attributed
+ * tenant names when the OSM building way *itself* carries shop/amenity tags
+ * (e.g. `building=yes; shop=clothes; name=뉴발란스` on a 50-story tower).
+ * It misses the common case where the tenant only appears as a separate
+ * POI node inside the polygon: OSM mappers slap `name=Lobster Bar` on a
+ * skyscraper way after the most visible ground-floor business, leaving the
+ * way's own shop/amenity blank, so the heuristic stays silent and the
+ * skyscraper inherits the bar's name.
+ *
+ * This second pass runs after enrichBuildingsWithPOIs has linked POI nodes
+ * to building footprints, so it can cross-reference the building's display
+ * name against the names of all matched tenant tags. If the building name is
+ * identical (case- and diacritic-normalized) to a small-tenant tag — food,
+ * entertainment, or narrow shop categories, NOT dept stores / malls /
+ * supermarkets which legitimately ARE the building — and the building is
+ * structurally large (≥5 floors OR ≥20m), we treat the OSM name as a tenant
+ * mis-attribution and fall back to the address. The tenant chip itself is
+ * preserved, so the user still sees the brand inside the tag list.
+ */
+function verifyBuildingNamesAgainstTenants(buildings: OSMBuilding[]): void {
+  const SMALL_TENANT_CATS = new Set(['food', 'entertainment']);
+  const ANCHOR_SHOP_LABELS = new Set(['dept store', 'mall', 'supermarket']);
+
+  // Structural building keywords across the languages VIBLOC supports.
+  // If the OSM name contains any of these tokens, the name is almost
+  // certainly the building's own (not a ground-floor tenant), so we
+  // protect it from suppression even if a tenant happens to share part
+  // of the name. Sourced from common OSM building-name patterns plus
+  // KR/JP equivalents (빌딩/타워/会館/ビル/タワー…).
+  //
+  // Split by script: ASCII keywords are matched as whole words (so
+  // "Hallmark" doesn't false-positive on "hall"), while CJK keywords are
+  // substring-matched because Korean/Japanese have no word boundary.
+  const BUILDING_KEYWORDS_ASCII = [
+    'tower', 'towers', 'building', 'bldg', 'plaza', 'hall', 'center', 'centre',
+    'mansion', 'residence', 'residences', 'estate', 'complex', 'court',
+    'house', 'palace', 'arcade', 'gallery', 'square', 'park',
+  ];
+  const BUILDING_KEYWORDS_CJK = [
+    // Korean
+    '빌딩', '타워', '플라자', '센터', '회관', '몰', '타운', '시티',
+    // Japanese
+    'ビル', 'タワー', 'プラザ', 'センター', '会館', 'ホール', 'スクエア',
+    'タウン', 'シティ', 'ハウス', 'マンション', 'レジデンス',
+  ];
+  const BUILDING_KEYWORDS_ASCII_SET = new Set(BUILDING_KEYWORDS_ASCII);
+
+  // Normalize for cross-script comparison: strip diacritics, collapse
+  // punctuation/whitespace, lowercase. So "Lobster Bar" / "lobster-bar" /
+  // "LOBSTER  BAR" all collapse to the same key.
+  const normalize = (s: string): string =>
+    s
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
+
+  // Check if a (non-normalized) name contains any structural keyword.
+  // ASCII keywords must match a whole token (so "Hallmark" ≠ "hall");
+  // CJK keywords use substring match because there's no word boundary
+  // in Korean/Japanese.
+  const hasBuildingKeyword = (raw: string): boolean => {
+    const low = raw.toLowerCase();
+    for (const kw of BUILDING_KEYWORDS_CJK) {
+      if (low.includes(kw)) return true;
+      if (raw.includes(kw)) return true;
+    }
+    // Token-split the normalized form for ASCII whole-word check.
+    const tokens = normalize(raw).split(' ').filter(Boolean);
+    for (const tok of tokens) {
+      if (BUILDING_KEYWORDS_ASCII_SET.has(tok)) return true;
+    }
+    return false;
+  };
+
+  let fixedByTenant = 0;
+  let fixedByBlocklist = 0;
+  let protectedCount = 0;
+  for (const b of buildings) {
+    if (!b.name) continue;
+    if (b.name === b.address || b.name === 'Building') continue;
+
+    const isLarge = (b.levels && b.levels >= 5) || (b.height && b.height >= 20);
+    if (!isLarge) continue;
+
+    // Whitelist guard: name contains a structural keyword → it's the
+    // building's own name, never strip it. Runs first so it short-circuits
+    // both the tenant cross-reference and the brand blocklist.
+    if (hasBuildingKeyword(b.name)) {
+      protectedCount++;
+      continue;
+    }
+
+    const norm = normalize(b.name);
+    if (!norm) continue;
+
+    // Rule A — tenant cross-reference: the building's name matches a
+    // small-tenant POI that's been attached to its polygon. Strongest
+    // signal because we have ground-truth proximity.
+    if (b.tags.length) {
+      const matchedTenant = b.tags.find((t) => {
+        if (!t.name) return false;
+        if (normalize(t.name) !== norm) return false;
+        if (SMALL_TENANT_CATS.has(t.category)) return true;
+        if (t.category === 'shop') {
+          return !ANCHOR_SHOP_LABELS.has((t.label || '').toLowerCase());
+        }
+        return false;
+      });
+      if (matchedTenant) {
+        b.name = b.address || 'Building';
+        fixedByTenant++;
+        continue;
+      }
+    }
+
+    // Rule B — brand blocklist: even if no tenant POI was attached to this
+    // polygon, the OSM `name` is a known chain/brand harvested from the
+    // wider POI extract. The most common case for our 마천루 issue: a
+    // 50-story office tower whose ground-floor New Balance got promoted to
+    // the building's `name=*` by an OSM mapper, but the New Balance node
+    // itself sits just outside the polygon (or wasn't extracted at all).
+    if (BRAND_BLOCKLIST.has(norm)) {
+      b.name = b.address || 'Building';
+      fixedByBlocklist++;
+    }
+  }
+
+  const totalFixed = fixedByTenant + fixedByBlocklist;
+  if (totalFixed > 0 || protectedCount > 0) {
+    console.log(
+      `[VIBLOC] verifyBuildingNamesAgainstTenants: corrected ${totalFixed} mis-named ` +
+        `(tenant: ${fixedByTenant}, brand blocklist: ${fixedByBlocklist}), ` +
+        `protected ${protectedCount} keyword-named`,
+    );
   }
 }
 
@@ -1304,7 +1811,18 @@ function enrichBuildingsWithWikidata(
   // Convert wikidata positions to local meters
   const wikiPositions = wikiItems.map(w => latLonToMeters(w.lat, w.lon, refLat, refLon));
 
+  // ---- Wikidata reliability guard ----
+  // Wikidata P625 coordinates are user-edited and frequently wrong. Real-world
+  // example: Q863639 (Shinjuku NS Building) lists 35.69333, 139.69319 sourced
+  // from Russian Wikipedia, but the actual building polygon is ~570m south.
+  // Strategy: only accept a wikidata→building match when the wikidata point
+  // either falls inside the polygon or is within a *strict* 30m of its center.
+  // Anything beyond that is treated as a stale/wrong P625 and silently dropped
+  // (with a console.warn so we can audit which Q-ids need community fixes).
+  const STRICT_FALLBACK_M = 30; // already in use; named for clarity
+  const REJECT_FAR_M = 200;     // anything past this is almost certainly wrong
   let matched = 0;
+  let rejectedFar = 0;
   for (let wi = 0; wi < wikiItems.length; wi++) {
     const item = wikiItems[wi];
 
@@ -1322,13 +1840,22 @@ function enrichBuildingsWithWikidata(
       }
     }
 
-    // Fallback: find closest building within 30m
+    // Fallback: find closest building within STRICT_FALLBACK_M.
+    // Also remember the absolute closest (regardless of threshold) so we can
+    // flag wildly-wrong P625 entries that *would have* matched something far
+    // away — those are the real-world OSM/Wikidata divergences worth logging.
+    let absClosest: OSMBuilding | null = null;
+    let absClosestDist = Infinity;
     if (!bestBuilding) {
-      let bestDist = 30;
+      let bestDist = STRICT_FALLBACK_M;
       for (const building of buildings) {
         const dx = building.center[0] - wx;
         const dz = building.center[1] - wz;
         const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < absClosestDist) {
+          absClosestDist = dist;
+          absClosest = building;
+        }
         if (dist < bestDist) {
           bestDist = dist;
           bestBuilding = building;
@@ -1336,9 +1863,23 @@ function enrichBuildingsWithWikidata(
       }
     }
 
-    if (!bestBuilding) continue;
+    if (!bestBuilding) {
+      // Audit: if a known wikidata item with a name has *any* building within
+      // 200m, the P625 is likely wrong rather than the building being missing.
+      if (item.name && absClosest && absClosestDist < REJECT_FAR_M * 5) {
+        rejectedFar++;
+        // Quiet by default — flip to console.warn locally to surface Q-ids.
+      }
+      continue;
+    }
     matched++;
-    if (item.id) idToBuilding.set(item.id, bestBuilding);
+    if (item.id) {
+      idToBuilding.set(item.id, bestBuilding);
+      // Persist the Wikidata Q-id on the building so the panel can hit
+      // Wikidata's free CORS-enabled REST API at click time for verified
+      // multilingual names + descriptions.
+      bestBuilding.wikidataId = item.id;
+    }
 
     // Cross-validate and enrich — only use verified info
 
@@ -1411,7 +1952,10 @@ function enrichBuildingsWithWikidata(
     }
   }
 
-  console.log(`[VIBLOC] Wikidata: ${matched}/${wikiItems.length} items matched to buildings`);
+  console.log(
+    `[VIBLOC] Wikidata: ${matched}/${wikiItems.length} items matched to buildings` +
+    (rejectedFar ? ` (${rejectedFar} dropped — P625 too far from any building)` : '')
+  );
   return idToBuilding;
 }
 
@@ -1515,6 +2059,11 @@ function enrichBuildingsWithWikiInfobox(
     const building = idToBuilding.get(item.id);
     if (!building) continue;
     updated++;
+
+    // Persist Wikipedia article pointer so the panel can fetch a verified
+    // summary on demand via the free CORS-enabled REST API.
+    if (item.wiki_title) building.wikipediaTitle = item.wiki_title;
+    if (item.wiki_url) building.wikipediaUrl = item.wiki_url;
 
     // --- Verified address override ---
     // Prefer Wikipedia infobox address when it passes sanity checks.
@@ -1792,6 +2341,9 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
       enrichBuildingsWithPOIs(buildings, pois, config.refLat, config.refLon);
       const enriched = buildings.filter(b => b.tags.length > 0).length;
       console.log(`[VIBLOC] ${area}: ${enriched} buildings have tags after POI enrichment`);
+      // Cross-reference building display names against attached tenant POIs
+      // and strip mis-attributed names from large buildings.
+      verifyBuildingNamesAgainstTenants(buildings);
     }
   } catch (e) {
     console.warn(`[VIBLOC] Could not load POI data for ${area}:`, e);
@@ -1828,6 +2380,88 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
     console.warn(`[VIBLOC] Could not load Wikipedia enrichment for ${area}:`, e);
   }
 
+  // 3a. Fuse community-verified address points from /data/addr_points.json.
+  //     Source: OSM Overpass nodes with addr:housenumber + addr:street.
+  //     These are explicit community contributions independent of building
+  //     polygons; if one falls within ~25 m of a building's footprint center
+  //     we treat it as a more-trusted address than borrowed/locality fallbacks.
+  //     Manual Google-verified overrides (3b) still win the final word.
+  try {
+    const addrRes = await fetch('/data/addr_points.json');
+    if (addrRes.ok) {
+      const addrData = await addrRes.json();
+      const points: { address: string; lat: number; lng: number }[] =
+        (addrData.cities && addrData.cities[area]) || [];
+      if (points.length > 0) {
+        // Project addr points into the same local meters as building.center.
+        const cosLat = Math.cos((config.refLat * Math.PI) / 180);
+        type Pt = { x: number; z: number; address: string };
+        const projected: Pt[] = points.map((p) => ({
+          x: (p.lng - config.refLon) * 111320 * cosLat,
+          z: (p.lat - config.refLat) * 110540,
+          address: p.address,
+        }));
+        // Build a 50 m grid for fast nearest lookup.
+        const CELL = 50;
+        const grid = new Map<string, Pt[]>();
+        const cellKey = (cx: number, cz: number) => `${cx},${cz}`;
+        for (const pt of projected) {
+          const cx = Math.floor(pt.x / CELL);
+          const cz = Math.floor(pt.z / CELL);
+          const k = cellKey(cx, cz);
+          let bucket = grid.get(k);
+          if (!bucket) {
+            bucket = [];
+            grid.set(k, bucket);
+          }
+          bucket.push(pt);
+        }
+        const MAX_M = 25;
+        const MAX_M_SQ = MAX_M * MAX_M;
+        let fused = 0;
+        for (const b of buildings) {
+          const bx = b.center[0];
+          const bz = b.center[1];
+          const cx = Math.floor(bx / CELL);
+          const cz = Math.floor(bz / CELL);
+          let bestD = Infinity;
+          let bestAddr: string | null = null;
+          for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+              const bucket = grid.get(cellKey(cx + dx, cz + dz));
+              if (!bucket) continue;
+              for (const pt of bucket) {
+                const ddx = pt.x - bx;
+                const ddz = pt.z - bz;
+                const d = ddx * ddx + ddz * ddz;
+                if (d < bestD && d <= MAX_M_SQ) {
+                  bestD = d;
+                  bestAddr = pt.address;
+                }
+              }
+            }
+          }
+          if (bestAddr && bestAddr !== b.address) {
+            // Prefer the verified addr point unless the existing address is
+            // already authoritative AND the new one is just a generic match.
+            // To be conservative, only replace when (a) building has no
+            // authoritative address, OR (b) the new point is very close (<8m).
+            if (!b.addressOriginal || bestD <= 64) {
+              b.address = bestAddr;
+              b.addressOriginal = true;
+              fused++;
+            }
+          }
+        }
+        if (fused > 0) {
+          console.log(`[VIBLOC] ${area}: ${fused} addresses fused from OSM addr-point nodes`);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn(`[VIBLOC] Could not load addr_points for ${area}:`, e);
+  }
+
   // 3b. Apply manual Google-Maps-verified address overrides (single shared file).
   //     These always win because they're hand-checked against google.com/maps.
   try {
@@ -1841,6 +2475,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
         const v = overrides[key];
         if (typeof v === 'string' && v.length > 5 && !v.startsWith('_')) {
           b.address = v;
+          b.addressOriginal = true;
           count++;
         }
       }
@@ -2142,9 +2777,9 @@ export function getElevationAt(
 ): number {
   const { grid, south, west, north, east, elevations, minElevation, refLat, refLon } = elev;
 
-  // Convert local meters back to lat/lon
+  // Convert local meters back to lat/lon (matches latLonToMeters: north = +Z).
   const lon = x / (111320 * Math.cos((refLat * Math.PI) / 180)) + refLon;
-  const lat = -z / 110540 + refLat;
+  const lat = z / 110540 + refLat;
 
   // Grid coords (fractional)
   const gx = ((lon - west) / (east - west)) * (grid - 1);
