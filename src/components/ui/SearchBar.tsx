@@ -1,10 +1,10 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { geocodeAddress, geoToLocalMeters } from '../../lib/geocoder';
-import { CITY_AREAS, type CityAreaKey, type OSMBuilding } from '../../lib/osmLoader';
-import { resolveJPBuilding } from '../../lib/jpAddressResolver';
-import { resolveKRBuilding } from '../../lib/krAddressResolver';
-import { useT } from '../../lib/i18n';
-import { rankBuildings, type RankedResult } from '../../lib/searchEngine';
+import { geocodeAddress, geoToLocalMeters } from '../../lib/geo/geocoder';
+import { CITY_AREAS, type CityAreaKey, type OSMBuilding } from '../../lib/geo/osmLoader';
+import { resolveJPBuilding } from '../../lib/geo/jpAddressResolver';
+import { resolveKRBuilding } from '../../lib/geo/krAddressResolver';
+import { useT } from '../../lib/app/i18n';
+import { rankBuildings, type RankedResult } from '../../lib/geo/searchEngine';
 
 type SearchBarProps = {
   area: CityAreaKey;

@@ -32,7 +32,7 @@
  */
 
 import type { CityVibe } from './trackTypes';
-import type { CityAreaKey } from '../osmLoader';
+import type { CityAreaKey } from '../geo/osmLoader';
 
 export const CITY_VIBES: Record<CityAreaKey, CityVibe> = {
   shinjuku: {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Building, Tag, GenreKey } from '../types';
-import { generateCity } from '../lib/buildingGen';
-import { generateDemoTags } from '../lib/demoSeed';
+import { generateCity } from '../lib/geo/buildingGen';
+import { generateDemoTags } from '../lib/app/demoSeed';
 
 type BuildingStore = {
   buildings: Building[];

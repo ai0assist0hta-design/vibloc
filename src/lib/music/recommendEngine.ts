@@ -47,7 +47,7 @@ import {
 } from './filmMusic';
 import { deriveBuildingVibe, type BuildingVibe } from './buildingVibe';
 import type { RecommendedTrack, CityVibe } from './trackTypes';
-import type { BuildingTag, CityAreaKey } from '../osmLoader';
+import type { BuildingTag, CityAreaKey } from '../geo/osmLoader';
 import type { GenreKey } from '../../types';
 import { getCurrentWeatherSnapshot } from '../../stores/useWeatherStore';
 import { getCurrentTimeSnapshot } from '../../stores/useTimeStore';

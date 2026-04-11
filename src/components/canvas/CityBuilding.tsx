@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { Color, BoxGeometry } from 'three';
 import type { Building } from '../../types';
 import { useBuildingStore } from '../../stores/useBuildingStore';
-import { getBuildingColor, getBuildingOpacity, getBuildingState } from '../../lib/tasteEngine';
+import { getBuildingColor, getBuildingOpacity, getBuildingState } from '../../lib/geo/tasteEngine';
 
 type CityBuildingProps = {
   building: Building;

@@ -6,7 +6,7 @@ import { wrapEffect } from '@react-three/postprocessing';
 import { Vector3, Spherical, HalfFloatType, VSMShadowMap, DirectionalLight } from 'three';
 import { OSMCity } from './OSMCity';
 import { GradientFogEffect } from './effects';
-import type { CityAreaKey, OSMBuilding } from '../../lib/osmLoader';
+import type { CityAreaKey, OSMBuilding } from '../../lib/geo/osmLoader';
 
 // Wrap custom postprocessing effects for R3F
 const GradientFog = wrapEffect(GradientFogEffect);

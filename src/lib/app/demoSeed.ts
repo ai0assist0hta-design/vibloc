@@ -1,4 +1,4 @@
-import type { Building, GenreKey } from '../types';
+import type { Building, GenreKey } from '../../types';
 
 const GENRES: GenreKey[] = [
   'pop', 'rock', 'hiphop', 'rnb', 'electronic', 'alternative',

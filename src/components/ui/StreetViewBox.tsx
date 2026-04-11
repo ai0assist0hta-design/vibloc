@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
-import { googleStreetViewEmbed } from '../../lib/plusCode';
+import { googleStreetViewEmbed } from '../../lib/geo/plusCode';
 import {
   findNearbyStationFeatures,
   nudgeAwayFromStations,
-} from '../../lib/subwayAvoid';
+} from '../../lib/streetview/subwayAvoid';
 import {
   hasGoogleMapsKey,
   resolveOutdoorPano,
   buildEmbedStreetViewUrl,
-} from '../../lib/streetViewKey';
-import { findCommonsBuildingPhoto } from '../../lib/buildingPhoto';
+} from '../../lib/streetview/streetViewKey';
+import { findCommonsBuildingPhoto } from '../../lib/streetview/buildingPhoto';
 
 /**
  * Inline location preview — Google Street View first, with a

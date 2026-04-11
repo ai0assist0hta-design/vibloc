@@ -1,4 +1,4 @@
-import type { Building } from '../types';
+import type { Building } from '../../types';
 
 function randomRange(min: number, max: number): number {
   return Math.random() * (max - min) + min;

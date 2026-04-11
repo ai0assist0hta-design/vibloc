@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useCallback, useState } from 'react';
 import { Color, BoxGeometry } from 'three';
 import { useBuildingStore } from '../../stores/useBuildingStore';
-import { getBuildingColor, getBuildingState, getFloorColor, getFloorTagCount } from '../../lib/tasteEngine';
+import { getBuildingColor, getBuildingState, getFloorColor, getFloorTagCount } from '../../lib/geo/tasteEngine';
 import type { Building, Tag } from '../../types';
 
 const BASE_COLOR = new Color('#d0d4de');

@@ -28,7 +28,7 @@
  *   • Adding a new cuisine or amenity → genre rule is one diff line.
  */
 
-import type { BuildingTag } from './../osmLoader';
+import type { BuildingTag } from '../geo/osmLoader';
 import type { GenreKey } from '../../types';
 
 export type BuildingVibe = {

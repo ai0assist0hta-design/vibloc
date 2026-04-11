@@ -28,7 +28,7 @@ import {
   recommendForBuilding,
   type RecommendationResult,
 } from '../../../lib/music/recommendEngine';
-import type { BuildingTag, CityAreaKey } from '../../../lib/osmLoader';
+import type { BuildingTag, CityAreaKey } from '../../../lib/geo/osmLoader';
 import { TrackRow } from './TrackRow';
 import { usePlaylist } from '../../../lib/music/buildingPlaylist';
 

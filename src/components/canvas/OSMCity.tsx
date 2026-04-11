@@ -40,8 +40,8 @@ import {
   type OSMDistrict,
   type ElevationGrid,
   type CityAreaKey,
-} from '../../lib/osmLoader';
-import { Quadtree } from '../../lib/quadtree';
+} from '../../lib/geo/osmLoader';
+import { Quadtree } from '../../lib/geo/quadtree';
 
 // --- Building facade normal map: clean geometric grid ---
 function createFacadeNormalMap(): CanvasTexture {

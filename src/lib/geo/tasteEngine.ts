@@ -1,5 +1,5 @@
-import type { Tag, GenreKey } from '../types';
-import { GENRE_COLORS } from '../data/genres';
+import type { Tag, GenreKey } from '../../types';
+import { GENRE_COLORS } from '../../data/genres';
 
 export function getTimeDecayWeight(createdAt: Date): number {
   const days = (Date.now() - createdAt.getTime()) / 86400000;

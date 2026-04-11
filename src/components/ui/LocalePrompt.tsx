@@ -12,8 +12,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useI18nStore, type Lang } from '../../lib/i18n';
-import type { CityAreaKey } from '../../lib/osmLoader';
+import { useI18nStore, type Lang } from '../../lib/app/i18n';
+import type { CityAreaKey } from '../../lib/geo/osmLoader';
 
 const STORAGE_KEY = 'vibloc_locale_prompt_v1';
 

@@ -1,4 +1,4 @@
-import brandBlocklistJson from '../data/brandBlocklist.json';
+import brandBlocklistJson from '../../data/brandBlocklist.json';
 
 export type BuildingTag = {
   label: string;

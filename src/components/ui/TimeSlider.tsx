@@ -8,8 +8,8 @@ import {
   getSkyState,
   getCityLocalTime,
   type SunPosition,
-} from '../../lib/sunPosition';
-import { CITY_AREAS, type CityAreaKey } from '../../lib/osmLoader';
+} from '../../lib/scene/sunPosition';
+import { CITY_AREAS, type CityAreaKey } from '../../lib/geo/osmLoader';
 import { useWeatherStore } from '../../stores/useWeatherStore';
 import { useTimeStore } from '../../stores/useTimeStore';
 import { weatherEmoji, weatherLabel } from '../../lib/weather/openMeteo';

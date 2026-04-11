@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useBuildingStore } from '../../stores/useBuildingStore';
 import { GENRE_COLORS } from '../../data/genres';
 import type { GenreKey } from '../../types';
-import { getBuildingState, getFloorColor, getFloorTagCount } from '../../lib/tasteEngine';
+import { getBuildingState, getFloorColor, getFloorTagCount } from '../../lib/geo/tasteEngine';
 
 export function BuildingPanel() {
   const selectedId = useBuildingStore((s) => s.selectedBuildingId);

@@ -20,7 +20,7 @@
  * zero new dependencies and zero API calls.
  */
 
-import type { OSMBuilding, OSMRoad } from './osmLoader';
+import type { OSMBuilding, OSMRoad } from '../geo/osmLoader';
 
 /** Standard ray-casting point-in-polygon test (footprint is meters x/z). */
 function pointInPolygon(px: number, pz: number, poly: [number, number][]): boolean {

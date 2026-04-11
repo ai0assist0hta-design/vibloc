@@ -6,8 +6,8 @@ import { TimeSlider } from './components/ui/TimeSlider';
 import { LanguageToggle } from './components/ui/LanguageToggle';
 import { CanvasTour } from './components/ui/CanvasTour';
 import { LocalePrompt } from './components/ui/LocalePrompt';
-import { useT, translateTagLabel, useI18nStore } from './lib/i18n';
-import { CITY_AREAS, type CityAreaKey, type OSMBuilding, type OSMRoad, type BuildingTag, metersToLatLon, reverseGeocode, fetchOSMTerrain } from './lib/osmLoader';
+import { useT, translateTagLabel, useI18nStore } from './lib/app/i18n';
+import { CITY_AREAS, type CityAreaKey, type OSMBuilding, type OSMRoad, type BuildingTag, metersToLatLon, reverseGeocode, fetchOSMTerrain } from './lib/geo/osmLoader';
 import {
   googleMapsLink,
   appleMapsLink,
@@ -15,14 +15,14 @@ import {
   naverMapLink,
   kakaoMapLink,
   yahooJapanMapLink,
-} from './lib/plusCode';
+} from './lib/geo/plusCode';
 import { StreetViewBox } from './components/ui/StreetViewBox';
 import { RecommendedList } from './components/ui/music/RecommendedList';
 import { BuildingPlaylist } from './components/ui/music/BuildingPlaylist';
 import { AddTrackComposer } from './components/ui/music/AddTrackComposer';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
-import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetViewViewpoint';
+import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetview/streetViewViewpoint';
 import { loadAppleGenreColors } from './lib/music/genreColorSource';
 import { useArtworkTint } from './lib/music/headerTint';
 import { usePlaylist } from './lib/music/buildingPlaylist';

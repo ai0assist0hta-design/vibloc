@@ -1,4 +1,4 @@
-import { useI18nStore, type Lang } from '../../lib/i18n';
+import { useI18nStore, type Lang } from '../../lib/app/i18n';
 
 type Props = {
   darkMode?: boolean;
