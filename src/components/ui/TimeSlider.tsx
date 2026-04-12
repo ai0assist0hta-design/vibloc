@@ -13,6 +13,7 @@ import { CITY_AREAS, type CityAreaKey } from '../../lib/geo/osmLoader';
 import { useWeatherStore } from '../../stores/useWeatherStore';
 import { useTimeStore } from '../../stores/useTimeStore';
 import { weatherEmoji, weatherLabel } from '../../lib/weather/openMeteo';
+import { useT } from '../../lib/app/i18n';
 
 type TimeSliderProps = {
   area: CityAreaKey;
@@ -23,6 +24,7 @@ type TimeSliderProps = {
 };
 
 export function TimeSlider({ area, enabled, onToggle, onSunUpdate, darkMode }: TimeSliderProps) {
+  const t = useT();
   const tz = CITY_TIMEZONES[area] || 'UTC';
   const config = CITY_AREAS[area];
 
@@ -154,7 +156,7 @@ export function TimeSlider({ area, enabled, onToggle, onSunUpdate, darkMode }: T
         }}
         title="Real-Time Mode"
       >
-        {'\u23F0'} REAL-TIME
+        {'\u23F0'} {t('time.realTime')}
       </button>
 
       {/* Slider panel — only visible when enabled */}
@@ -280,7 +282,7 @@ export function TimeSlider({ area, enabled, onToggle, onSunUpdate, darkMode }: T
                   boxShadow: '0 0 6px rgba(76,175,80,0.7)',
                 }}
               />
-              REAL-TIME
+              {t('time.realTime')}
             </span>
           )}
 

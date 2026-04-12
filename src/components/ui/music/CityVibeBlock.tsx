@@ -15,6 +15,7 @@
 import type { CityVibe } from '../../../lib/music/trackTypes';
 import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
+import { useT } from '../../../lib/app/i18n';
 
 type Props = {
   vibe: CityVibe;
@@ -27,6 +28,7 @@ type Props = {
 };
 
 export function CityVibeBlock({ vibe, text, text3, divider }: Props) {
+  const t = useT();
   return (
     <div
       style={{
@@ -48,7 +50,7 @@ export function CityVibeBlock({ vibe, text, text3, divider }: Props) {
           fontFamily: "'IBM Plex Mono', monospace",
         }}
       >
-        City Vibe
+        {t('music.cityVibe')}
       </div>
       <div
         style={{

@@ -9,6 +9,12 @@
 html, body, #root {
   width: 100%;
   height: 100%;
-  overflow: hidden;
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* Map page needs overflow hidden for Three.js canvas;
+   other pages need normal scroll for landing/auth/mypage. */
+body.map-active,
+body.map-active #root {
+  overflow: hidden;
 }

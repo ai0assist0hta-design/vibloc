@@ -86,6 +86,13 @@ function LocaleDeeplinks({
 }
 
 function App() {
+  // Toggle overflow:hidden on body so the map canvas fills the viewport
+  // while other pages (landing, auth, mypage) can scroll normally.
+  useEffect(() => {
+    document.body.classList.add('map-active');
+    return () => document.body.classList.remove('map-active');
+  }, []);
+
   const t = useT();
   const lang = useI18nStore((s) => s.lang);
   const [area, setArea] = useState<CityAreaKey>('shinjuku');
@@ -402,8 +409,6 @@ function App() {
       <Compass darkMode={darkMode} />
 
       <CanvasTour darkMode={darkMode} />
-
-      <LocalePrompt area={area} darkMode={darkMode} />
 
       <div
         style={{

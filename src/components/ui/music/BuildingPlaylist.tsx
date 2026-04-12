@@ -29,6 +29,7 @@ import { TrackRow } from './TrackRow';
 import type { CityVibe } from '../../../lib/music/trackTypes';
 import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
+import { useT } from '../../../lib/app/i18n';
 
 const DESCRIPTION_MIN_TRACKS = 2;
 const DESCRIPTION_MAX_LEN = 140;
@@ -63,6 +64,7 @@ export function BuildingPlaylist({
   text3,
   divider,
 }: Props) {
+  const t = useT();
   const playlist = usePlaylist(buildingId);
   // Local draft state so typing isn't gated by every store re-render.
   // Synced from store on building change OR external mutation.
@@ -94,7 +96,7 @@ export function BuildingPlaylist({
           fontFamily: "'IBM Plex Mono', monospace",
         }}
       >
-        My Playlist {playlist.tracks.length > 0 && `(${playlist.tracks.length})`}
+        {t('music.myPlaylist')} {playlist.tracks.length > 0 && `(${playlist.tracks.length})`}
       </div>
 
       {playlist.tracks.length === 0 && (() => {
@@ -125,8 +127,7 @@ export function BuildingPlaylist({
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span aria-hidden="true">🎧</span>
               <span>
-                <strong style={{ color: text }}>{travelers}</strong> travelers
-                vibe to this place
+                <strong style={{ color: text }}>{travelers}</strong> {t('music.travelersVibe')}
               </span>
             </div>
             {topGenres.length > 0 && (
@@ -161,7 +162,7 @@ export function BuildingPlaylist({
               </div>
             )}
             <div style={{ fontSize: 10, color: text3, marginTop: 2 }}>
-              ↑ tag a track above to make it yours
+              {t('music.tagTrackHint')}
             </div>
           </div>
         );

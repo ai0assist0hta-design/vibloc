@@ -31,6 +31,7 @@ import {
 import type { BuildingTag, CityAreaKey } from '../../../lib/geo/osmLoader';
 import { TrackRow } from './TrackRow';
 import { usePlaylist } from '../../../lib/music/buildingPlaylist';
+import { useT } from '../../../lib/app/i18n';
 
 type Props = {
   area: CityAreaKey;
@@ -65,6 +66,7 @@ export function RecommendedList({
   text3,
   divider,
 }: Props) {
+  const t = useT();
   const [data, setData] = useState<RecommendationResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -139,7 +141,7 @@ export function RecommendedList({
             textAlign: 'left',
           }}
         >
-          AI Top Pick
+          {t('music.topPick')}
         </span>
         <button
           type="button"
@@ -147,7 +149,7 @@ export function RecommendedList({
             if (!loading) setRefreshKey((k) => k + 1);
           }}
           aria-label="Refresh recommendations"
-          title="Refresh vibe"
+          title={t('music.refreshVibe')}
           style={{
             background: 'transparent',
             border: `1px solid ${divider}`,
@@ -169,13 +171,13 @@ export function RecommendedList({
 
       {loading && (
         <div style={{ fontSize: 11, color: text3, padding: '4px 0' }}>
-          loading playlist…
+          {t('music.loadingPlaylist')}
         </div>
       )}
 
       {!loading && data && data.tracks.length === 0 && (
         <div style={{ fontSize: 11, color: text3, padding: '4px 0' }}>
-          no preview available
+          {t('music.noPreview')}
         </div>
       )}
 
@@ -219,7 +221,7 @@ export function RecommendedList({
                   alignSelf: 'flex-start',
                 }}
               >
-                Show {hidden} more ▾
+                {t('music.showMore')} ({hidden}) ▾
               </button>
             )}
             {showAll && data.tracks.length > 1 && (
@@ -240,7 +242,7 @@ export function RecommendedList({
                   padding: 0,
                 }}
               >
-                show less ▴
+                {t('music.showLess')} ▴
               </button>
             )}
           </>

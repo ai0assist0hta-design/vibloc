@@ -304,6 +304,40 @@ const DICT: Record<string, Record<Lang, string>> = {
   'tag.Jeweler':      { en: 'Jeweler',      ko: '보석상',     ja: '宝石商' },
   'tag.Shoemaker':    { en: 'Shoemaker',    ko: '제화공',     ja: '靴職人' },
   'tag.Photographer': { en: 'Photographer', ko: '사진관',     ja: '写真家' },
+
+  // ─── UI chrome ───
+  'time.realTime':         { en: 'REAL-TIME',                ko: '실시간',                    ja: 'リアルタイム' },
+  'time.now':              { en: 'NOW',                      ko: '지금',                      ja: '今' },
+  'ui.closeBuildingPanel': { en: 'Close building details',   ko: '건물 세부정보 닫기',        ja: '建物の詳細を閉じる' },
+  'ui.more':               { en: 'More ▸',                   ko: '더보기 ▸',                  ja: 'もっと見る ▸' },
+  'ui.openStreetView':     { en: 'Open Street View',         ko: '스트리트뷰 열기',           ja: 'ストリートビューを開く' },
+
+  // ─── Music section ───
+  'music.topPick':           { en: 'AI TOP PICK',                            ko: 'AI 추천곡',                        ja: 'AI トップピック' },
+  'music.tagTrack':          { en: 'TAG A TRACK',                            ko: '트랙 태그하기',                    ja: 'トラックにタグ付け' },
+  'music.loadingPlaylist':   { en: 'loading playlist…',                      ko: '플레이리스트 로드 중…',            ja: 'プレイリストを読み込み中…' },
+  'music.noPreview':         { en: 'no preview available',                   ko: '미리보기 없음',                    ja: 'プレビューなし' },
+  'music.showMore':          { en: 'SHOW MORE',                              ko: '더보기',                           ja: 'もっと見る' },
+  'music.showLess':          { en: 'SHOW LESS',                              ko: '줄이기',                           ja: '隠す' },
+  'music.myPlaylist':        { en: 'MY PLAYLIST',                            ko: '내 플레이리스트',                  ja: 'マイプレイリスト' },
+  'music.tagTrackHint':      { en: '↑ tag a track above to make it yours',   ko: '↑ 위에서 트랙을 태그하세요',       ja: '↑ 上でトラックにタグ付けする' },
+  'music.cityVibe':          { en: 'CITY VIBE',                              ko: '도시 분위기',                      ja: 'シティ ヴァイブ' },
+  'music.refreshVibe':       { en: 'Refresh vibe',                           ko: '분위기 새로고침',                  ja: 'ヴァイブを更新' },
+
+  // ─── Moods ───
+  'mood.Chill':      { en: 'Chill',      ko: '칠',       ja: 'チル' },
+  'mood.Hype':       { en: 'Hype',       ko: '흥',       ja: 'ハイプ' },
+  'mood.Romantic':   { en: 'Romantic',   ko: '로맨틱',   ja: 'ロマンティック' },
+  'mood.Dark':       { en: 'Dark',       ko: '다크',     ja: 'ダーク' },
+  'mood.Nostalgic':  { en: 'Nostalgic',  ko: '향수',     ja: 'ノスタルジック' },
+  'mood.Party':      { en: 'Party',      ko: '파티',     ja: 'パーティ' },
+
+  // ─── Social proof ───
+  'music.travelersVibe':   { en: 'travelers vibe to this place',  ko: '명이 이곳에서 음악을 즐겨요',  ja: '人がこの場所で音楽を楽しんでいます' },
+
+  // ─── Map links ───
+  'map.googleMaps':  { en: 'Google Maps ↗',  ko: 'Google 지도 ↗',  ja: 'Google マップ ↗' },
+  'map.appleMaps':   { en: 'Apple Maps ↗',   ko: 'Apple 지도 ↗',   ja: 'Apple マップ ↗' },
 };
 
 /**

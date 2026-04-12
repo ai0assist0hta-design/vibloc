@@ -20,6 +20,7 @@ import type { CityVibe, RecommendedTrack } from '../../../lib/music/trackTypes';
 import { searchTrack } from '../../../lib/music/itunes';
 import { usePlaylist } from '../../../lib/music/buildingPlaylist';
 import { TrackRow } from './TrackRow';
+import { useT } from '../../../lib/app/i18n';
 
 type Props = {
   buildingId: string;
@@ -38,6 +39,7 @@ export function AddTrackComposer({
   text3,
   divider,
 }: Props) {
+  const t = useT();
   const playlist = usePlaylist(buildingId);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<RecommendedTrack[]>([]);
@@ -66,13 +68,13 @@ export function AddTrackComposer({
   // immediately runs the search — the user goes from blank state to
   // 5 candidate tracks in a single tap. Free-text search remains as
   // the advanced/escape path below.
-  const MOODS: { key: string; label: string; query: string; icon: string }[] = [
-    { key: 'chill',     label: 'Chill',     query: 'lo-fi chill beats',     icon: '🌙' },
-    { key: 'hype',      label: 'Hype',      query: 'high energy hype',      icon: '⚡' },
-    { key: 'romantic',  label: 'Romantic',  query: 'romantic love song',    icon: '💗' },
-    { key: 'dark',      label: 'Dark',      query: 'dark moody atmospheric', icon: '🖤' },
-    { key: 'nostalgic', label: 'Nostalgic', query: 'nostalgic city pop',    icon: '📼' },
-    { key: 'party',     label: 'Party',     query: 'party dance hits',      icon: '🪩' },
+  const MOODS: { key: string; i18nKey: string; query: string; icon: string }[] = [
+    { key: 'chill',     i18nKey: 'mood.Chill',     query: 'lo-fi chill beats',     icon: '🌙' },
+    { key: 'hype',      i18nKey: 'mood.Hype',      query: 'high energy hype',      icon: '⚡' },
+    { key: 'romantic',  i18nKey: 'mood.Romantic',  query: 'romantic love song',    icon: '💗' },
+    { key: 'dark',      i18nKey: 'mood.Dark',      query: 'dark moody atmospheric', icon: '🖤' },
+    { key: 'nostalgic', i18nKey: 'mood.Nostalgic', query: 'nostalgic city pop',    icon: '📼' },
+    { key: 'party',     i18nKey: 'mood.Party',     query: 'party dance hits',      icon: '🪩' },
   ];
 
   return (
@@ -96,7 +98,7 @@ export function AddTrackComposer({
           fontFamily: "'IBM Plex Mono', monospace",
         }}
       >
-        Tag a Track
+        {t('music.tagTrack')}
       </div>
 
       <div
@@ -127,7 +129,7 @@ export function AddTrackComposer({
             title={`Search ${m.query}`}
           >
             <span aria-hidden="true">{m.icon}</span>
-            {m.label}
+            {t(m.i18nKey)}
           </button>
         ))}
       </div>
