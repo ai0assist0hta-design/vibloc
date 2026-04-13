@@ -312,15 +312,26 @@ export function PlateauScene({
     return e;
   }, []);
 
-  // Update fog color when dark mode changes
+  // Update fog color + density when dark mode changes
   useEffect(() => {
     if (!fogEffect) return;
-    const u = fogEffect.uniforms.get('uFogColor');
-    if (u) {
+    const uColor = fogEffect.uniforms.get('uFogColor');
+    const uNear = fogEffect.uniforms.get('uFogNear');
+    const uFar = fogEffect.uniforms.get('uFogFar');
+    const uExp = fogEffect.uniforms.get('uFogExponent');
+    if (uColor) {
       if (darkMode) {
-        u.value.set(0.04, 0.04, 0.06);
+        uColor.value.set(0.04, 0.04, 0.06);
+        // Night: denser fog — closer start, heavier falloff
+        if (uNear) uNear.value = 900;
+        if (uFar) uFar.value = 3000;
+        if (uExp) uExp.value = 1.6;
       } else {
-        u.value.set(1, 1, 1);
+        uColor.value.set(1, 1, 1);
+        // Day: lighter fog
+        if (uNear) uNear.value = 1200;
+        if (uFar) uFar.value = 4000;
+        if (uExp) uExp.value = 1.2;
       }
     }
   }, [darkMode, fogEffect]);
@@ -357,18 +368,18 @@ export function PlateauScene({
             intensity={0.6}
             color="#909090"
             castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-camera-left={-800}
-            shadow-camera-right={800}
-            shadow-camera-top={800}
-            shadow-camera-bottom={-800}
+            shadow-mapSize-width={4096}
+            shadow-mapSize-height={4096}
+            shadow-camera-left={-2000}
+            shadow-camera-right={2000}
+            shadow-camera-top={2000}
+            shadow-camera-bottom={-2000}
             shadow-camera-near={1}
-            shadow-camera-far={2000}
-            shadow-radius={4}
-            shadow-blurSamples={12}
-            shadow-bias={-0.0002}
-            shadow-normalBias={0.02}
+            shadow-camera-far={5000}
+            shadow-radius={6}
+            shadow-blurSamples={16}
+            shadow-bias={-0.0008}
+            shadow-normalBias={0.8}
           />
           <directionalLight position={[-200, 200, -300]} intensity={0.15} color="#505050" />
           <ambientLight intensity={0.15} color="#2a3050" />
@@ -384,25 +395,25 @@ export function PlateauScene({
               }
             }}
             position={mainLightPos}
-            intensity={1.8}
-            color="#f8faff"
+            intensity={2.2}
+            color="#ffffff"
             castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-camera-left={-800}
-            shadow-camera-right={800}
-            shadow-camera-top={800}
-            shadow-camera-bottom={-800}
+            shadow-mapSize-width={4096}
+            shadow-mapSize-height={4096}
+            shadow-camera-left={-2000}
+            shadow-camera-right={2000}
+            shadow-camera-top={2000}
+            shadow-camera-bottom={-2000}
             shadow-camera-near={1}
-            shadow-camera-far={2000}
-            shadow-radius={4}
-            shadow-blurSamples={12}
-            shadow-bias={-0.0002}
-            shadow-normalBias={0.02}
+            shadow-camera-far={5000}
+            shadow-radius={8}
+            shadow-blurSamples={20}
+            shadow-bias={-0.0008}
+            shadow-normalBias={0.8}
           />
-          <directionalLight position={[-200, 200, -300]} intensity={0.5} color="#e8eef5" />
-          <ambientLight intensity={0.6} color="#f0f2f5" />
-          <hemisphereLight args={['#f5f8ff', '#e8e8e8', 0.3]} />
+          <directionalLight position={[-200, 200, -300]} intensity={0.7} color="#ffffff" />
+          <ambientLight intensity={0.9} color="#ffffff" />
+          <hemisphereLight args={['#ffffff', '#f0f0f0', 0.5]} />
         </>
       )}
 

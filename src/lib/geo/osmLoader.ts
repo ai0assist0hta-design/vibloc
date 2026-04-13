@@ -51,6 +51,8 @@ export type OSMBuilding = {
    *  hit Wikidata's free CORS-enabled REST API at click time to surface
    *  verified multilingual names, descriptions, and external IDs. */
   wikidataId?: string;
+  /** Building usage type from OSM: 0=commercial/other, 1=residential/apartments */
+  isResidential: number;
   /** Wikipedia article title for the verified Wikipedia infobox source. */
   wikipediaTitle?: string;
   /** Full Wikipedia URL (preserves the language wiki the title came from). */
@@ -785,6 +787,10 @@ function parseOverpassData(
       return true;
     });
 
+    // Residential detection: apartments, residential, house, detached, dormitory
+    const residentialTypes = new Set(['apartments', 'residential', 'house', 'detached', 'dormitory']);
+    const isRes = residentialTypes.has(btype ?? '') ? 1 : 0;
+
     buildings.push({
       id: `osm-${el.id}`,
       name: suppressedRawName || address || 'Building',
@@ -795,6 +801,7 @@ function parseOverpassData(
       tags: uniqueTags,
       footprint,
       center: [cx, cz],
+      isResidential: isRes,
       ...(entry ? { entry } : {}),
     });
   }

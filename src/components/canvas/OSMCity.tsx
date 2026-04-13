@@ -42,6 +42,7 @@ import {
   type CityAreaKey,
 } from '../../lib/geo/osmLoader';
 import { Quadtree } from '../../lib/geo/quadtree';
+import { findLandmarkShape, type LandmarkShape } from '../../lib/geo/landmarks';
 
 // --- Building facade normal map: clean geometric grid ---
 
@@ -216,6 +217,94 @@ function findBuildingAt(x: number, y: number, z: number, buildings: OSMBuilding[
   return candidates[0].b;
 }
 
+// --- Landmark geometry builder ---
+// Creates stepped-tier geometry for famous buildings (층층이 올라가는 세트백)
+function buildLandmarkGeo(
+  fp: [number, number][],
+  baseHeight: number,
+  landmark: LandmarkShape,
+): BufferGeometry | null {
+  const height = landmark.heightOverride ?? baseHeight;
+  const geos: BufferGeometry[] = [];
+
+  // Compute footprint centroid for scaling
+  let cx = 0, cz = 0;
+  for (const [x, z] of fp) { cx += x; cz += z; }
+  cx /= fp.length; cz /= fp.length;
+
+  // Helper: create scaled footprint shape centered on centroid
+  function makeShape(polygon: [number, number][], scale: number): Shape {
+    const s = new Shape();
+    const last = polygon.length - 1;
+    const sx = cx + (polygon[last][0] - cx) * scale;
+    const sy = -(cz + (polygon[last][1] - cz) * scale);
+    s.moveTo(sx, sy);
+    for (let i = last - 1; i >= 0; i--) {
+      const px = cx + (polygon[i][0] - cx) * scale;
+      const py = -(cz + (polygon[i][1] - cz) * scale);
+      s.lineTo(px, py);
+    }
+    s.closePath();
+    return s;
+  }
+
+  // --- Build setback tiers (flat-topped boxes stacked) ---
+  const tiers = [...landmark.setbacks].sort((a, b) => a.startFrac - b.startFrac);
+  for (let i = 0; i < tiers.length; i++) {
+    const tier = tiers[i];
+    const nextStart = i + 1 < tiers.length ? tiers[i + 1].startFrac : 1.0;
+    const tierHeight = (nextStart - tier.startFrac) * height;
+    if (tierHeight <= 0) continue;
+
+    const shape = makeShape(fp, tier.scale);
+    const geo = new ExtrudeGeometry(shape, { depth: tierHeight, bevelEnabled: false });
+    geo.rotateX(-Math.PI / 2);
+    geo.translate(0, tier.startFrac * height, 0);
+    geos.push(geo);
+  }
+
+  // --- Spire (thin cylinder on top) ---
+  if (landmark.spire) {
+    const [radiusFrac, spireH] = landmark.spire;
+    let minX = Infinity, maxX = -Infinity;
+    for (const [x] of fp) { if (x < minX) minX = x; if (x > maxX) maxX = x; }
+    const bw = maxX - minX;
+    const spireR = Math.max(0.3, bw * radiusFrac);
+    const spireBase = height;
+    const sGeo = new CylinderGeometry(spireR * 0.15, spireR, spireH, 6);
+    sGeo.translate(cx, spireBase + spireH / 2, cz);
+    geos.push(sGeo);
+  }
+
+  if (geos.length === 0) return null;
+
+  // Normalize all geometries for merge compatibility
+  for (let i = 0; i < geos.length; i++) {
+    let g = geos[i];
+    if (g.getIndex()) {
+      const ni = g.toNonIndexed();
+      g.dispose();
+      geos[i] = ni;
+      g = ni;
+    }
+    if (g.hasAttribute('uv')) g.deleteAttribute('uv');
+    if (g.hasAttribute('uv1')) g.deleteAttribute('uv1');
+    if (g.hasAttribute('uv2')) g.deleteAttribute('uv2');
+    if (!g.hasAttribute('normal')) g.computeVertexNormals();
+  }
+
+  if (geos.length === 1) return geos[0];
+
+  try {
+    const merged = BufferGeometryUtils.mergeGeometries(geos, false);
+    for (const g of geos) g.dispose();
+    return merged;
+  } catch (e) {
+    console.warn('[Landmark] merge failed, using first segment', e);
+    return geos[0];
+  }
+}
+
 // --- MERGED buildings (single draw call) with face→building index map ---
 // Module-level face map so click handler can access it
 let _faceToBuilding: Int32Array | null = null;
@@ -260,31 +349,59 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
         continue;
       }
       try {
-        // Why we negate y AND iterate in reverse order:
-        // - Footprint stores [x, z] in the world frame where +z = north.
-        // - `ExtrudeGeometry` builds the shape in its own XY plane and we
-        //   later `rotateX(-π/2)` to bring depth onto world Y (height up).
-        //   That rotation maps shape vertex (px, py, depth) → world
-        //   (px, depth, -py), i.e. it FLIPS the sign of py.
-        // - To make the rendered world z equal the stored z, we must feed
-        //   shape with (px, -storedZ). The negation also reverses winding,
-        //   so we walk the polygon in reverse to keep the shape CCW (which
-        //   `ExtrudeGeometry` requires for outward normals).
-        const shape = new Shape();
-        const last = fp.length - 1;
-        shape.moveTo(fp[last][0], -fp[last][1]);
-        for (let i = last - 1; i >= 0; i--) shape.lineTo(fp[i][0], -fp[i][1]);
-        shape.closePath();
+        // Check if this is a famous landmark building
+        const landmark = findLandmarkShape(building.name);
+        let geo: BufferGeometry;
 
-        // All buildings sit flat on y=0 — no elevation displacement
-        const geo = new ExtrudeGeometry(shape, { depth: building.height, bevelEnabled: false });
-        geo.rotateX(-Math.PI / 2);
-        // Per-vertex building ID. Every vertex of THIS extrude carries the
-        // same float = original building index. After the merge, the fragment
-        // shader compares this against `uSelectedBuildingId` for an exact,
-        // pixel-perfect highlight that can never bleed onto neighbours
-        // (recommended pattern from the Three.js forum thread on selecting
-        // pieces of merged geometry — see commit message for the link).
+        if (landmark) {
+          // Override height if landmark specifies it
+          if (landmark.heightOverride) building.height = landmark.heightOverride;
+          const landmarkGeo = buildLandmarkGeo(fp, building.height, landmark);
+          if (landmarkGeo) {
+            geo = landmarkGeo;
+            console.log(`[Landmark] ${building.name} → custom silhouette (${building.height}m)`);
+          } else {
+            // Fallback to standard extrusion
+            const shape = new Shape();
+            const last = fp.length - 1;
+            shape.moveTo(fp[last][0], -fp[last][1]);
+            for (let i = last - 1; i >= 0; i--) shape.lineTo(fp[i][0], -fp[i][1]);
+            shape.closePath();
+            geo = new ExtrudeGeometry(shape, { depth: building.height, bevelEnabled: false });
+            geo.rotateX(-Math.PI / 2);
+          }
+        } else {
+          // Standard extrusion for normal buildings
+          // Why we negate y AND iterate in reverse order:
+          // - Footprint stores [x, z] in the world frame where +z = north.
+          // - `ExtrudeGeometry` builds the shape in its own XY plane and we
+          //   later `rotateX(-π/2)` to bring depth onto world Y (height up).
+          //   That rotation maps shape vertex (px, py, depth) → world
+          //   (px, depth, -py), i.e. it FLIPS the sign of py.
+          // - To make the rendered world z equal the stored z, we must feed
+          //   shape with (px, -storedZ). The negation also reverses winding,
+          //   so we walk the polygon in reverse to keep the shape CCW (which
+          //   `ExtrudeGeometry` requires for outward normals).
+          const shape = new Shape();
+          const last = fp.length - 1;
+          shape.moveTo(fp[last][0], -fp[last][1]);
+          for (let i = last - 1; i >= 0; i--) shape.lineTo(fp[i][0], -fp[i][1]);
+          shape.closePath();
+          geo = new ExtrudeGeometry(shape, { depth: building.height, bevelEnabled: false });
+          geo.rotateX(-Math.PI / 2);
+        }
+
+        // Normalize geometry: ensure non-indexed + strip UVs for merge compat
+        if (geo.getIndex()) {
+          const ni = geo.toNonIndexed();
+          geo.dispose();
+          geo = ni;
+        }
+        if (geo.hasAttribute('uv')) geo.deleteAttribute('uv');
+        if (geo.hasAttribute('uv1')) geo.deleteAttribute('uv1');
+        if (!geo.hasAttribute('normal')) geo.computeVertexNormals();
+
+        // Per-vertex building ID
         const vCount = geo.getAttribute('position').count;
         const idArr = new Float32Array(vCount);
         idArr.fill(bi);
@@ -305,6 +422,10 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
           cArr[v * 2 + 1] = bcz;
         }
         geo.setAttribute('aBuildingCenterXZ', new Float32BufferAttribute(cArr, 2));
+        // Per-building residential flag (0=commercial, 1=residential)
+        const resArr = new Float32Array(vCount);
+        resArr.fill(building.isResidential ?? 0);
+        geo.setAttribute('aIsResidential', new Float32BufferAttribute(resArr, 1));
         geos.push(geo);
         buildingIndices.push(bi);
       } catch { /* skip */ }
@@ -343,7 +464,7 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
   // Matte building material — flat, no reflections, no normal map
   const frostMat = useMemo(() => {
     const mat = new MeshPhysicalMaterial({
-      color: darkMode ? '#22242a' : '#e0ddd8',
+      color: darkMode ? '#22242a' : '#ffffff',
       roughness: 1.0,
       metalness: 0.0,
       emissive: darkMode ? '#1a1c22' : '#000000',
@@ -395,8 +516,10 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
         `#include <common>
 attribute float aBuildingId;
 attribute vec2 aBuildingCenterXZ;
+attribute float aIsResidential;
 varying float vBuildingId;
 varying vec2 vBuildingCenterXZ;
+varying float vIsResidential;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;`
       );
@@ -405,6 +528,7 @@ varying vec3 vWorldNormal;`
         `#include <worldpos_vertex>
 vBuildingId = aBuildingId;
 vBuildingCenterXZ = aBuildingCenterXZ;
+vIsResidential = aIsResidential;
 vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
 vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);`
       );
@@ -420,6 +544,7 @@ uniform vec2 uFocusCenterXZ;
 uniform float uFocusRadius;
 varying float vBuildingId;
 varying vec2 vBuildingCenterXZ;
+varying float vIsResidential;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 
@@ -436,167 +561,156 @@ vec3 hash23(vec2 p) {
 }`
       );
 
-      // After lighting, add floor bands + fresnel with PER-BUILDING randomness
+      // === PART 1: Normal perturbation BEFORE lighting ===
+      // Compute window grid and perturb normals at window edges to simulate
+      // physically carved-in (음각) window recesses. The directional light
+      // will then produce real shadows on the inset edges.
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
+
+// ====== Window grid computation (shared with color pass below) ======
+vec2 wBuildingCell = floor(vWorldPos.xz / 15.0);
+float wBSeed = hash21(wBuildingCell);
+float wFacadeMask = 1.0 - abs(vWorldNormal.y);
+
+float wIsRes = step(0.5, vIsResidential);
+float wStyleF = hash21(wBuildingCell + 50.0);
+float wStyle = wIsRes > 0.5 ? 2.0 : floor(wStyleF * 5.0);
+
+float wFloorH = wStyle < 0.5 ? mix(3.5, 4.5, wBSeed) :
+                wStyle < 1.5 ? mix(3.0, 3.8, wBSeed) :
+                wStyle < 2.5 ? mix(2.8, 3.2, wBSeed) :
+                wStyle < 3.5 ? mix(3.2, 4.0, wBSeed) :
+                                mix(3.5, 4.2, wBSeed);
+
+float wColW = wStyle < 0.5 ? mix(3.5, 5.0, wBSeed) :
+              wStyle < 1.5 ? mix(2.5, 3.5, wBSeed) :
+              wStyle < 2.5 ? mix(1.8, 2.8, wBSeed) :
+              wStyle < 3.5 ? mix(1.5, 2.2, wBSeed) :
+                              mix(4.0, 6.0, wBSeed);
+
+float wFrameH = wStyle < 0.5 ? mix(0.10, 0.15, wBSeed) :
+                wStyle < 1.5 ? mix(0.18, 0.25, wBSeed) :
+                wStyle < 2.5 ? mix(0.25, 0.35, wBSeed) :
+                wStyle < 3.5 ? mix(0.12, 0.18, wBSeed) :
+                                mix(0.08, 0.12, wBSeed);
+
+float wFrameW = wStyle < 0.5 ? mix(0.08, 0.12, wBSeed) :
+                wStyle < 1.5 ? mix(0.15, 0.22, wBSeed) :
+                wStyle < 2.5 ? mix(0.20, 0.30, wBSeed) :
+                wStyle < 3.5 ? mix(0.25, 0.35, wBSeed) :
+                                mix(0.10, 0.15, wBSeed);
+
+float wFloorY = vWorldPos.y;
+float wFloorIdx = floor(wFloorY / wFloorH);
+float wFloorFrac = fract(wFloorY / wFloorH);
+float wFacadePos = vWorldPos.x + vWorldPos.z;
+float wColIdx = floor(wFacadePos / wColW);
+float wColFrac = fract(wFacadePos / wColW);
+
+float wInFloor = smoothstep(wFrameH, wFrameH + 0.015, wFloorFrac) *
+                 (1.0 - smoothstep(1.0 - wFrameH - 0.015, 1.0 - wFrameH, wFloorFrac));
+float wInCol = smoothstep(wFrameW, wFrameW + 0.015, wColFrac) *
+               (1.0 - smoothstep(1.0 - wFrameW - 0.015, 1.0 - wFrameW, wColFrac));
+float wWindowMask = wInFloor * wInCol;
+
+float wHasWindows = smoothstep(6.0, 10.0, wFloorY + hash21(wBuildingCell + 88.0) * 4.0);
+wWindowMask *= wHasWindows;
+
+// ====== Normal perturbation: simulate carved-in window recess ======
+if (wWindowMask * wFacadeMask > 0.01) {
+  vec3 wallN = normalize(vWorldNormal);
+  vec3 tangentH = normalize(cross(wallN, vec3(0.0, 1.0, 0.0)));
+  vec3 tangentV = normalize(cross(tangentH, wallN));
+
+  float edgeBand = 0.08;
+  float leftProx  = 1.0 - smoothstep(0.0, edgeBand, wColFrac - wFrameW);
+  float rightProx = 1.0 - smoothstep(0.0, edgeBand, (1.0 - wFrameW) - wColFrac);
+  float botProx   = 1.0 - smoothstep(0.0, edgeBand, wFloorFrac - wFrameH);
+  float topProx   = 1.0 - smoothstep(0.0, edgeBand, (1.0 - wFrameH) - wFloorFrac);
+
+  float insetStr = 0.45;
+  vec3 perturbedN = wallN;
+  perturbedN += tangentH * (leftProx - rightProx) * insetStr;
+  perturbedN += tangentV * (botProx - topProx) * insetStr;
+  perturbedN = normalize(perturbedN);
+
+  vec3 viewPerturbedN = normalize((viewMatrix * vec4(perturbedN, 0.0)).xyz);
+  normal = mix(normal, viewPerturbedN, wWindowMask * wFacadeMask);
+}
+`
+      );
+
+      // === PART 2: Color effects AFTER lighting ===
+      // Night glow, selection highlight, etc. Uses the same grid values
+      // computed in Part 1 (variables are in the same function scope).
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <dithering_fragment>',
         `
-// Quantize world XZ to ~15m grid → stable per-building seed
-vec2 buildingCell = floor(vWorldPos.xz / 15.0);
-float bSeed = hash21(buildingCell);
-vec3 bSeed3 = hash23(buildingCell);
+// Re-use window grid values from normal perturbation pass above
+// (wBuildingCell, wWindowMask, wFacadeMask, wColIdx, wFloorIdx, etc.)
 
-// --- Facade mask: only side walls, not top/bottom ---
-float facadeMask = 1.0 - abs(vWorldNormal.y);
+// ====== Window depth color ======
+vec2 winCell = vec2(wColIdx, wFloorIdx);
+float winHash = hash21(winCell + wBuildingCell * 37.7);
 
-// ====== Per-building variation parameters ======
-float bandFreq = mix(2.8, 4.2, hash21(buildingCell + 1.0));
-float mullionFreq = mix(1.6, 3.0, hash21(buildingCell + 2.0));
-float glowBrightness = mix(0.15, 1.0, pow(hash21(buildingCell + 3.0), 0.6));
-float colorTemp = hash21(buildingCell + 4.0);
-float occupancy = mix(0.3, 0.9, hash21(buildingCell + 5.0));
-// Per-building brightness variation (neutral, no color shift)
-vec3 facadeTint = vec3(1.0) + (bSeed3 - 0.5) * 0.08;
-// Keep it neutral — clamp color channels close together
-facadeTint = mix(vec3(dot(facadeTint, vec3(0.333))), facadeTint, 0.4);
+// Edge distance for subtle additional darkening at recess edges
+float edgeDistH2 = min(wFloorFrac - wFrameH, (1.0 - wFrameH) - wFloorFrac);
+float edgeDistW2 = min(wColFrac - wFrameW, (1.0 - wFrameW) - wColFrac);
+float edgeDist2 = min(max(edgeDistH2, 0.0), max(edgeDistW2, 0.0));
+float edgeShadow2 = smoothstep(0.0, 0.04, edgeDist2);
 
-// ====== Floor grooves with per-floor ON/OFF ======
-float floorY = vWorldPos.y;
-float bandFrac = fract(floorY / bandFreq);
-float floorIndex = floor(floorY / bandFreq);
+// Day: subtle darkening for the recessed back face
+float recessDarken = mix(0.88, 0.95, edgeShadow2);
+vec3 dayWindow = gl_FragColor.rgb * recessDarken;
 
-float floorHash = hash21(buildingCell * 7.13 + vec2(floorIndex, floorIndex * 3.7));
-float floorLit = step(1.0 - occupancy, floorHash);
-float topFade = smoothstep(40.0, 80.0, floorY);
-floorLit *= mix(1.0, step(0.3, hash21(buildingCell + 99.0)), topFade);
+// Night: warm light from inside
+float occupancy = mix(0.55, 0.85, hash21(wBuildingCell + 5.0));
+float winLit = step(1.0 - occupancy, winHash);
+float topFade = smoothstep(50.0, 100.0, wFloorY);
+winLit *= mix(1.0, step(0.35, hash21(wBuildingCell + 99.0)), topFade);
 
-float grooveDist = min(bandFrac, 1.0 - bandFrac);
-float grooveSlot = 1.0 - smoothstep(0.0, 0.035, grooveDist);
-float grooveDarken = mix(0.4, 0.25, uDarkMode);
-gl_FragColor.rgb *= mix(1.0, grooveDarken, grooveSlot * facadeMask);
+float colorTemp = hash21(wBuildingCell + 6.0);
+vec3 warmNight = vec3(1.0, 0.88, 0.65);
+vec3 coolNight = vec3(0.88, 0.92, 1.0);
+vec3 nightLight = mix(warmNight, coolNight, colorTemp);
+nightLight *= mix(0.85, 1.15, hash21(winCell * 3.1 + wBuildingCell));
 
-float glowCore = 1.0 - smoothstep(0.0, 0.025, grooveDist);
-float glowSpread = 1.0 - smoothstep(0.0, 0.12, grooveDist);
+// Night blink
+float blinkChance = hash21(winCell * 5.3 + wBuildingCell * 2.1);
+float isBlinking = step(0.72, blinkChance) * uDarkMode;
+float blinkSpeed = mix(0.03, 0.12, hash21(winCell * 7.1 + wBuildingCell));
+float blinkPhase = hash21(winCell * 11.3 + wBuildingCell) * 6.2832;
+float blinkWave = sin(uTime * blinkSpeed * 6.2832 + blinkPhase);
+float blinkToggle = smoothstep(-0.15, 0.15, blinkWave);
+float nightPulse = mix(1.0, blinkToggle, isBlinking);
 
-vec3 warmLightDay = vec3(1.0, 0.95, 0.88);
-vec3 warmLightNight = vec3(1.0, 0.88, 0.65);
-vec3 coolLightNight = vec3(0.95, 0.9, 0.8);
-vec3 baseWarm = mix(warmLightDay, warmLightNight, uDarkMode);
-vec3 baseCool = mix(warmLightDay, coolLightNight, uDarkMode);
-vec3 warmLight = mix(baseWarm, baseCool, colorTemp);
-warmLight *= mix(0.85, 1.15, hash21(vec2(floorIndex * 1.3, bSeed * 17.0)));
+vec3 nightWindow = nightLight * 2.5 * winLit * nightPulse;
+nightWindow *= mix(0.3, 1.0, edgeShadow2);
 
-// ====== Pulse ======
-float pulseSpeed = mix(0.05, 0.16, hash21(buildingCell + 10.0));
-float pulsePhase = hash21(buildingCell + 11.0) * 6.2832;
-float buildingPulse = sin(uTime * pulseSpeed * 6.2832 + pulsePhase) * 0.5 + 0.5;
-float isBeacon = step(0.85, hash21(buildingCell + 12.0));
-float buildingBreath = mix(
-  mix(0.4, 1.0, buildingPulse),
-  buildingPulse * 0.7,
-  isBeacon
-);
+// === Daytime glow: a few windows lit on shadowed/dark faces ===
+// Detect shadowed facade: if the surface faces away from light, it's darker
+// Use the fragment's current brightness as a proxy for shadow
+float fragBrightness = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
+float inShadow = 1.0 - smoothstep(0.35, 0.55, fragBrightness);
+// Only ~10-15% of windows glow during daytime (offices, lobbies, etc.)
+float dayLitChance = step(0.85, winHash);
+// Dimmer warm glow for daytime — subtle interior light visible on dark faces
+vec3 dayGlow = nightLight * 0.35 * dayLitChance * inShadow;
+dayGlow *= mix(0.3, 1.0, edgeShadow2);
+dayWindow += dayGlow;
 
-float floorToggleOn = step(0.65, hash21(vec2(floorIndex * 5.1, bSeed * 3.3)));
-float floorToggleSpeed = mix(0.08, 0.25, hash21(vec2(floorIndex * 2.3, bSeed * 11.0)));
-float floorTogglePhase = hash21(vec2(floorIndex, bSeed * 7.7)) * 6.2832;
-float floorToggleWave = sin(uTime * floorToggleSpeed * 6.2832 + floorTogglePhase);
-float floorToggle = step(-0.2, floorToggleWave);
-float floorBreath = mix(1.0, floorToggle, floorToggleOn);
+// Composite: day = carved recess + sparse glow on shadow side, night = full glow
+vec3 windowColor = mix(dayWindow, nightWindow, uDarkMode);
+gl_FragColor.rgb = mix(gl_FragColor.rgb, windowColor, wWindowMask * wFacadeMask);
 
-float totalPulse = buildingBreath * floorBreath;
-
-// Bloom removed — compensate with stronger shader glow
-float coreBase = mix(1.8, 3.5, uDarkMode);
-float spreadBase = mix(0.2, 1.2, uDarkMode);
-
-float coreIntensity = coreBase * glowBrightness * floorLit * totalPulse;
-gl_FragColor.rgb += warmLight * glowCore * coreIntensity * facadeMask;
-float spreadIntensity = spreadBase * glowBrightness * floorLit * totalPulse;
-gl_FragColor.rgb += warmLight * glowSpread * spreadIntensity * facadeMask;
-
-// ====== Per-window ======
-float winSegFreq = mullionFreq;
-float winSegId = floor(vWorldPos.x / winSegFreq + vWorldPos.z / winSegFreq);
-float winHash = hash21(vec2(winSegId, floorIndex) + buildingCell * 31.7);
-float winLit = step(0.25, winHash) * floorLit;
-float winBlinkOn = step(0.6, hash21(vec2(winSegId * 3.1, floorIndex * 1.7) + buildingCell * 5.3));
-float winBlinkSpeed = mix(0.055, 0.2, hash21(vec2(winSegId, floorIndex) + buildingCell * 13.0));
-float winBlinkPhase = hash21(vec2(winSegId * 7.0, floorIndex * 2.1) + buildingCell) * 6.2832;
-float winBlinkWave = sin(uTime * winBlinkSpeed * 6.2832 + winBlinkPhase);
-float winBlink = smoothstep(-0.3, 0.1, winBlinkWave);
-float winBreath = mix(1.0, winBlink, winBlinkOn);
-float winGlow = (1.0 - smoothstep(0.0, 0.06, grooveDist)) * winLit * winBreath;
-gl_FragColor.rgb += warmLight * winGlow * mix(0.4, 1.2, uDarkMode) * facadeMask * glowBrightness;
-
-// --- Spandrel band ---
-float spandrelBand = smoothstep(0.04, 0.12, bandFrac) * (1.0 - smoothstep(0.88, 0.96, bandFrac));
-gl_FragColor.rgb *= mix(1.0, 0.92, spandrelBand * facadeMask * 0.3);
-
-// --- Shader-based AO ---
-float groundAO = smoothstep(0.0, 40.0, vWorldPos.y);
-gl_FragColor.rgb *= mix(mix(0.4, 0.2, uDarkMode), 1.0, groundAO);
-vec3 fakeLight = normalize(vec3(0.4, 0.8, 0.3));
-float nDotL = max(dot(vWorldNormal, fakeLight), 0.0);
-float shadowSim = mix(mix(0.6, 0.4, uDarkMode), 1.0, nDotL * 0.7 + 0.3);
-gl_FragColor.rgb *= shadowSim;
-
-// --- Mullion grid ---
-float mx = abs(fract(vWorldPos.x / mullionFreq) - 0.5) * 2.0;
-float mz = abs(fract(vWorldPos.z / mullionFreq) - 0.5) * 2.0;
-float mullion = max(smoothstep(0.93, 0.99, mx), smoothstep(0.93, 0.99, mz));
-float mullionDarken = mix(0.35, 0.5, hash21(buildingCell + 6.0));
-gl_FragColor.rgb *= mix(1.0, 0.85, mullion * mullionDarken * facadeMask);
-
-// --- Fresnel (neutral frosted glass) ---
+// viewDir/fresnel for selection glow below
 vec3 viewDir = normalize(cameraPosition - vWorldPos);
 float fresnel = 1.0 - max(dot(viewDir, vWorldNormal), 0.0);
-float fresnelWide = pow(fresnel, 1.5);
-float fresnelSharp = pow(fresnel, 3.0);
-vec3 fresnelColor = mix(
-  vec3(0.6, 0.6, 0.62),   // light mode: neutral silver
-  vec3(0.25, 0.25, 0.3),  // dark mode: cool grey
-  uDarkMode
-);
-fresnelColor *= facadeTint;
-float fresnelStr = mix(1.2, 2.0, uDarkMode);
-gl_FragColor.rgb += fresnelColor * fresnelWide * facadeMask * fresnelStr * 0.6;
-gl_FragColor.rgb += vec3(0.85, 0.85, 0.88) * fresnelSharp * facadeMask * mix(0.4, 0.8, uDarkMode);
-
-gl_FragColor.rgb *= facadeTint;
-
-// --- Frost edge rim (neutral) ---
-vec3 frostEdge = mix(vec3(0.86, 0.86, 0.88), vec3(0.14, 0.14, 0.16), uDarkMode);
-gl_FragColor.rgb = mix(gl_FragColor.rgb, frostEdge, fresnelWide * 0.3 * facadeMask);
-
-// --- Roof treatment: neutral tone + height variation ---
-float roofMask = abs(vWorldNormal.y);
-float roofHeight = smoothstep(5.0, 120.0, vWorldPos.y);
-vec3 roofTint = mix(
-  mix(vec3(0.80, 0.80, 0.82), vec3(0.75, 0.75, 0.78), roofHeight),  // light: neutral grey
-  mix(vec3(0.09, 0.09, 0.11), vec3(0.13, 0.13, 0.15), roofHeight),  // dark: dark grey
-  uDarkMode
-);
-roofTint *= (0.9 + bSeed * 0.2);
-gl_FragColor.rgb = mix(gl_FragColor.rgb, roofTint, roofMask * 0.35);
-// Roof fresnel
-float roofFresnel = pow(1.0 - abs(dot(viewDir, vec3(0.0, 1.0, 0.0))), 2.5);
-vec3 skyReflect = mix(vec3(0.75, 0.75, 0.78), vec3(0.12, 0.12, 0.15), uDarkMode);
-gl_FragColor.rgb += skyReflect * roofFresnel * roofMask * mix(0.25, 0.4, uDarkMode);
 
 // ====== Focus / isolation (per-vertex ID + radius discard) ======
-// vBuildingId is the original building index baked into every vertex.
-// Comparing IDs is pixel-exact so the highlight cannot bleed onto an
-// overlapping neighbour. The ghost ring effect: neighbours within
-// uFocusRadius metres of the selected building are DISCARDED in this
-// opaque pass so they neither write colour nor depth. A second mesh
-// (GhostMesh) re-draws those same fragments at ~10 percent alpha with
-// depthWrite=false — that way ghosts can never occlude the selected
-// tower behind them.
 float insideFocus = step(abs(vBuildingId - uSelectedBuildingId), 0.5);
-// Distance from THIS building's centre to the focus centre — not the
-// fragment's world XZ. Because every vertex of one building shares the
-// same aBuildingCenterXZ, the varying is constant across the whole
-// building, so the ring test is per-OBJECT (no half-sliced buildings).
 float dxz = distance(vBuildingCenterXZ, uFocusCenterXZ);
 float inRing = (uFocusRadius > 0.0)
   ? step(dxz, uFocusRadius)
@@ -604,26 +718,14 @@ float inRing = (uFocusRadius > 0.0)
 float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
 if (ghostMask > 0.5) discard;
 
-// ====== Selection glow — subtle, visibility-friendly ======
-// Per-fragment boost ONLY on the selected building. The goal is "이
-// 건물이 선택됐다는 게 한눈에 보이지만, 막 빛나지는 않는다" — soft cool
-// rim + a slow ~3s breath that never overrides the underlying texture.
-//   - selFocus = uFocusActive on the selected building, 0 elsewhere.
-//   - selBreath gives a 0.78..1.0 envelope so the rim never fully drops.
-//   - Cool blueish white in light mode, slightly bluer in dark mode.
-//   - Two layers: a tiny base lift across the whole building so it
-//     reads as illuminated, and a stronger fresnel rim so the
-//     silhouette is the most visible part.
+// ====== Selection glow ======
 float selFocus = insideFocus * uFocusActive;
 if (selFocus > 0.001) {
   float selBreath = 0.78 + 0.22 * (sin(uTime * 1.6) * 0.5 + 0.5);
   vec3 selGlow = mix(vec3(0.92, 0.96, 1.0), vec3(0.65, 0.82, 1.0), uDarkMode);
-  // Soft, even base lift across the whole selected building.
   gl_FragColor.rgb += selGlow * 0.06 * selBreath * selFocus;
-  // Rim accent — strongest at silhouette edges, kept on facade only
-  // so the roof doesn't pick up a stripe from the upward fresnel.
   float selRim = pow(fresnel, 2.0);
-  gl_FragColor.rgb += selGlow * selRim * 0.40 * selBreath * selFocus * facadeMask;
+  gl_FragColor.rgb += selGlow * selRim * 0.40 * selBreath * selFocus * wFacadeMask;
 }
 
 #include <dithering_fragment>`
@@ -1408,10 +1510,10 @@ function TerrainGround({ darkMode = false }: { hm?: HeightMap | null; darkMode?:
   const groundColor = darkMode ? '#0c0c12' : '#e8e8ec';
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]} receiveShadow>
       <planeGeometry args={[20000, 20000]} />
       <meshLambertMaterial color={groundColor}
-        polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
+        polygonOffset polygonOffsetFactor={4} polygonOffsetUnits={4} />
     </mesh>
   );
 }

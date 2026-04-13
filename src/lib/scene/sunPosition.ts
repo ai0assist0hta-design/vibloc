@@ -133,8 +133,16 @@ export function sunToLightPosition(sun: SunPosition, distance = 500): [number, n
   const x = Math.sin(azRad) * horizontal;
   const z = Math.cos(azRad) * horizontal;
 
-  // Clamp Y so light doesn't go underground
-  return [x, Math.max(20, y), z];
+  // Clamp Y: minimum height prevents overly long shadows at sunrise/sunset
+  // At low sun angles the shadow stretches unrealistically far, so we keep
+  // the light elevated enough that shadow length stays reasonable.
+  const clampedY = Math.max(distance * 0.45, y);
+  // Scale horizontal component to preserve direction but match new altitude
+  const scale = clampedY > y ? (clampedY / Math.max(y, 1)) : 1;
+  const finalHoriz = horizontal / Math.max(scale, 1);
+  const fx = Math.sin(azRad) * finalHoriz;
+  const fz = Math.cos(azRad) * finalHoriz;
+  return [fx, clampedY, fz];
 }
 
 /**
