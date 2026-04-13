@@ -1241,7 +1241,7 @@ function MergedWater({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: He
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
       if (area.type !== 'water' || area.polygon.length < 3) continue;
-      const geo = buildTerrainPolygon(area.polygon, -0.6, hm);
+      const geo = buildTerrainPolygon(area.polygon, 0.02, hm);
       if (geo) geos.push(geo);
     }
     if (geos.length === 0) return null;
@@ -1269,7 +1269,7 @@ function MergedWaterways({ waterways, hm, darkMode = false }: { waterways: OSMWa
         points: w.points,
         halfW: w.width / 2,
       }));
-    return buildStripGeo(segs, -0.8, hm);
+    return buildStripGeo(segs, 0.02, hm);
   }, [waterways, hm]);
 
   if (!geometry) return null;
@@ -1288,7 +1288,7 @@ function MergedRailways({ railways, hm, darkMode = false }: { railways: OSMRailw
     const segs = railways
       .filter(r => r.points.length >= 2)
       .map(r => ({ points: r.points, halfW: r.type === 'subway' ? 2.5 : 3.5 }));
-    return buildStripGeo(segs, -0.3, hm);
+    return buildStripGeo(segs, 0.02, hm);
   }, [railways, hm]);
 
   if (!geometry) return null;
@@ -1306,7 +1306,7 @@ function MergedParks({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: He
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
       if ((area.type !== 'park' && area.type !== 'playground') || area.polygon.length < 3) continue;
-      const geo = buildTerrainPolygon(area.polygon, -0.08, hm);
+      const geo = buildTerrainPolygon(area.polygon, 0.01, hm);
       if (geo) geos.push(geo);
     }
     if (geos.length === 0) return null;
@@ -1330,7 +1330,7 @@ function MergedCommercial({ areas, hm, darkMode = false }: { areas: OSMArea[]; h
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
       if (area.type !== 'commercial' || area.polygon.length < 3) continue;
-      const geo = buildTerrainPolygon(area.polygon, -0.04, hm);
+      const geo = buildTerrainPolygon(area.polygon, 0.01, hm);
       if (geo) geos.push(geo);
     }
     if (geos.length === 0) return null;
@@ -1354,7 +1354,7 @@ function MergedSchools({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: 
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
       if (area.type !== 'school' || area.polygon.length < 3) continue;
-      const geo = buildTerrainPolygon(area.polygon, -0.04, hm);
+      const geo = buildTerrainPolygon(area.polygon, 0.01, hm);
       if (geo) geos.push(geo);
     }
     if (geos.length === 0) return null;
@@ -1379,7 +1379,7 @@ function MergedSteps({ steps, hm, darkMode = false }: { steps: OSMSteps[]; hm: H
     const segs = steps
       .filter(s => s.points.length >= 2)
       .map(s => ({ points: s.points, halfW: s.width / 2 }));
-    return buildStripGeo(segs, -0.12, hm);
+    return buildStripGeo(segs, 0.01, hm);
   }, [steps, hm]);
 
   if (!geometry) return null;
@@ -1415,7 +1415,7 @@ function MergedPedestrian({ areas, hm, darkMode = false }: { areas: OSMArea[]; h
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
       if (area.type !== 'pedestrian' || area.polygon.length < 3) continue;
-      const geo = buildTerrainPolygon(area.polygon, -0.03, hm);
+      const geo = buildTerrainPolygon(area.polygon, 0.01, hm);
       if (geo) geos.push(geo);
     }
     if (geos.length === 0) return null;
@@ -1463,7 +1463,7 @@ function MergedParking({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: 
     const geos: BufferGeometry[] = [];
     for (const area of areas) {
       if (area.type !== 'parking' || area.polygon.length < 3) continue;
-      const geo = buildTerrainPolygon(area.polygon, -0.05, hm);
+      const geo = buildTerrainPolygon(area.polygon, 0.01, hm);
       if (geo) geos.push(geo);
     }
     if (geos.length === 0) return null;
@@ -1482,60 +1482,15 @@ function MergedParking({ areas, hm, darkMode = false }: { areas: OSMArea[]; hm: 
 }
 
 // --- Terrain ground ---
-function TerrainGround({ hm, darkMode = false }: { hm: HeightMap | null; darkMode?: boolean }) {
-  const geometry = useMemo(() => {
-    if (!hm) return null;
-    const geo = new PlaneGeometry(GROUND_SIZE, GROUND_SIZE, GROUND_SEGS, GROUND_SEGS);
-    geo.rotateX(-Math.PI / 2);
-
-    const pos = geo.attributes.position;
-    const n = GROUND_SEGS + 1;
-    const edgeFade = 30; // fade last N cells to 0 for seamless edge
-    for (let i = 0; i < pos.count; i++) {
-      const col = i % n;
-      const row = Math.floor(i / n);
-      // Fade height to 0 near edges for seamless blend with base plane
-      const ex = Math.min(col, GROUND_SEGS - col) / edgeFade;
-      const ez = Math.min(row, GROUND_SEGS - row) / edgeFade;
-      const fade = Math.min(1, Math.min(ex, ez));
-      pos.setY(i, (hm.heights[row * n + col] - 0.05) * fade);
-    }
-    pos.needsUpdate = true;
-    geo.computeVertexNormals();
-    return geo;
-  }, [hm]);
-
-  // Slightly off-white / warm-grey so when ghosted buildings around the
-  // selection drop to ~10 % alpha the ground that bleeds through doesn't
-  // look like a blank sheet of paper. Subtle but kills the harsh contrast.
+function TerrainGround({ darkMode = false }: { hm?: HeightMap | null; darkMode?: boolean }) {
   const groundColor = darkMode ? '#0c0c12' : '#e8e8ec';
 
   return (
-    <group>
-      {/* Infinite-feel base plane — extends far beyond city */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.08, 0]} receiveShadow>
-        <planeGeometry args={[20000, 20000]} />
-        <meshLambertMaterial color={groundColor}
-          polygonOffset polygonOffsetFactor={3} polygonOffsetUnits={3} />
-      </mesh>
-
-      {/* Detail terrain with elevation (if available) */}
-      {geometry && (
-        <mesh geometry={geometry} receiveShadow>
-          <meshLambertMaterial color={groundColor}
-            polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
-        </mesh>
-      )}
-
-      {/* Flat fallback if no elevation data */}
-      {!geometry && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
-          <planeGeometry args={[20000, 20000]} />
-          <meshLambertMaterial color={groundColor}
-            polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
-        </mesh>
-      )}
-    </group>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+      <planeGeometry args={[20000, 20000]} />
+      <meshLambertMaterial color={groundColor}
+        polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
+    </mesh>
   );
 }
 
