@@ -44,50 +44,6 @@ import {
 import { Quadtree } from '../../lib/geo/quadtree';
 
 // --- Building facade normal map: clean geometric grid ---
-function createFacadeNormalMap(): CanvasTexture {
-  const cellW = 8, cellH = 12;
-  const lineW = 2, lineH = 3;
-  const tileW = cellW + lineW, tileH = cellH + lineH;
-  const w = tileW * 4, h = tileH * 4;
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d')!;
-  const d = 50;
-  for (let py = 0; py < h; py++) {
-    for (let px = 0; px < w; px++) {
-      const lx = px % tileW, ly = py % tileH;
-      const isGridLineX = lx < lineW;
-      const isGridLineY = ly < lineH;
-      let nx = 128, ny = 128, nz = 255;
-      if (isGridLineX || isGridLineY) {
-        // Grid lines: flat neutral (mullion/spandrel)
-        nz = 255;
-      } else {
-        // Recessed panel
-        const cx = lx - lineW, cy = ly - lineH;
-        const pw = cellW, ph = cellH;
-        // Edge normals for inset effect
-        if (cx === 0) { nx = 128 + d; nz = 210; }
-        else if (cx === pw - 1) { nx = 128 - d; nz = 210; }
-        if (cy === 0) { ny = 128 + d; nz = 210; }
-        else if (cy === ph - 1) { ny = 128 - d; nz = 210; }
-        // Inner panel slightly recessed
-        if (cx > 0 && cx < pw - 1 && cy > 0 && cy < ph - 1) nz = 240;
-      }
-      ctx.fillStyle = `rgb(${nx},${ny},${nz})`;
-      ctx.fillRect(px, py, 1, 1);
-    }
-  }
-  const tex = new CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = RepeatWrapping;
-  tex.minFilter = LinearMipmapLinearFilter;
-  tex.magFilter = LinearFilter;
-  tex.generateMipmaps = true;
-  return tex;
-}
-
-let _facadeNorm: CanvasTexture | null = null;
-const getFacadeNorm = () => (_facadeNorm ??= createFacadeNormalMap());
 
 
 // --- Shared height map: ground mesh vertex heights cached for exact building alignment ---
@@ -409,21 +365,12 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
     return merged;
   }, [buildings, hm]);
 
-  const normalMap = useMemo(() => {
-    const tex = getFacadeNorm().clone();
-    tex.repeat.set(40, 20);
-    tex.needsUpdate = true;
-    return tex;
-  }, []);
-
-  // Matte building material — no reflections, clean flat look
+  // Matte building material — flat, no reflections, no normal map
   const frostMat = useMemo(() => {
     const mat = new MeshPhysicalMaterial({
       color: darkMode ? '#22242a' : '#e0ddd8',
       roughness: 1.0,
       metalness: 0.0,
-      normalMap,
-      normalScale: new Vector2(0.08, 0.08),
       emissive: darkMode ? '#1a1c22' : '#000000',
       emissiveIntensity: darkMode ? 0.2 : 0.0,
       envMapIntensity: 0.0,
@@ -709,7 +656,7 @@ if (selFocus > 0.001) {
     };
 
     return mat;
-  }, [normalMap, darkMode]);
+  }, [darkMode]);
 
   // Ghost-pass material — second mesh on the same merged geometry that
   // ONLY draws the ring fragments (insideFocus==0 && inRing==1) at ~10 %
