@@ -406,14 +406,7 @@ export function PlateauScene({
         </>
       )}
 
-      {/* Environment map for realistic reflections — hidden from background */}
-      {!darkMode && (
-        <Environment
-          preset="city"
-          background={false}
-          environmentIntensity={1.2}
-        />
-      )}
+      {/* Environment map removed — clean matte look, no reflections */}
 
       <Suspense fallback={null}>
         <OSMCity area={area} darkMode={darkMode} selectedBuilding={selectedBuilding} onBuildingSelect={onBuildingSelect} onBuildingsLoaded={onBuildingsLoaded} />

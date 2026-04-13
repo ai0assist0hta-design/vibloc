@@ -416,31 +416,28 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
     return tex;
   }, []);
 
-  // Frosted pearl glass material — MeshPhysicalMaterial with clearcoat + sheen + iridescence
+  // Matte building material — no reflections, clean flat look
   const frostMat = useMemo(() => {
     const mat = new MeshPhysicalMaterial({
-      color: darkMode ? '#22242a' : '#c0c2c6',
-      roughness: darkMode ? 0.4 : 0.15,
-      metalness: darkMode ? 0.2 : 0.35,
+      color: darkMode ? '#22242a' : '#e0ddd8',
+      roughness: 1.0,
+      metalness: 0.0,
       normalMap,
-      normalScale: new Vector2(0.15, 0.15),
-      emissive: darkMode ? '#1a1c22' : '#909090',
-      emissiveIntensity: darkMode ? 0.2 : 0.015,
-      envMapIntensity: darkMode ? 0.2 : 3.0,
-      // Frosted glass / pearl properties
-      clearcoat: darkMode ? 0.0 : 1.0,
-      clearcoatRoughness: darkMode ? 0.5 : 0.1,
-      clearcoatNormalMap: normalMap,
-      clearcoatNormalScale: new Vector2(0.04, 0.04),
-      sheen: darkMode ? 0.6 : 0.3,
-      sheenRoughness: 0.25,
-      sheenColor: darkMode ? new Color('#555560') : new Color('#909098'),
-      iridescence: darkMode ? 0.15 : 0.06,
-      iridescenceIOR: 1.4,
-      iridescenceThicknessRange: [100, 400],
-      reflectivity: darkMode ? 1.0 : 0.8,
-      specularIntensity: darkMode ? 0.5 : 1.5,
-      specularColor: darkMode ? new Color('#404040') : new Color('#c0c0c8'),
+      normalScale: new Vector2(0.08, 0.08),
+      emissive: darkMode ? '#1a1c22' : '#000000',
+      emissiveIntensity: darkMode ? 0.2 : 0.0,
+      envMapIntensity: 0.0,
+      clearcoat: 0.0,
+      clearcoatRoughness: 1.0,
+      sheen: 0.0,
+      sheenRoughness: 1.0,
+      sheenColor: new Color('#000000'),
+      iridescence: 0.0,
+      iridescenceIOR: 1.0,
+      iridescenceThicknessRange: [0, 0],
+      reflectivity: 0.0,
+      specularIntensity: 0.0,
+      specularColor: new Color('#000000'),
       // Opaque pass: ghost-ring fragments are `discard`-ed in the shader
       // so they neither write colour nor depth. The translucent ring is
       // re-drawn by a second mesh (GhostMesh) with depthWrite=false, so
@@ -1066,12 +1063,12 @@ function RooftopEquipment({ buildings, hm, darkMode = false }: { buildings: OSMB
     return pipe;
   }, []);
 
-  // Material: darker metallic
+  // Material: matte equipment, no reflections
   const equipMat = useMemo(() => new MeshStandardMaterial({
     color: darkMode ? '#1a1c20' : '#808488',
-    roughness: darkMode ? 0.5 : 0.6,
-    metalness: darkMode ? 0.6 : 0.4,
-    envMapIntensity: darkMode ? 1.5 : 1.0,
+    roughness: 1.0,
+    metalness: 0.0,
+    envMapIntensity: 0.0,
   }), [darkMode]);
 
   const dummy = useMemo(() => new Object3D(), []);

@@ -64,8 +64,8 @@ export function CityBuilding({ building }: CityBuildingProps) {
           opacity={state === 'empty' ? 1 : 1 - tasteOpacity + tasteOpacity}
           emissive={state === 'full' ? tasteColor : '#000000'}
           emissiveIntensity={state === 'full' ? 0.3 : 0}
-          roughness={0.85}
-          metalness={0.05}
+          roughness={1}
+          metalness={0}
         />
       </mesh>
 
