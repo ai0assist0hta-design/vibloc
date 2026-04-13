@@ -276,34 +276,9 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
         for (let i = last - 1; i >= 0; i--) shape.lineTo(fp[i][0], -fp[i][1]);
         shape.closePath();
 
-        let geo: ExtrudeGeometry;
-        if (hm) {
-          const [cx, cz] = building.center;
-          let minH = groundHeightAt(cx, cz, hm);
-          let maxH = minH;
-          for (const [x, z] of fp) {
-            const h = groundHeightAt(x, z, hm);
-            if (h < minH) minH = h;
-            if (h > maxH) maxH = h;
-          }
-          for (let i = 0; i < fp.length; i++) {
-            const ni = (i + 1) % fp.length;
-            const h = groundHeightAt((fp[i][0] + fp[ni][0]) / 2, (fp[i][1] + fp[ni][1]) / 2, hm);
-            if (h < minH) minH = h;
-            if (h > maxH) maxH = h;
-          }
-          const localSpan = maxH - minH;
-          const foundation = 3;
-          const yBase = minH - foundation;
-          const totalHeight = building.height + localSpan + foundation;
-
-          geo = new ExtrudeGeometry(shape, { depth: totalHeight, bevelEnabled: false });
-          geo.rotateX(-Math.PI / 2);
-          geo.translate(0, yBase, 0);
-        } else {
-          geo = new ExtrudeGeometry(shape, { depth: building.height, bevelEnabled: false });
-          geo.rotateX(-Math.PI / 2);
-        }
+        // All buildings sit flat on y=0 — no elevation displacement
+        const geo = new ExtrudeGeometry(shape, { depth: building.height, bevelEnabled: false });
+        geo.rotateX(-Math.PI / 2);
         // Per-vertex building ID. Every vertex of THIS extrude carries the
         // same float = original building index. After the merge, the fragment
         // shader compares this against `uSelectedBuildingId` for an exact,
