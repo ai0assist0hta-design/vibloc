@@ -4,6 +4,10 @@ export type BuildingTag = {
   label: string;
   category: 'office' | 'hotel' | 'food' | 'shop' | 'residential' | 'entertainment' | 'religious' | 'education' | 'medical' | 'government' | 'other';
   name?: string; // actual business/tenant name (e.g. "Starbucks", "7-ELEVEN")
+  /** brand:wikidata Q-id for resolving logos/images via Wikimedia */
+  brandWikidata?: string;
+  /** Business website URL for favicon/logo resolution */
+  website?: string;
 };
 
 /**
@@ -1321,6 +1325,8 @@ const SHOP_LABEL_OVERRIDE: Record<string, string> = {
 function extractPOITags(tags: Record<string, string>): BuildingTag[] {
   const result: BuildingTag[] = [];
   const poiName = tags.name || tags['name:en'] || tags['name:ko'] || tags['name:ja'] || tags.brand || '';
+  const brandWikidata = tags['brand:wikidata'] || tags.wikidata || undefined;
+  const website = tags.website || tags['contact:website'] || undefined;
 
   const amenity = tags.amenity;
   if (amenity && SKIP_AMENITIES.has(amenity)) return result;
@@ -1338,7 +1344,7 @@ function extractPOITags(tags: Record<string, string>): BuildingTag[] {
         }
       }
     }
-    result.push({ label, category: s.category, name: poiName });
+    result.push({ label, category: s.category, name: poiName, brandWikidata, website });
   }
 
   const shop = tags.shop;
@@ -1346,52 +1352,48 @@ function extractPOITags(tags: Record<string, string>): BuildingTag[] {
   if (shop) {
     const override = SHOP_LABEL_OVERRIDE[shop];
     if (override) {
-      result.push({ label: override, category: 'shop', name: poiName });
+      result.push({ label: override, category: 'shop', name: poiName, brandWikidata, website });
     } else if (SHOP_MAP[shop]) {
       const s = SHOP_MAP[shop];
-      result.push({ label: s.label, category: s.category, name: poiName });
+      result.push({ label: s.label, category: s.category, name: poiName, brandWikidata, website });
     } else {
-      // Unknown shop type still meaningful — keep generic Shop with name
-      result.push({ label: 'Shop', category: 'shop', name: poiName });
+      result.push({ label: 'Shop', category: 'shop', name: poiName, brandWikidata, website });
     }
   }
 
   const office = tags.office;
-  if (office === 'government') result.push({ label: 'Government', category: 'government', name: poiName });
-  else if (office === 'diplomatic') result.push({ label: 'Embassy', category: 'government', name: poiName });
-  // All commercial office subtypes (insurance, lawyer, accountant, IT, coworking,
-  // estate agent, company, ...) collapse into the generic "Company" label.
-  else if (office) result.push({ label: 'Company', category: 'office', name: poiName });
+  if (office === 'government') result.push({ label: 'Government', category: 'government', name: poiName, brandWikidata, website });
+  else if (office === 'diplomatic') result.push({ label: 'Embassy', category: 'government', name: poiName, brandWikidata, website });
+  else if (office) result.push({ label: 'Company', category: 'office', name: poiName, brandWikidata, website });
 
   const tourism = tags.tourism;
   if (tourism && TOURISM_MAP[tourism]) {
     const s = TOURISM_MAP[tourism];
-    result.push({ label: s.label, category: s.category, name: poiName });
+    result.push({ label: s.label, category: s.category, name: poiName, brandWikidata, website });
   }
 
   const leisure = tags.leisure;
   if (leisure && LEISURE_MAP[leisure]) {
     const s = LEISURE_MAP[leisure];
-    result.push({ label: s.label, category: s.category, name: poiName });
+    result.push({ label: s.label, category: s.category, name: poiName, brandWikidata, website });
   }
 
   const healthcare = tags.healthcare;
   if (healthcare && HEALTHCARE_MAP[healthcare]) {
     const s = HEALTHCARE_MAP[healthcare];
-    result.push({ label: s.label, category: s.category, name: poiName });
+    result.push({ label: s.label, category: s.category, name: poiName, brandWikidata, website });
   }
 
   const craft = tags.craft;
   if (craft && CRAFT_MAP[craft]) {
     const s = CRAFT_MAP[craft];
-    result.push({ label: s.label, category: s.category, name: poiName });
+    result.push({ label: s.label, category: s.category, name: poiName, brandWikidata, website });
   } else if (craft) {
-    result.push({ label: 'Workshop', category: 'shop', name: poiName });
+    result.push({ label: 'Workshop', category: 'shop', name: poiName, brandWikidata, website });
   }
 
-  // club=* (japanese izakaya, etc.)
   if (tags.club) {
-    result.push({ label: 'Club', category: 'entertainment', name: poiName });
+    result.push({ label: 'Club', category: 'entertainment', name: poiName, brandWikidata, website });
   }
 
   return result;

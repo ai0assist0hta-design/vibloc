@@ -22,6 +22,7 @@ import { BuildingPlaylist } from './components/ui/music/BuildingPlaylist';
 import { AddTrackComposer } from './components/ui/music/AddTrackComposer';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
+import { getTenantLogoUrl, CATEGORY_GLYPH } from './lib/geo/tenantLogo';
 import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetview/streetViewViewpoint';
 import { loadAppleGenreColors } from './lib/music/genreColorSource';
 import { useArtworkTint } from './lib/music/headerTint';
@@ -573,11 +574,19 @@ function App() {
         // with a count badge ("Thai Restaurant ×3"). We also collect the actual
         // tenant names per row so the expansion card can reveal real business
         // names ("Starbucks", "스타벅스") rather than just the generic type.
+        type TenantEntry = {
+          name: string;
+          label: string;
+          category: string;
+          brandWikidata?: string;
+          website?: string;
+        };
         type LabelRow = {
           label: string;
           category: string;
           count: number;
           names: string[];
+          tenants: TenantEntry[];
         };
         const labelMap = new Map<string, LabelRow>();
         for (const t of usefulTags) {
@@ -588,12 +597,32 @@ function App() {
             if (t.name && t.name.trim() && !existing.names.includes(t.name.trim())) {
               existing.names.push(t.name.trim());
             }
+            if (t.name && t.name.trim()) {
+              existing.tenants.push({
+                name: t.name.trim(),
+                label: t.label,
+                category: t.category,
+                brandWikidata: t.brandWikidata,
+                website: t.website,
+              });
+            }
           } else {
+            const tenants: TenantEntry[] = [];
+            if (t.name && t.name.trim()) {
+              tenants.push({
+                name: t.name.trim(),
+                label: t.label,
+                category: t.category,
+                brandWikidata: t.brandWikidata,
+                website: t.website,
+              });
+            }
             labelMap.set(key, {
               label: t.label,
               category: t.category,
               count: 1,
               names: t.name && t.name.trim() ? [t.name.trim()] : [],
+              tenants,
             });
           }
         }
@@ -610,6 +639,7 @@ function App() {
           category: string;
           count: number;
           names: string[];
+          tenants: TenantEntry[];
         };
         const pills: Pill[] = genericRows.map((r) => ({
           key: `${r.category}|${r.label.toLowerCase()}`,
@@ -617,8 +647,22 @@ function App() {
           category: r.category,
           count: r.count,
           names: r.names,
+          tenants: r.tenants,
         }));
-        const activePill = pills.find((p) => p.key === expandedTagKey) || null;
+
+        // Flatten all tenants with names for the list view
+        const allTenantsList: TenantEntry[] = pills.flatMap((p) => p.tenants);
+        // Also include unnamed pills as generic entries
+        for (const p of pills) {
+          if (p.tenants.length === 0) {
+            allTenantsList.push({
+              name: translateTagLabel(p.label, lang),
+              label: p.label,
+              category: p.category,
+            });
+          }
+        }
+        const TENANT_PREVIEW_COUNT = 3;
 
         const titleId = 'vibloc-place-title';
         return (
@@ -1172,193 +1216,141 @@ function App() {
                 divider={divider}
               />
 
-              {/* Tag chips — every distinct generic tag is its own clickable
-                  chip. Click toggles the expansion card directly below. */}
-              {pills.length > 0 && (
-                <div
-                  role="group"
-                  aria-label="Place tags"
-                  style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}
-                >
-                  {pills.map((tag) => {
-                    const s = swatch(tag.category);
-                    const active = expandedTagKey === tag.key;
-                    return (
-                      <button
-                        key={tag.key}
-                        type="button"
-                        onClick={() =>
-                          setExpandedTagKey((prev) => (prev === tag.key ? null : tag.key))
-                        }
-                        aria-pressed={active}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: 999,
-                          background: s.fill,
-                          color: s.ink,
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          letterSpacing: 0.4,
-                          textTransform: 'uppercase',
-                          border: `1px solid ${
-                            active
-                              ? darkMode
-                                ? 'rgba(255,255,255,0.55)'
-                                : 'rgba(15,23,42,0.55)'
-                              : darkMode
-                              ? 'rgba(255,255,255,0.10)'
-                              : 'rgba(0,0,0,0.08)'
-                          }`,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          transform: active ? 'translateY(-1px)' : 'none',
-                          boxShadow: active
-                            ? darkMode
-                              ? '0 4px 12px rgba(0,0,0,0.45)'
-                              : '0 4px 12px rgba(15,23,42,0.18)'
-                            : 'none',
-                          transition: reducedMotion
-                            ? 'none'
-                            : 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
-                        }}
-                      >
-                        {translateTagLabel(tag.label, lang)}
-                        {tag.count > 1 && (
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              fontSize: 9.5,
-                              fontWeight: 800,
-                              opacity: 0.7,
-                            }}
-                          >
-                            ×{tag.count}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Animated expansion container — uses the modern grid-rows
-                  trick to animate height from 0 to auto smoothly. The inner
-                  child must have overflow:hidden so the collapsing row
-                  doesn't bleed past its container. */}
-              <div
-                aria-live="polite"
-                style={{
-                  display: 'grid',
-                  gridTemplateRows: activePill ? '1fr' : '0fr',
-                  opacity: activePill ? 1 : 0,
-                  transition: reducedMotion
-                    ? 'none'
-                    : 'grid-template-rows 320ms cubic-bezier(0.22,1,0.36,1), opacity 220ms ease',
-                  marginTop: activePill ? 0 : -14, // collapse the parent gap when closed
-                }}
-              >
-                <div style={{ overflow: 'hidden', minHeight: 0 }}>
-                  {activePill && (() => {
-                    const s = swatch(activePill.category);
-                    // Headline should be the actual business name(s) when we
-                    // have them ("Starbucks", "Doutor Coffee"), falling back
-                    // to the translated generic type ("Cafe") only when the
-                    // OSM POI was generic with no name. The label moves down
-                    // to the subtitle row in that case so users always see
-                    // the most specific identity available.
-                    const hasNames = activePill.names.length > 0;
-                    const headline = hasNames
-                      ? activePill.names.join(', ')
-                      : translateTagLabel(activePill.label, lang);
-                    const subtitle = hasNames
-                      ? `${translateTagLabel(activePill.label, lang)} · ${activePill.category}`
-                      : activePill.category;
+              {/* ── Tenant list — [logo/photo] ── name ── */}
+              {allTenantsList.length > 0 && (
+                <div role="list" aria-label="Tenants" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {(expandedTagKey === '__tenants_all'
+                    ? allTenantsList
+                    : allTenantsList.slice(0, TENANT_PREVIEW_COUNT)
+                  ).map((tenant, i) => {
+                    const s = swatch(tenant.category);
+                    const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
                     return (
                       <div
-                        role="group"
-                        aria-label={headline}
+                        key={`${tenant.category}-${tenant.name}-${i}`}
+                        role="listitem"
                         style={{
-                          background: card,
-                          border: `1px solid ${divider}`,
-                          borderRadius: 16,
-                          padding: '14px 16px',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 12,
+                          padding: '8px 12px',
+                          borderRadius: 12,
+                          background: card,
+                          border: `1px solid ${divider}`,
+                          transition: reducedMotion ? 'none' : 'background 150ms ease',
+                          cursor: 'default',
                         }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = cardSub; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = card; }}
                       >
+                        {/* Avatar: logo image or category emoji fallback */}
                         <div
-                          aria-hidden="true"
                           style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 12,
-                            background: s.fill,
-                            color: s.ink,
+                            width: 36,
+                            height: 36,
+                            borderRadius: 10,
+                            background: logoUrl ? 'transparent' : s.fill,
                             border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: 16,
-                            fontWeight: 800,
                             flexShrink: 0,
+                            overflow: 'hidden',
                           }}
                         >
-                          {glyph[activePill.category] || '·'}
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt=""
+                              width={28}
+                              height={28}
+                              style={{ objectFit: 'contain', borderRadius: 4 }}
+                              onError={(e) => {
+                                // Fallback to emoji on load error
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.style.background = s.fill;
+                                  e.currentTarget.replaceWith(
+                                    Object.assign(document.createElement('span'), {
+                                      textContent: CATEGORY_GLYPH[tenant.category] || '📍',
+                                      style: 'font-size:16px',
+                                    })
+                                  );
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: 16 }}>
+                              {CATEGORY_GLYPH[tenant.category] || '📍'}
+                            </span>
+                          )}
                         </div>
+
+                        {/* Name + category label */}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div
-                            title={headline}
+                            title={tenant.name}
                             style={{
-                              fontSize: 14,
+                              fontSize: 13,
                               fontWeight: 600,
                               color: text,
-                              lineHeight: 1.35,
+                              lineHeight: 1.3,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {headline}
+                            {tenant.name}
                           </div>
                           <div
                             style={{
                               fontSize: 10.5,
-                              color: text2,
-                              marginTop: 2,
+                              fontWeight: 600,
+                              color: text3,
+                              marginTop: 1,
                               letterSpacing: 0.3,
                               textTransform: 'uppercase',
-                              fontWeight: 700,
                             }}
                           >
-                            {subtitle}
+                            {translateTagLabel(tenant.label, lang)}
                           </div>
                         </div>
-                        {activePill.count > 1 && (
-                          <span
-                            aria-label={`${activePill.count} of this type`}
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              color: text2,
-                              padding: '3px 10px',
-                              background: cardSub,
-                              border: `1px solid ${divider}`,
-                              borderRadius: 999,
-                              flexShrink: 0,
-                            }}
-                          >
-                            ×{activePill.count}
-                          </span>
-                        )}
                       </div>
                     );
-                  })()}
+                  })}
+
+                  {/* Show more / show less toggle */}
+                  {allTenantsList.length > TENANT_PREVIEW_COUNT && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedTagKey((prev) =>
+                          prev === '__tenants_all' ? null : '__tenants_all'
+                        )
+                      }
+                      style={{
+                        padding: '8px 0',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: text2,
+                        textAlign: 'center',
+                        letterSpacing: 0.2,
+                        transition: reducedMotion ? 'none' : 'color 150ms ease',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = text; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = text2; }}
+                    >
+                      {expandedTagKey === '__tenants_all'
+                        ? t('music.showLess')
+                        : `${t('ui.more')} (+${allTenantsList.length - TENANT_PREVIEW_COUNT})`}
+                    </button>
+                  )}
                 </div>
+              )}
               </div>
-            </div>
           </div>
         );
       })()}
