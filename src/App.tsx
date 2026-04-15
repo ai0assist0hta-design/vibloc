@@ -507,10 +507,17 @@ function App() {
         // Prefer the building's own address when it came from authoritative
         // sources (own addr:* tags or manual override). Only fall back to the
         // external reverseGeocode when our local data is borrowed/locality.
+        // To prevent flicker: if we're still waiting on reverseGeocode AND
+        // the local address is NOT authoritative, don't show the provisional
+        // local value — wait for the geocode to resolve so the title appears
+        // once and doesn't swap mid-read.
+        const waitingForGeocode = geocoding && !selectedBuilding.addressOriginal;
         const addr = (
           selectedBuilding.addressOriginal
             ? (selectedBuilding.address || geocodedInfo?.address || '')
-            : (geocodedInfo?.address || selectedBuilding.address || '')
+            : waitingForGeocode
+              ? ''
+              : (geocodedInfo?.address || selectedBuilding.address || '')
         ).trim();
         const hasRealName = !!rawName && rawName !== 'Building' && rawName !== addr;
         const allTags = selectedBuilding.tags || [];
@@ -523,7 +530,12 @@ function App() {
         );
         const isFamous = hasRealName && (isLarge || hasWikiInfo);
         const kicker = isFamous ? rawName : '';
-        const title = addr || rawName || 'Building';
+        // While waiting for geocode resolution with no authoritative local
+        // address, show a placeholder instead of a provisional value that
+        // would flicker when the geocode arrives.
+        const title = waitingForGeocode
+          ? (kicker || t('panel.loadingAddr') || '…')
+          : (addr || rawName || 'Building');
         const subtitle = ''; // address IS the title now — no subtitle line
 
         // Hoisted lat/lon for the building — needed both by the
@@ -665,7 +677,175 @@ function App() {
         const TENANT_PREVIEW_COUNT = 3;
 
         const titleId = 'vibloc-place-title';
+
+        // ── LEFT INFO PANEL (desktop only) ────────────────────────────
+        // Minimal building info: kicker + address + height chip + map links.
+        // Narrower than the right music panel, per user request.
+        const config = CITY_AREAS[area];
+        const [_lpx, _lpz] = selectedBuilding.entry ?? selectedBuilding.center;
+        const { lat: _lRawLat, lon: _lRawLon } = metersToLatLon(
+          _lpx, _lpz, config.refLat, config.refLon,
+        );
+        const _lLat = sanitizedCoord?.lat ?? _lRawLat;
+        const _lLon = sanitizedCoord?.lon ?? _lRawLon;
+        const _lGURL = googleMapsLink(_lLat, _lLon);
+        const _lAURL = appleMapsLink(_lLat, _lLon, addr || rawName || 'Building');
+        const _lCountry = AREA_COUNTRY[area];
+        const _lNaverURL = _lCountry === 'KR' ? naverMapLink(_lLat, _lLon, rawName || 'Building') : null;
+        const _lKakaoURL = _lCountry === 'KR' ? kakaoMapLink(_lLat, _lLon) : null;
+        const _lYahooURL = _lCountry === 'JP' ? yahooJapanMapLink(_lLat, _lLon) : null;
+        const _lBingURL  = _lCountry === 'US' ? bingMapsLink(_lLat, _lLon)    : null;
+        const leftPanel = !isMobile ? (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: 320,
+              borderRight: `1px solid ${divider}`,
+              background: surface,
+              backdropFilter: opaque ? undefined : 'blur(32px) saturate(170%)',
+              WebkitBackdropFilter: opaque ? undefined : 'blur(32px) saturate(170%)',
+              boxShadow: darkMode
+                ? '16px 0 50px rgba(0,0,0,0.55)'
+                : '16px 0 50px rgba(15,23,42,0.12)',
+              fontFamily: "'IBM Plex Mono', monospace",
+              color: text,
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 30,
+              padding: '28px 22px 22px',
+              overflowY: 'auto',
+            }}
+          >
+            <div style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: 1.6,
+              textTransform: 'uppercase', color: text3, marginBottom: 10,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span aria-hidden="true" style={{
+                width: 7, height: 7, borderRadius: '50%',
+                background: darkMode ? '#ec4899' : '#db2777', flexShrink: 0,
+              }}/>
+              {t('panel.place')}
+            </div>
+
+            {kicker ? (
+              <div style={{
+                fontSize: 12, fontWeight: 700, color: text2, marginBottom: 4,
+                letterSpacing: 0.2, lineHeight: 1.3, wordBreak: 'break-word',
+              }}>{kicker}</div>
+            ) : null}
+
+            <div style={{
+              fontSize: kicker ? 16 : 19, fontWeight: 700, lineHeight: 1.3,
+              letterSpacing: -0.3, color: text, wordBreak: 'break-word',
+            }}>{title}</div>
+
+            {(selectedBuilding.height > 0 || selectedBuilding.levels > 0 || isSkyscraper) ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                {(selectedBuilding.height > 0 || selectedBuilding.levels > 0) ? (
+                  <span style={{
+                    fontSize: 10.5, color: text2, fontWeight: 600,
+                    letterSpacing: 0.4, textTransform: 'uppercase', opacity: 0.75,
+                  }}>
+                    {selectedBuilding.height > 0 ? `${Math.round(selectedBuilding.height)} m` : ''}
+                    {selectedBuilding.height > 0 && selectedBuilding.levels > 0 ? ' · ' : ''}
+                    {selectedBuilding.levels > 0 ? `${selectedBuilding.levels} F` : ''}
+                  </span>
+                ) : null}
+                {isSkyscraper ? (
+                  <span style={{
+                    padding: '2px 7px', borderRadius: 999,
+                    background: darkMode ? 'rgba(129,140,248,0.18)' : 'rgba(99,102,241,0.12)',
+                    color: darkMode ? '#a5b4fc' : '#4f46e5',
+                    fontSize: 9, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
+                    border: darkMode ? '1px solid rgba(165,180,252,0.25)' : '1px solid rgba(99,102,241,0.25)',
+                  }}>{t('panel.skyscraper')}</span>
+                ) : null}
+              </div>
+            ) : null}
+
+            {geocoding && !kicker ? (
+              <div style={{ fontSize: 11, color: text2, marginTop: 10 }} aria-live="polite">
+                {t('panel.loadingAddr')}
+              </div>
+            ) : null}
+
+            {/* Map deeplinks — compact row */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 14 }}>
+              <a href={_lGURL} target="_blank" rel="noopener noreferrer" style={{
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700,
+                letterSpacing: 0.4, padding: '4px 10px', borderRadius: 8, textDecoration: 'none',
+                color: darkMode ? '#0a0a0f' : '#fff',
+                background: darkMode ? '#e0e0e8' : '#1a1a2e',
+              }}>Google Maps ↗</a>
+              <a href={_lAURL} target="_blank" rel="noopener noreferrer" style={{
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700,
+                letterSpacing: 0.4, padding: '4px 10px', borderRadius: 8, textDecoration: 'none',
+                color: text, background: 'transparent', border: `1px solid ${divider}`,
+              }}>Apple Maps ↗</a>
+              {(() => {
+                const ghostBtn: React.CSSProperties = {
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700,
+                  letterSpacing: 0.4, padding: '4px 10px', borderRadius: 8, textDecoration: 'none',
+                  color: text, background: 'transparent', border: `1px solid ${divider}`,
+                  whiteSpace: 'nowrap',
+                };
+                const urls: { label: string; href: string }[] = [];
+                if (_lNaverURL) urls.push({ label: '네이버맵', href: _lNaverURL });
+                if (_lKakaoURL) urls.push({ label: '카카오맵', href: _lKakaoURL });
+                if (_lYahooURL) urls.push({ label: 'Yahoo!地図', href: _lYahooURL });
+                if (_lBingURL)  urls.push({ label: 'Bing', href: _lBingURL });
+                return <LocaleDeeplinks urls={urls} ghostBtn={ghostBtn} lang={lang} />;
+              })()}
+            </div>
+
+            {/* Street View — compact launcher */}
+            {!streetViewExpanded ? (
+              <button
+                type="button"
+                onClick={() => setStreetViewExpanded(true)}
+                style={{
+                  marginTop: 14, width: '100%', padding: '10px 14px',
+                  borderRadius: 12, border: `1px dashed ${divider}`, background: 'transparent',
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700,
+                  letterSpacing: 0.6, textTransform: 'uppercase', color: text2,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: 8,
+                }}
+              >
+                <span aria-hidden="true">📷</span>
+                Open Street View
+              </button>
+            ) : (() => {
+              const seed = pickOutsideViewpoint(selectedBuilding);
+              const snapped = snapToNearestRoad(seed.x, seed.z, selectedBuilding.center, roads);
+              const vp = snapped ?? seed;
+              const { lat: svLat, lon: svLon } = metersToLatLon(
+                vp.x, vp.z, config.refLat, config.refLon,
+              );
+              return (
+                <div style={{ marginTop: 14 }}>
+                  <StreetViewBox
+                    lat={svLat}
+                    lon={svLon}
+                    headingDeg={vp.headingDeg}
+                    buildingName={rawName || null}
+                    divider={divider}
+                    darkMode={darkMode}
+                    onSanitizedCoord={(slat, slon) => setSanitizedCoord({ lat: slat, lon: slon })}
+                  />
+                </div>
+              );
+            })()}
+          </div>
+        ) : null;
+
         return (
+          <>
+          {leftPanel}
           <div
             role="dialog"
             aria-modal="false"
@@ -841,6 +1021,10 @@ function App() {
                 ×
               </button>
 
+              {/* Desktop: building info lives in the LEFT panel (see below).
+                  Mobile: keep everything in this bottom sheet — not enough
+                  room for two panels. */}
+              {isMobile && (<>
               {/* Overline with status dot (references: "• Backlog", "• In Progress") */}
               <div
                 style={{
@@ -1151,6 +1335,8 @@ function App() {
                   </>
                 );
               })()}
+              </>)}
+
             </div>
 
             {/* Scrollable body */}
@@ -1352,6 +1538,7 @@ function App() {
               )}
               </div>
           </div>
+          </>
         );
       })()}
     </div>
