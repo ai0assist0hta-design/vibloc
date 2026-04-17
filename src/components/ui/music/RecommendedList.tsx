@@ -70,17 +70,8 @@ export function RecommendedList({
   const [data, setData] = useState<RecommendationResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  // Progressive disclosure (LogRocket 2024 / aiuxdesign.guide):
-  // surface the #1 Top Pick the moment a building is selected so the
-  // section never reads as empty, then offer "Show 4 more" to reveal
-  // the rest. The iTunes call is cached so always-fetch is cheap.
-  // Resets to collapsed-extras on every building change.
-  const [showAll, setShowAll] = useState(false);
-  useEffect(() => {
-    setShowAll(false);
-  }, [buildingId]);
-  // Top Pick is always visible — the section never fully collapses.
-  const open = true;
+  // Show-all-by-default per request: progressive-disclosure removed,
+  // every recommended track is rendered immediately.
   const playlist = usePlaylist(buildingId);
 
   useEffect(() => {
@@ -181,73 +172,22 @@ export function RecommendedList({
         </div>
       )}
 
-      {!loading && data && (() => {
-        const visible = showAll ? data.tracks : data.tracks.slice(0, 1);
-        const hidden = data.tracks.length - visible.length;
+      {!loading && data && data.tracks.map((tr) => {
+        const pinned = playlist.isPinned(tr.id);
         return (
-          <>
-            {visible.map((t) => {
-              const pinned = playlist.isPinned(t.id);
-              return (
-                <TrackRow
-                  key={t.id}
-                  track={t}
-                  text={text}
-                  text2={text2}
-                  divider={divider}
-                  rightAction={pinned ? 'pinned' : 'add'}
-                  onRightAction={() =>
-                    pinned ? playlist.unpin(t.id) : playlist.pin(t)
-                  }
-                />
-              );
-            })}
-            {hidden > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowAll(true)}
-                style={{
-                  background: 'transparent',
-                  border: `1px dashed ${divider}`,
-                  borderRadius: 10,
-                  padding: '6px 10px',
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  color: text2,
-                  cursor: 'pointer',
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  letterSpacing: 0.4,
-                  textTransform: 'uppercase',
-                  alignSelf: 'flex-start',
-                }}
-              >
-                {t('music.showMore')} ({hidden}) ▾
-              </button>
-            )}
-            {showAll && data.tracks.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setShowAll(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: text3,
-                  cursor: 'pointer',
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  letterSpacing: 0.4,
-                  textTransform: 'uppercase',
-                  alignSelf: 'flex-start',
-                  padding: 0,
-                }}
-              >
-                {t('music.showLess')} ▴
-              </button>
-            )}
-          </>
+          <TrackRow
+            key={tr.id}
+            track={tr}
+            text={text}
+            text2={text2}
+            divider={divider}
+            rightAction={pinned ? 'pinned' : 'add'}
+            onRightAction={() =>
+              pinned ? playlist.unpin(tr.id) : playlist.pin(tr)
+            }
+          />
         );
-      })()}
+      })}
     </div>
   );
 }

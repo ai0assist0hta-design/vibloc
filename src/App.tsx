@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { PlateauScene, type NavTarget } from './components/canvas/PlateauScene';
+import { PlateauScene, type NavTarget, type BuildingScreenAnchor } from './components/canvas/PlateauScene';
 import { SearchBar } from './components/ui/SearchBar';
 import { Compass } from './components/ui/Compass';
 import { TimeSlider } from './components/ui/TimeSlider';
@@ -20,6 +20,9 @@ import { StreetViewBox } from './components/ui/StreetViewBox';
 import { RecommendedList } from './components/ui/music/RecommendedList';
 import { BuildingPlaylist } from './components/ui/music/BuildingPlaylist';
 import { AddTrackComposer } from './components/ui/music/AddTrackComposer';
+import { TopTaggerCard } from './components/ui/music/TopTaggerCard';
+import { PopularTrackCard } from './components/ui/music/PopularTrackCard';
+import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
 import { getTenantLogoUrl, CATEGORY_GLYPH } from './lib/geo/tenantLogo';
@@ -29,6 +32,8 @@ import { useArtworkTint } from './lib/music/headerTint';
 import { usePlaylist } from './lib/music/buildingPlaylist';
 import { STATIC_GENRE_COLORS } from './data/genres';
 import { useWeatherStore } from './stores/useWeatherStore';
+import { useAuthStore } from './features/auth/useAuthStore';
+import { UserAvatar } from './features/auth/UserAvatar';
 
 /**
  * Country code per city area — used to pick locale-appropriate map deeplinks.
@@ -116,6 +121,102 @@ function App() {
   // automatically when the user picks a different building.
   const [expandedTagKey, setExpandedTagKey] = useState<string | null>(null);
   useEffect(() => { setExpandedTagKey(null); }, [selectedBuilding?.id]);
+  // Detail-view state: when set, the right panel body shows a single
+  // tagger's playlist instead of the default building sections.
+  const [detailTaggerId, setDetailTaggerId] = useState<string | null>(null);
+  useEffect(() => { setDetailTaggerId(null); }, [selectedBuilding?.id]);
+  // Live screen-space anchor for the selected building. Updated each
+  // frame from inside Canvas (BuildingScreenProjector). Used to float
+  // the left panel next to the building without overlapping it.
+  const [bldgAnchor, setBldgAnchor] = useState<BuildingScreenAnchor | null>(null);
+  useEffect(() => { if (!selectedBuilding) setBldgAnchor(null); }, [selectedBuilding]);
+
+  // ── Smooth panel motion (rAF lerp toward target) ──
+  // CSS transitions stutter when the target updates every frame
+  // because each update restarts the easing curve. Instead we keep a
+  // mutable `target` (recomputed when anchor/viewport changes) and a
+  // mutable `current` that chases the target with critical damping
+  // each frame, writing directly to the DOM via ref. This avoids both
+  // React re-renders AND the "always re-easing" stutter, producing a
+  // smooth, perceptually-natural follow.
+  const leftPanelRef = useRef<HTMLDivElement | null>(null);
+  const panelTargetRef = useRef<{ left: number; top: number } | null>(null);
+  const panelCurrentRef = useRef<{ left: number; top: number } | null>(null);
+
+  // Recompute the target whenever the anchor or window size changes.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const PANEL_W = 280;
+    const PANEL_GAP = 28;
+    const PANEL_VIEWPORT_INSET = 16;
+    const PANEL_HEADER_INSET = 88;
+    function computeTarget(): { left: number; top: number } {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (!bldgAnchor || !bldgAnchor.inFront) {
+        return { left: 360, top: vh * 0.38 };
+      }
+      const halfW = Math.max(40, bldgAnchor.radius);
+      let lx = bldgAnchor.x - halfW - PANEL_GAP - PANEL_W;
+      if (lx < PANEL_VIEWPORT_INSET) {
+        lx = bldgAnchor.x + halfW + PANEL_GAP;
+        if (lx + PANEL_W > vw - PANEL_VIEWPORT_INSET) {
+          lx = vw - PANEL_W - PANEL_VIEWPORT_INSET;
+        }
+      }
+      let ty = bldgAnchor.y - 24;
+      if (ty < PANEL_HEADER_INSET) ty = PANEL_HEADER_INSET;
+      if (ty > vh - 220) ty = vh - 220;
+      return { left: lx, top: ty };
+    }
+    const t = computeTarget();
+    panelTargetRef.current = t;
+    if (panelCurrentRef.current === null) {
+      // First-time placement: snap so the panel doesn't visibly fly in.
+      panelCurrentRef.current = { ...t };
+      if (leftPanelRef.current) {
+        leftPanelRef.current.style.left = `${t.left}px`;
+        leftPanelRef.current.style.top = `${t.top}px`;
+      }
+    }
+    function onResize() {
+      panelTargetRef.current = computeTarget();
+    }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [bldgAnchor]);
+
+  // rAF chase loop — runs continuously while a panel is mounted.
+  // Uses a frame-rate-independent exponential smoother so motion feels
+  // identical at 60 / 120 / 144 Hz: with halfLifeMs = 110, the panel
+  // covers half the remaining distance to the target every ~110 ms,
+  // creating a critically-damped slide that settles within ~3 frames
+  // of the camera coming to rest.
+  useEffect(() => {
+    let raf = 0;
+    let prev = performance.now();
+    const HALF_LIFE_MS = 110;
+    function step(now: number) {
+      const dt = Math.max(1, now - prev);
+      prev = now;
+      const t = panelTargetRef.current;
+      const c = panelCurrentRef.current;
+      if (t && c && leftPanelRef.current) {
+        // Frame-rate-independent lerp: alpha = 1 - 0.5^(dt/halfLife)
+        const alpha = 1 - Math.pow(0.5, dt / HALF_LIFE_MS);
+        c.left += (t.left - c.left) * alpha;
+        c.top += (t.top - c.top) * alpha;
+        // Snap when within sub-pixel distance to avoid jittering.
+        if (Math.abs(t.left - c.left) < 0.25) c.left = t.left;
+        if (Math.abs(t.top  - c.top)  < 0.25) c.top  = t.top;
+        leftPanelRef.current.style.left = `${c.left}px`;
+        leftPanelRef.current.style.top = `${c.top}px`;
+      }
+      raf = requestAnimationFrame(step);
+    }
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, []);
   // Apple Look Around convention (Apple HIG, 2026): immersive
   // imagery is shown on-demand, never embedded above the fold. The
   // Street View block stays collapsed to a small thumbnail button
@@ -132,6 +233,16 @@ function App() {
   const _topPinnedArtwork = _playlistForTint.tracks[0]?.artworkUrl ?? null;
   const headerTint = useArtworkTint(_topPinnedArtwork);
   const [buildings, setBuildings] = useState<OSMBuilding[]>([]);
+  // Dev-only: seed demo agent playlists for buildings that have no
+  // pins yet, so the UI renders meaningful data before real users
+  // tag anything. Idempotent — never overwrites real entries.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    if (buildings.length === 0) return;
+    void import('./features/dev/seedAgents').then(({ seedBuildingPlaylists }) => {
+      seedBuildingPlaylists(buildings.map((b) => b.id));
+    });
+  }, [buildings]);
   // Roads for the current area — loaded once per area and reused to snap
   // the Street View viewpoint onto real drivable segments (Google SV panos
   // only exist where cars drove, so road-snapping is the most reliable way
@@ -305,24 +416,71 @@ function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <PlateauScene area={area} navigateTarget={navigateTarget} darkMode={darkMode} sunLightPos={sunLightPos} selectedBuilding={selectedBuilding} onBuildingSelect={handleBuildingSelect} onBuildingsLoaded={setBuildings} />
+      <PlateauScene area={area} navigateTarget={navigateTarget} darkMode={darkMode} sunLightPos={sunLightPos} selectedBuilding={selectedBuilding} onBuildingSelect={handleBuildingSelect} onBuildingsLoaded={setBuildings} onSelectedAnchor={setBldgAnchor} />
 
-      {/* Logo */}
+      {/* Logo + Profile */}
       <div
         style={{
           position: 'absolute',
           top: 24,
           left: 24,
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: 20,
-          fontWeight: 600,
-          color: darkMode ? '#e0e0e8' : '#1a1a2e',
-          letterSpacing: 4,
-          userSelect: 'none',
-          transition: 'color 0.4s ease',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          zIndex: 20,
         }}
       >
-        VIBLOC
+        <div
+          style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 20,
+            fontWeight: 600,
+            color: darkMode ? '#e0e0e8' : '#1a1a2e',
+            letterSpacing: 4,
+            userSelect: 'none',
+            transition: 'color 0.4s ease',
+          }}
+        >
+          VIBLOC
+        </div>
+        {/* Dev 프로필 버튼 */}
+        {(() => {
+          const user = useAuthStore.getState().user;
+          if (!user) return null;
+          return (
+            <a
+              href="/mypage"
+              title="마이페이지"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '4px 12px 4px 4px',
+                borderRadius: 999,
+                border: darkMode ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.1)',
+                background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <UserAvatar user={user} size={26} className="" alt="" />
+              <span
+                style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: darkMode ? '#e0e0e8' : '#1a1a2e',
+                  letterSpacing: 0.3,
+                }}
+              >
+                {user.displayName ?? 'Profile'}
+              </span>
+            </a>
+          );
+        })()}
       </div>
 
       {/* Live Time slider */}
@@ -674,8 +832,6 @@ function App() {
             });
           }
         }
-        const TENANT_PREVIEW_COUNT = 3;
-
         const titleId = 'vibloc-place-title';
 
         // ── LEFT INFO PANEL (desktop only) ────────────────────────────
@@ -695,37 +851,50 @@ function App() {
         const _lKakaoURL = _lCountry === 'KR' ? kakaoMapLink(_lLat, _lLon) : null;
         const _lYahooURL = _lCountry === 'JP' ? yahooJapanMapLink(_lLat, _lLon) : null;
         const _lBingURL  = _lCountry === 'US' ? bingMapsLink(_lLat, _lLon)    : null;
+        // ── Building-anchored panel position ──
+        // The actual top/left values are written each frame by the
+        // rAF chase loop (see panelCurrentRef in the App body). We
+        // only seed initial CSS here so the panel doesn't flash at
+        // (0,0) before the first frame fires.
         const leftPanel = !isMobile ? (
           <div
+            ref={leftPanelRef}
             style={{
               position: 'fixed',
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: 320,
-              borderRight: `1px solid ${divider}`,
-              background: surface,
-              backdropFilter: opaque ? undefined : 'blur(32px) saturate(170%)',
-              WebkitBackdropFilter: opaque ? undefined : 'blur(32px) saturate(170%)',
-              boxShadow: darkMode
-                ? '16px 0 50px rgba(0,0,0,0.55)'
-                : '16px 0 50px rgba(15,23,42,0.12)',
+              // Initial fallback — overwritten on first rAF tick.
+              top: '38%',
+              left: 360,
+              width: 280,
+              // Cap height so the floating panel never overflows the
+              // viewport on small screens; internal scroll handles
+              // long content (tenant lists, etc.).
+              maxHeight: 'calc(100vh - 120px)',
+              // Intentionally NO CSS transition — rAF lerp manages
+              // motion frame-by-frame for a stutter-free chase.
+              // Transparent — map shows through
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none',
               fontFamily: "'IBM Plex Mono', monospace",
               color: text,
               display: 'flex',
               flexDirection: 'column',
               zIndex: 30,
-              padding: '28px 22px 22px',
+              padding: '4px 20px 4px 4px',
               overflowY: 'auto',
+              // Soft text shadow for readability over varying map content
+              textShadow: darkMode
+                ? '0 1px 2px rgba(0,0,0,0.6)'
+                : '0 1px 2px rgba(255,255,255,0.7)',
             }}
           >
             <div style={{
-              fontSize: 11, fontWeight: 700, letterSpacing: 1.6,
-              textTransform: 'uppercase', color: text3, marginBottom: 10,
-              display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: 9, fontWeight: 700, letterSpacing: 1.4,
+              textTransform: 'uppercase', color: text3, marginBottom: 6,
+              display: 'flex', alignItems: 'center', gap: 6,
             }}>
               <span aria-hidden="true" style={{
-                width: 7, height: 7, borderRadius: '50%',
+                width: 5, height: 5, borderRadius: '50%',
                 background: darkMode ? '#ec4899' : '#db2777', flexShrink: 0,
               }}/>
               {t('panel.place')}
@@ -733,22 +902,22 @@ function App() {
 
             {kicker ? (
               <div style={{
-                fontSize: 12, fontWeight: 700, color: text2, marginBottom: 4,
-                letterSpacing: 0.2, lineHeight: 1.3, wordBreak: 'break-word',
+                fontSize: 10.5, fontWeight: 600, color: text2, marginBottom: 2,
+                letterSpacing: 0.1, lineHeight: 1.3, wordBreak: 'break-word',
               }}>{kicker}</div>
             ) : null}
 
             <div style={{
-              fontSize: kicker ? 16 : 19, fontWeight: 700, lineHeight: 1.3,
-              letterSpacing: -0.3, color: text, wordBreak: 'break-word',
+              fontSize: kicker ? 13 : 15, fontWeight: 700, lineHeight: 1.25,
+              letterSpacing: -0.2, color: text, wordBreak: 'break-word',
             }}>{title}</div>
 
             {(selectedBuilding.height > 0 || selectedBuilding.levels > 0 || isSkyscraper) ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                 {(selectedBuilding.height > 0 || selectedBuilding.levels > 0) ? (
                   <span style={{
-                    fontSize: 10.5, color: text2, fontWeight: 600,
-                    letterSpacing: 0.4, textTransform: 'uppercase', opacity: 0.75,
+                    fontSize: 9.5, color: text2, fontWeight: 600,
+                    letterSpacing: 0.3, textTransform: 'uppercase', opacity: 0.8,
                   }}>
                     {selectedBuilding.height > 0 ? `${Math.round(selectedBuilding.height)} m` : ''}
                     {selectedBuilding.height > 0 && selectedBuilding.levels > 0 ? ' · ' : ''}
@@ -757,41 +926,48 @@ function App() {
                 ) : null}
                 {isSkyscraper ? (
                   <span style={{
-                    padding: '2px 7px', borderRadius: 999,
+                    padding: '1px 6px', borderRadius: 999,
                     background: darkMode ? 'rgba(129,140,248,0.18)' : 'rgba(99,102,241,0.12)',
                     color: darkMode ? '#a5b4fc' : '#4f46e5',
-                    fontSize: 9, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
+                    fontSize: 8.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase',
                     border: darkMode ? '1px solid rgba(165,180,252,0.25)' : '1px solid rgba(99,102,241,0.25)',
+                    textShadow: 'none',
                   }}>{t('panel.skyscraper')}</span>
                 ) : null}
               </div>
             ) : null}
 
             {geocoding && !kicker ? (
-              <div style={{ fontSize: 11, color: text2, marginTop: 10 }} aria-live="polite">
+              <div style={{ fontSize: 10, color: text2, marginTop: 8 }} aria-live="polite">
                 {t('panel.loadingAddr')}
               </div>
             ) : null}
 
             {/* Map deeplinks — compact row */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 14 }}>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 10 }}>
               <a href={_lGURL} target="_blank" rel="noopener noreferrer" style={{
-                fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700,
-                letterSpacing: 0.4, padding: '4px 10px', borderRadius: 8, textDecoration: 'none',
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 700,
+                letterSpacing: 0.3, padding: '3px 8px', borderRadius: 6, textDecoration: 'none',
                 color: darkMode ? '#0a0a0f' : '#fff',
                 background: darkMode ? '#e0e0e8' : '#1a1a2e',
+                textShadow: 'none',
               }}>Google Maps ↗</a>
               <a href={_lAURL} target="_blank" rel="noopener noreferrer" style={{
-                fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700,
-                letterSpacing: 0.4, padding: '4px 10px', borderRadius: 8, textDecoration: 'none',
-                color: text, background: 'transparent', border: `1px solid ${divider}`,
+                fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 700,
+                letterSpacing: 0.3, padding: '3px 8px', borderRadius: 6, textDecoration: 'none',
+                color: text, background: darkMode ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.5)',
+                border: `1px solid ${divider}`, textShadow: 'none',
+                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
               }}>Apple Maps ↗</a>
               {(() => {
                 const ghostBtn: React.CSSProperties = {
-                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 700,
-                  letterSpacing: 0.4, padding: '4px 10px', borderRadius: 8, textDecoration: 'none',
-                  color: text, background: 'transparent', border: `1px solid ${divider}`,
-                  whiteSpace: 'nowrap',
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 700,
+                  letterSpacing: 0.3, padding: '3px 8px', borderRadius: 6, textDecoration: 'none',
+                  color: text,
+                  background: darkMode ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.5)',
+                  border: `1px solid ${divider}`,
+                  whiteSpace: 'nowrap', textShadow: 'none',
+                  backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
                 };
                 const urls: { label: string; href: string }[] = [];
                 if (_lNaverURL) urls.push({ label: '네이버맵', href: _lNaverURL });
@@ -808,12 +984,14 @@ function App() {
                 type="button"
                 onClick={() => setStreetViewExpanded(true)}
                 style={{
-                  marginTop: 14, width: '100%', padding: '10px 14px',
-                  borderRadius: 12, border: `1px dashed ${divider}`, background: 'transparent',
-                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700,
-                  letterSpacing: 0.6, textTransform: 'uppercase', color: text2,
+                  marginTop: 10, width: '100%', padding: '8px 12px',
+                  borderRadius: 10, border: `1px dashed ${divider}`,
+                  background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)',
+                  backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, fontWeight: 700,
+                  letterSpacing: 0.5, textTransform: 'uppercase', color: text2,
                   cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', gap: 8,
+                  justifyContent: 'center', gap: 6, textShadow: 'none',
                 }}
               >
                 <span aria-hidden="true">📷</span>
@@ -840,6 +1018,94 @@ function App() {
                 </div>
               );
             })()}
+
+            {/* ── Tenant list (moved from right panel) ── */}
+            {allTenantsList.length > 0 && (
+              <div style={{
+                marginTop: 14,
+                borderTop: `1px solid ${divider}`,
+                paddingTop: 10,
+              }}>
+                <div style={{
+                  fontSize: 8.5, fontWeight: 800, letterSpacing: 0.7,
+                  textTransform: 'uppercase', color: text3,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  marginBottom: 6,
+                }}>
+                  {t('panel.tenants') || '입점 정보'}
+                </div>
+                <div role="list" aria-label="Tenants" style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {/* "더보기" removed — every tenant is rendered directly. */}
+                  {allTenantsList.map((tenant, i) => {
+                    const s = swatch(tenant.category);
+                    const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
+                    return (
+                      <div
+                        key={`${tenant.category}-${tenant.name}-${i}`}
+                        role="listitem"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '4px 6px',
+                          borderRadius: 6,
+                          background: 'transparent',
+                          border: 'none',
+                          transition: reducedMotion ? 'none' : 'background 150ms ease',
+                          cursor: 'default',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = darkMode
+                            ? 'rgba(255,255,255,0.06)'
+                            : 'rgba(0,0,0,0.04)';
+                        }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <div
+                          style={{
+                            width: 22, height: 22, borderRadius: 6,
+                            background: logoUrl ? 'transparent' : s.fill,
+                            border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0, overflow: 'hidden',
+                          }}
+                        >
+                          {logoUrl ? (
+                            <img src={logoUrl} alt="" width={16} height={16}
+                              style={{ objectFit: 'contain', borderRadius: 2 }}
+                              onError={(e) => {
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.style.background = s.fill;
+                                  e.currentTarget.replaceWith(
+                                    Object.assign(document.createElement('span'), {
+                                      textContent: CATEGORY_GLYPH[tenant.category] || '📍',
+                                      style: 'font-size:10px',
+                                    })
+                                  );
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: 10 }}>{CATEGORY_GLYPH[tenant.category] || '📍'}</span>
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div title={tenant.name} style={{
+                            fontSize: 10, fontWeight: 600, color: text, lineHeight: 1.25,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>{tenant.name}</div>
+                          <div style={{
+                            fontSize: 8, fontWeight: 600, color: text3, marginTop: 0,
+                            letterSpacing: 0.25, textTransform: 'uppercase',
+                          }}>{translateTagLabel(tenant.label, lang)}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ) : null;
 
@@ -1364,9 +1630,55 @@ function App() {
                       3. My Playlist — what the user has already
                          curated for this building.
                       4. City Vibe — ambient context, lowest priority. */}
+              {detailTaggerId ? (
+                <PlaylistDetailView
+                  buildingId={selectedBuilding.id}
+                  taggerId={detailTaggerId}
+                  text={text}
+                  text2={text2}
+                  text3={text3}
+                  divider={divider}
+                  onBack={() => setDetailTaggerId(null)}
+                />
+              ) : (<>
+              {/* Order per latest user request:
+                    1. CITY VIBE     — ambient context for the building
+                    2. SEARCH        — composer between vibe and ranking
+                    3. TOP PLAYLISTS — ranked curators 1~3 (heart-clickable)
+                    4. TOP PICKS     — most-popular individual track
+                    5. AI 추천곡      — full list, no progressive disclosure
+                    6. MY PLAYLIST   — what's currently pinned here */}
+              <CityVibeBlock
+                vibe={getCityVibe(area)}
+                text={text}
+                text3={text3}
+                divider={divider}
+              />
+
               <AddTrackComposer
                 buildingId={selectedBuilding.id}
                 vibe={getCityVibe(area)}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+              />
+
+              {/* Top 1~3 playlists by likes — row click opens detail,
+                  heart pill (stopPropagation) toggles a playlist-level like. */}
+              <TopTaggerCard
+                buildingId={selectedBuilding.id}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                onSelect={(id) => setDetailTaggerId(id)}
+              />
+
+              {/* Most popular TRACK — placed below the playlist ranking.
+                  Falls back to nearby buildings when this one has no pins. */}
+              <PopularTrackCard
+                buildingId={selectedBuilding.id}
                 text={text}
                 text2={text2}
                 text3={text3}
@@ -1394,146 +1706,79 @@ function App() {
                 text3={text3}
                 divider={divider}
               />
+              </>)}
 
-              <CityVibeBlock
-                vibe={getCityVibe(area)}
-                text={text}
-                text3={text3}
-                divider={divider}
-              />
-
-              {/* ── Tenant list — [logo/photo] ── name ── */}
-              {allTenantsList.length > 0 && (
-                <div role="list" aria-label="Tenants" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {(expandedTagKey === '__tenants_all'
-                    ? allTenantsList
-                    : allTenantsList.slice(0, TENANT_PREVIEW_COUNT)
-                  ).map((tenant, i) => {
-                    const s = swatch(tenant.category);
-                    const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
-                    return (
-                      <div
-                        key={`${tenant.category}-${tenant.name}-${i}`}
-                        role="listitem"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 12,
-                          padding: '8px 12px',
-                          borderRadius: 12,
-                          background: card,
-                          border: `1px solid ${divider}`,
-                          transition: reducedMotion ? 'none' : 'background 150ms ease',
-                          cursor: 'default',
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = cardSub; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = card; }}
-                      >
-                        {/* Avatar: logo image or category emoji fallback */}
+              {/* Tenant list — on mobile stays here (no left panel),
+                  on desktop lives in the left panel */}
+              {isMobile && allTenantsList.length > 0 && (
+                <div style={{ marginTop: 4, paddingTop: 12, borderTop: `1px solid ${divider}` }}>
+                  <div style={{
+                    fontSize: 9.5, fontWeight: 800, letterSpacing: 0.8,
+                    textTransform: 'uppercase', color: text3,
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    marginBottom: 8,
+                  }}>
+                    {t('panel.tenants') || '입점 정보'}
+                  </div>
+                  <div role="list" aria-label="Tenants" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {/* "더보기" removed — render every tenant. */}
+                    {allTenantsList.map((tenant, i) => {
+                      const s = swatch(tenant.category);
+                      const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
+                      return (
                         <div
+                          key={`m-${tenant.category}-${tenant.name}-${i}`}
+                          role="listitem"
                           style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: 10,
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            padding: '8px 12px', borderRadius: 12,
+                            background: card, border: `1px solid ${divider}`,
+                            transition: reducedMotion ? 'none' : 'background 150ms ease',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = cardSub; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = card; }}
+                        >
+                          <div style={{
+                            width: 36, height: 36, borderRadius: 10,
                             background: logoUrl ? 'transparent' : s.fill,
                             border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {logoUrl ? (
-                            <img
-                              src={logoUrl}
-                              alt=""
-                              width={28}
-                              height={28}
-                              style={{ objectFit: 'contain', borderRadius: 4 }}
-                              onError={(e) => {
-                                // Fallback to emoji on load error
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.style.background = s.fill;
-                                  e.currentTarget.replaceWith(
-                                    Object.assign(document.createElement('span'), {
-                                      textContent: CATEGORY_GLYPH[tenant.category] || '📍',
-                                      style: 'font-size:16px',
-                                    })
-                                  );
-                                }
-                              }}
-                            />
-                          ) : (
-                            <span style={{ fontSize: 16 }}>
-                              {CATEGORY_GLYPH[tenant.category] || '📍'}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Name + category label */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div
-                            title={tenant.name}
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 600,
-                              color: text,
-                              lineHeight: 1.3,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {tenant.name}
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0, overflow: 'hidden',
+                          }}>
+                            {logoUrl ? (
+                              <img src={logoUrl} alt="" width={28} height={28}
+                                style={{ objectFit: 'contain', borderRadius: 4 }}
+                                onError={(e) => {
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) {
+                                    parent.style.background = s.fill;
+                                    e.currentTarget.replaceWith(
+                                      Object.assign(document.createElement('span'), {
+                                        textContent: CATEGORY_GLYPH[tenant.category] || '📍',
+                                        style: 'font-size:16px',
+                                      })
+                                    );
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: 16 }}>{CATEGORY_GLYPH[tenant.category] || '📍'}</span>
+                            )}
                           </div>
-                          <div
-                            style={{
-                              fontSize: 10.5,
-                              fontWeight: 600,
-                              color: text3,
-                              marginTop: 1,
-                              letterSpacing: 0.3,
-                              textTransform: 'uppercase',
-                            }}
-                          >
-                            {translateTagLabel(tenant.label, lang)}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div title={tenant.name} style={{
+                              fontSize: 13, fontWeight: 600, color: text, lineHeight: 1.3,
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>{tenant.name}</div>
+                            <div style={{
+                              fontSize: 10.5, fontWeight: 600, color: text3, marginTop: 1,
+                              letterSpacing: 0.3, textTransform: 'uppercase',
+                            }}>{translateTagLabel(tenant.label, lang)}</div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Show more / show less toggle */}
-                  {allTenantsList.length > TENANT_PREVIEW_COUNT && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedTagKey((prev) =>
-                          prev === '__tenants_all' ? null : '__tenants_all'
-                        )
-                      }
-                      style={{
-                        padding: '8px 0',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: text2,
-                        textAlign: 'center',
-                        letterSpacing: 0.2,
-                        transition: reducedMotion ? 'none' : 'color 150ms ease',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = text; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = text2; }}
-                    >
-                      {expandedTagKey === '__tenants_all'
-                        ? t('music.showLess')
-                        : `${t('ui.more')} (+${allTenantsList.length - TENANT_PREVIEW_COUNT})`}
-                    </button>
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               </div>

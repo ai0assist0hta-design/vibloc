@@ -20,7 +20,6 @@ import type { CityVibe, RecommendedTrack } from '../../../lib/music/trackTypes';
 import { searchTrack } from '../../../lib/music/itunes';
 import { usePlaylist } from '../../../lib/music/buildingPlaylist';
 import { TrackRow } from './TrackRow';
-import { useT } from '../../../lib/app/i18n';
 
 type Props = {
   buildingId: string;
@@ -39,7 +38,6 @@ export function AddTrackComposer({
   text3,
   divider,
 }: Props) {
-  const t = useT();
   const playlist = usePlaylist(buildingId);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<RecommendedTrack[]>([]);
@@ -62,78 +60,19 @@ export function AddTrackComposer({
     }
   }
 
-  // Beli-style mood funnel (IXD@Pratt 2024 critique): one-tap mood
-  // chips above the free-text search collapse the cold-start gap.
-  // Each chip pre-fills the iTunes query with a curated phrase and
-  // immediately runs the search — the user goes from blank state to
-  // 5 candidate tracks in a single tap. Free-text search remains as
-  // the advanced/escape path below.
-  const MOODS: { key: string; i18nKey: string; query: string; icon: string }[] = [
-    { key: 'chill',     i18nKey: 'mood.Chill',     query: 'lo-fi chill beats',     icon: '🌙' },
-    { key: 'hype',      i18nKey: 'mood.Hype',      query: 'high energy hype',      icon: '⚡' },
-    { key: 'romantic',  i18nKey: 'mood.Romantic',  query: 'romantic love song',    icon: '💗' },
-    { key: 'dark',      i18nKey: 'mood.Dark',      query: 'dark moody atmospheric', icon: '🖤' },
-    { key: 'nostalgic', i18nKey: 'mood.Nostalgic', query: 'nostalgic city pop',    icon: '📼' },
-    { key: 'party',     i18nKey: 'mood.Party',     query: 'party dance hits',      icon: '🪩' },
-  ];
-
   return (
     <div
       style={{
-        marginTop: 4,
-        paddingTop: 12,
-        borderTop: `1px solid ${divider}`,
+        // No top border / paddingTop — renders at the very top of the
+        // panel, no separator needed above.
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
       }}
     >
-      <div
-        style={{
-          fontSize: 9.5,
-          fontWeight: 800,
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-          color: text3,
-          fontFamily: "'IBM Plex Mono', monospace",
-        }}
-      >
-        {t('music.tagTrack')}
-      </div>
-
-      <div
-        role="group"
-        aria-label="Mood quick picks"
-        style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}
-      >
-        {MOODS.map((m) => (
-          <button
-            key={m.key}
-            type="button"
-            onClick={() => void runSearch(m.query)}
-            style={{
-              padding: '5px 10px',
-              borderRadius: 999,
-              border: `1px solid ${divider}`,
-              background: 'transparent',
-              fontSize: 10.5,
-              fontWeight: 700,
-              color: text2,
-              cursor: 'pointer',
-              fontFamily: "'IBM Plex Mono', monospace",
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              letterSpacing: 0.3,
-            }}
-            title={`Search ${m.query}`}
-          >
-            <span aria-hidden="true">{m.icon}</span>
-            {t(m.i18nKey)}
-          </button>
-        ))}
-      </div>
-
+      {/* Search-first composer — mood/category chips removed by request.
+          Section header sits BELOW the search input so the input is the
+          first thing the user sees and reaches for. */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -143,19 +82,19 @@ export function AddTrackComposer({
         style={{ display: 'flex', gap: 6 }}
       >
         <input
-          type="text"
+          type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="search song or artist…"
+          placeholder="🔎 search song or artist…"
           aria-label="Search for a track to pin"
           style={{
             flex: 1,
             minWidth: 0,
             background: 'transparent',
             border: `1px solid ${divider}`,
-            borderRadius: 8,
-            padding: '6px 10px',
-            fontSize: 11,
+            borderRadius: 10,
+            padding: '8px 12px',
+            fontSize: 12,
             color: text,
             fontFamily: "'IBM Plex Mono', monospace",
             outline: 'none',
@@ -167,18 +106,22 @@ export function AddTrackComposer({
           style={{
             background: 'transparent',
             border: `1px solid ${divider}`,
-            borderRadius: 8,
-            padding: '4px 12px',
+            borderRadius: 10,
+            padding: '4px 14px',
             fontSize: 11,
             fontWeight: 700,
             color: text2,
             cursor: searching ? 'wait' : 'pointer',
             fontFamily: "'IBM Plex Mono', monospace",
+            letterSpacing: 0.4,
           }}
         >
-          {searching ? '…' : 'Go'}
+          {searching ? '…' : 'GO'}
         </button>
       </form>
+
+      {/* "TAG A TRACK" label removed — the search bar above is
+          self-explanatory, no extra header needed. */}
 
       {searched && !searching && results.length === 0 && (
         <div style={{ fontSize: 11, color: text3, padding: '4px 0' }}>
@@ -186,18 +129,18 @@ export function AddTrackComposer({
         </div>
       )}
 
-      {results.map((t) => {
-        const pinned = playlist.isPinned(t.id);
+      {results.map((tr) => {
+        const pinned = playlist.isPinned(tr.id);
         return (
           <TrackRow
-            key={t.id}
-            track={t}
+            key={tr.id}
+            track={tr}
             text={text}
             text2={text2}
             divider={divider}
             rightAction={pinned ? 'pinned' : 'add'}
             onRightAction={() =>
-              pinned ? playlist.unpin(t.id) : playlist.pin(t)
+              pinned ? playlist.unpin(tr.id) : playlist.pin(tr)
             }
           />
         );

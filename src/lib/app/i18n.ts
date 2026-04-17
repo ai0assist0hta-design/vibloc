@@ -74,6 +74,7 @@ const DICT: Record<string, Record<Lang, string>> = {
   'panel.loadingAddr':   { en: 'Loading address…',      ko: '주소 불러오는 중…', ja: '住所を読み込み中…' },
   'panel.skyscraper':    { en: 'Skyscraper',            ko: '마천루',        ja: '超高層ビル' },
   'panel.close':         { en: 'Close',                 ko: '닫기',          ja: '閉じる' },
+  'panel.tenants':       { en: 'Tenants',               ko: '입점 정보',     ja: 'テナント情報' },
   'panel.copyPlusCode':  { en: 'Copy Plus Code',        ko: 'Plus Code 복사', ja: 'Plus Code をコピー' },
 
   // Search bar
@@ -334,6 +335,7 @@ const DICT: Record<string, Record<Lang, string>> = {
 
   // ─── Social proof ───
   'music.travelersVibe':   { en: 'travelers vibe to this place',  ko: '명이 이곳에서 음악을 즐겨요',  ja: '人がこの場所で音楽を楽しんでいます' },
+  'music.taggedBy':        { en: 'tagged this',                   ko: '태그함',                       ja: 'タグ付け' },
 
   // ─── Map links ───
   'map.googleMaps':  { en: 'Google Maps ↗',  ko: 'Google 지도 ↗',  ja: 'Google マップ ↗' },

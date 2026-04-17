@@ -24,14 +24,17 @@
  */
 
 import { useEffect, useState } from 'react';
-import { usePlaylist } from '../../../lib/music/buildingPlaylist';
+import { usePlaylist, MIN_PLAYLIST_TRACKS } from '../../../lib/music/buildingPlaylist';
+import { resolveAvatarUrl } from '../../../features/auth/avatar';
 import { TrackRow } from './TrackRow';
 import type { CityVibe } from '../../../lib/music/trackTypes';
 import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
 import { useT } from '../../../lib/app/i18n';
 
-const DESCRIPTION_MIN_TRACKS = 2;
+/** Description input only unlocks once the playlist itself qualifies
+ *  (>= MIN_PLAYLIST_TRACKS). Single-source-of-truth lives in the store. */
+const DESCRIPTION_MIN_TRACKS = MIN_PLAYLIST_TRACKS;
 const DESCRIPTION_MAX_LEN = 140;
 
 type Props = {
@@ -97,6 +100,20 @@ export function BuildingPlaylist({
         }}
       >
         {t('music.myPlaylist')} {playlist.tracks.length > 0 && `(${playlist.tracks.length})`}
+        {playlist.tracks.length > 0 && playlist.tracks.length < MIN_PLAYLIST_TRACKS && (
+          <span style={{
+            marginLeft: 6,
+            padding: '1px 6px', borderRadius: 999,
+            background: 'rgba(245,179,1,0.15)',
+            color: '#a86b00',
+            fontSize: 8.5, fontWeight: 800,
+            border: '1px solid rgba(245,179,1,0.35)',
+            letterSpacing: 0.5,
+            textTransform: 'uppercase',
+          }}>
+            DRAFT · {playlist.tracks.length}/{MIN_PLAYLIST_TRACKS}
+          </span>
+        )}
       </div>
 
       {playlist.tracks.length === 0 && (() => {
@@ -168,17 +185,114 @@ export function BuildingPlaylist({
         );
       })()}
 
-      {playlist.tracks.map((t) => (
-        <TrackRow
-          key={t.id}
-          track={t}
-          text={text}
-          text2={text2}
-          divider={divider}
-          rightAction="remove"
-          onRightAction={() => playlist.unpin(t.id)}
-        />
-      ))}
+      {playlist.tracks.map((tr) => {
+        const liked = playlist.isLikedByMe(tr.id);
+        const likeCount = tr.likes ?? 0;
+        return (
+          <div key={tr.id}>
+            <TrackRow
+              track={tr}
+              text={text}
+              text2={text2}
+              divider={divider}
+              rightAction="remove"
+              onRightAction={() => playlist.unpin(tr.id)}
+            />
+            {/* Tagger card — Instagram-style avatar + name + likes */}
+            {tr.taggerName && (
+              <div
+                style={{
+                  paddingLeft: 19,
+                  marginTop: 2,
+                  marginBottom: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                {/* Circular avatar with ring */}
+                <img
+                  src={resolveAvatarUrl(tr.taggerAvatarUrl)}
+                  alt={tr.taggerName}
+                  width={24}
+                  height={24}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: `2px solid ${divider}`,
+                    boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
+                    flexShrink: 0,
+                    background: divider,
+                  }}
+                />
+                {/* Name + alias */}
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: text,
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {tr.taggerName}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 8.5,
+                      fontWeight: 500,
+                      color: text3,
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    {t('music.taggedBy')}
+                  </span>
+                </div>
+                {/* Like button + count */}
+                <button
+                  type="button"
+                  onClick={() => playlist.toggleLike(tr.id)}
+                  aria-label={liked ? 'Unlike' : 'Like'}
+                  aria-pressed={liked}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    padding: '3px 8px',
+                    borderRadius: 999,
+                    border: `1px solid ${liked ? '#ff375f44' : divider}`,
+                    background: liked ? '#ff375f14' : 'transparent',
+                    cursor: 'pointer',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    color: liked ? '#ff375f' : text3,
+                    transition: 'all 120ms ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 11 }}>{liked ? '❤️' : '🤍'}</span>
+                  {likeCount > 0 && <span>{likeCount}</span>}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {showDescription && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>

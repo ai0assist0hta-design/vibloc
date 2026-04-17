@@ -160,6 +160,92 @@ function computeFootprintOBB(footprint: [number, number][]) {
   };
 }
 
+/**
+ * Projects the currently selected building's top-center to 2D screen
+ * coordinates each frame so the parent panel can anchor itself to the
+ * upper-left of the building. Also reports the building's screen-space
+ * radius (max footprint extent projected) so the panel can offset
+ * itself outside the building's silhouette and never overlap.
+ *
+ * Lives inside <Canvas> because it needs `useThree` (camera + size).
+ * Only emits when the projected position moves more than 1px to avoid
+ * unnecessary React re-renders while the camera is idle.
+ */
+export type BuildingScreenAnchor = {
+  /** Pixel x of the building's top-center (clip-space → screen). */
+  x: number;
+  /** Pixel y of the building's top-center. */
+  y: number;
+  /** Approximate half-width of the building in screen pixels. */
+  radius: number;
+  /** True when the projected point is in front of the camera. */
+  inFront: boolean;
+};
+
+function BuildingScreenProjector({
+  building,
+  onAnchor,
+}: {
+  building: OSMBuilding | null;
+  onAnchor: (a: BuildingScreenAnchor | null) => void;
+}) {
+  const { camera, size } = useThree();
+  const v1 = useMemo(() => new Vector3(), []);
+  const v2 = useMemo(() => new Vector3(), []);
+  const lastRef = useRef<BuildingScreenAnchor | null>(null);
+
+  // Pre-compute the worst-case footprint radius for the current building
+  // so the per-frame loop only runs two project() calls instead of N.
+  const buildingId = building?.id ?? null;
+  const radiusW = useMemo(() => {
+    if (!building) return 0;
+    let max = 0;
+    const [cx, cz] = building.center;
+    for (const [x, z] of building.footprint) {
+      const dx = x - cx;
+      const dz = z - cz;
+      const r = Math.hypot(dx, dz);
+      if (r > max) max = r;
+    }
+    return max;
+  }, [buildingId, building]);
+
+  useFrame(() => {
+    if (!building) {
+      if (lastRef.current !== null) {
+        lastRef.current = null;
+        onAnchor(null);
+      }
+      return;
+    }
+    // Project the building's top-center.
+    v1.set(building.center[0], building.height, building.center[1]);
+    v1.project(camera);
+    const inFront = v1.z < 1; // post-projection z<1 means in front of camera
+    const sx = (v1.x * 0.5 + 0.5) * size.width;
+    const sy = (-v1.y * 0.5 + 0.5) * size.height;
+
+    // Project an offset point on the rooftop to estimate screen radius.
+    v2.set(building.center[0] + radiusW, building.height, building.center[1]);
+    v2.project(camera);
+    const ex = (v2.x * 0.5 + 0.5) * size.width;
+    const screenRadius = Math.abs(ex - sx);
+
+    const last = lastRef.current;
+    const same = last
+      && Math.abs(last.x - sx) < 1
+      && Math.abs(last.y - sy) < 1
+      && Math.abs(last.radius - screenRadius) < 1
+      && last.inFront === inFront;
+    if (same) return;
+    const next: BuildingScreenAnchor = { x: sx, y: sy, radius: screenRadius, inFront };
+    lastRef.current = next;
+    onAnchor(next);
+  });
+
+  return null;
+}
+
 export type NavTarget = {
   x: number;
   z: number;
@@ -295,6 +381,7 @@ export function PlateauScene({
   selectedBuilding = null,
   onBuildingSelect,
   onBuildingsLoaded,
+  onSelectedAnchor,
 }: {
   area?: CityAreaKey;
   navigateTarget?: NavTarget | null;
@@ -303,6 +390,10 @@ export function PlateauScene({
   selectedBuilding?: OSMBuilding | null;
   onBuildingSelect?: (b: OSMBuilding | null) => void;
   onBuildingsLoaded?: (b: OSMBuilding[]) => void;
+  /** Reports the selected building's projected screen anchor each
+   *  frame the camera/building changes. Lets the parent attach the
+   *  side panel to the building's silhouette without overlapping it. */
+  onSelectedAnchor?: (a: BuildingScreenAnchor | null) => void;
 }) {
   const fogEffect = useMemo(() => {
     const e = new GradientFogEffect({
@@ -426,6 +517,12 @@ export function PlateauScene({
       <CameraNavigator target={navigateTarget ?? null} />
       <ShadowFollower />
       <CameraFogSync />
+      {onSelectedAnchor && (
+        <BuildingScreenProjector
+          building={selectedBuilding}
+          onAnchor={onSelectedAnchor}
+        />
+      )}
 
       <EffectComposer frameBufferType={HalfFloatType}>
         <primitive object={fogEffect} />
