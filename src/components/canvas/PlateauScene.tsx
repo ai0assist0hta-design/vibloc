@@ -161,24 +161,29 @@ function computeFootprintOBB(footprint: [number, number][]) {
 }
 
 /**
- * Projects the currently selected building's top-center to 2D screen
- * coordinates each frame so the parent panel can anchor itself to the
- * upper-left of the building. Also reports the building's screen-space
- * radius (max footprint extent projected) so the panel can offset
- * itself outside the building's silhouette and never overlap.
+ * Projects the currently selected building's full silhouette to 2D
+ * screen coordinates each frame so the parent panel can anchor itself
+ * to the building's true edges (not an approximated radius). Reports
+ * the screen-space bounding box so the panel can sit just outside the
+ * silhouette with a perceptually-constant gap regardless of camera
+ * angle.
  *
  * Lives inside <Canvas> because it needs `useThree` (camera + size).
- * Only emits when the projected position moves more than 1px to avoid
- * unnecessary React re-renders while the camera is idle.
+ * Only emits when the bbox moves more than 1px to avoid unnecessary
+ * React re-renders while the camera is idle.
  */
 export type BuildingScreenAnchor = {
-  /** Pixel x of the building's top-center (clip-space → screen). */
+  /** Building's projected screen-space bounding box (pixels). */
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  /** Bbox center — kept for callers that just want a single point. */
   x: number;
-  /** Pixel y of the building's top-center. */
   y: number;
-  /** Approximate half-width of the building in screen pixels. */
+  /** Half-width of the bbox; back-compat with earlier callers. */
   radius: number;
-  /** True when the projected point is in front of the camera. */
+  /** True when at least one corner of the building is in front of the camera. */
   inFront: boolean;
 };
 
@@ -190,25 +195,8 @@ function BuildingScreenProjector({
   onAnchor: (a: BuildingScreenAnchor | null) => void;
 }) {
   const { camera, size } = useThree();
-  const v1 = useMemo(() => new Vector3(), []);
-  const v2 = useMemo(() => new Vector3(), []);
+  const v = useMemo(() => new Vector3(), []);
   const lastRef = useRef<BuildingScreenAnchor | null>(null);
-
-  // Pre-compute the worst-case footprint radius for the current building
-  // so the per-frame loop only runs two project() calls instead of N.
-  const buildingId = building?.id ?? null;
-  const radiusW = useMemo(() => {
-    if (!building) return 0;
-    let max = 0;
-    const [cx, cz] = building.center;
-    for (const [x, z] of building.footprint) {
-      const dx = x - cx;
-      const dz = z - cz;
-      const r = Math.hypot(dx, dz);
-      if (r > max) max = r;
-    }
-    return max;
-  }, [buildingId, building]);
 
   useFrame(() => {
     if (!building) {
@@ -218,27 +206,65 @@ function BuildingScreenProjector({
       }
       return;
     }
-    // Project the building's top-center.
-    v1.set(building.center[0], building.height, building.center[1]);
-    v1.project(camera);
-    const inFront = v1.z < 1; // post-projection z<1 means in front of camera
-    const sx = (v1.x * 0.5 + 0.5) * size.width;
-    const sy = (-v1.y * 0.5 + 0.5) * size.height;
+    // Project EVERY footprint vertex at both ground level AND building
+    // height. Taking the screen bbox of all 2N projected points gives
+    // the building's true visible outline, so the panel-to-building
+    // gap stays perceptually constant as the camera orbits — projecting
+    // just the center + a single radius point would breathe in/out.
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    let anyInFront = false;
+    const fp = building.footprint;
+    const h = building.height;
+    for (let i = 0; i < fp.length; i++) {
+      const wx = fp[i][0];
+      const wz = fp[i][1];
+      // Bottom corner
+      v.set(wx, 0, wz);
+      v.project(camera);
+      if (v.z < 1) {
+        anyInFront = true;
+        const sx = (v.x * 0.5 + 0.5) * size.width;
+        const sy = (-v.y * 0.5 + 0.5) * size.height;
+        if (sx < minX) minX = sx; if (sx > maxX) maxX = sx;
+        if (sy < minY) minY = sy; if (sy > maxY) maxY = sy;
+      }
+      // Top corner — at building height
+      v.set(wx, h, wz);
+      v.project(camera);
+      if (v.z < 1) {
+        anyInFront = true;
+        const sx = (v.x * 0.5 + 0.5) * size.width;
+        const sy = (-v.y * 0.5 + 0.5) * size.height;
+        if (sx < minX) minX = sx; if (sx > maxX) maxX = sx;
+        if (sy < minY) minY = sy; if (sy > maxY) maxY = sy;
+      }
+    }
 
-    // Project an offset point on the rooftop to estimate screen radius.
-    v2.set(building.center[0] + radiusW, building.height, building.center[1]);
-    v2.project(camera);
-    const ex = (v2.x * 0.5 + 0.5) * size.width;
-    const screenRadius = Math.abs(ex - sx);
+    if (!anyInFront) {
+      if (lastRef.current !== null) {
+        lastRef.current = null;
+        onAnchor(null);
+      }
+      return;
+    }
+
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const radius = (maxX - minX) / 2;
 
     const last = lastRef.current;
     const same = last
-      && Math.abs(last.x - sx) < 1
-      && Math.abs(last.y - sy) < 1
-      && Math.abs(last.radius - screenRadius) < 1
-      && last.inFront === inFront;
+      && Math.abs(last.left   - minX) < 1
+      && Math.abs(last.right  - maxX) < 1
+      && Math.abs(last.top    - minY) < 1
+      && Math.abs(last.bottom - maxY) < 1
+      && last.inFront === true;
     if (same) return;
-    const next: BuildingScreenAnchor = { x: sx, y: sy, radius: screenRadius, inFront };
+    const next: BuildingScreenAnchor = {
+      left: minX, right: maxX, top: minY, bottom: maxY,
+      x: cx, y: cy, radius, inFront: true,
+    };
     lastRef.current = next;
     onAnchor(next);
   });
@@ -297,7 +323,11 @@ function CameraNavigator({ target }: { target: NavTarget | null }) {
     // use the larger of the OBB axes as the conservative fit dimension.
     const projWidth = Math.max(sizeShort, sizeLong * 0.7);
     const fitDim = Math.max(projWidth, height, sizeLong * 0.5);
-    const distance = Math.max(140, (fitDim / 2) / Math.tan(FOV_V / 2) * 1.9);
+    // Slightly looser framing per user feedback ("너무 확대되는 것 같아").
+    // 2.3 padding (was 1.9) pulls the camera ~20% further back so the
+    // building doesn't fill the frame; 180 min distance (was 140)
+    // does the same for tiny footprints that previously snapped too close.
+    const distance = Math.max(180, (fitDim / 2) / Math.tan(FOV_V / 2) * 2.3);
 
     // ── Camera lock: do NOT recompute a fresh 3/4 view direction. ──
     // The previous behavior built a building-axis-aligned viewDir which

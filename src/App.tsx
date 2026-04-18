@@ -58,6 +58,98 @@ import './index.css';
  * for the 99% case where the user just wants Google/Apple, no loss of
  * functionality for the locals who actually use 네이버/카카오/Yahoo!地図/Bing.
  */
+/**
+ * Single-button map launcher — replaces the Google / Apple / 더보기
+ * row. Default state shows just one neutral "Maps" pill; clicking it
+ * fans the destinations out **horizontally to the right** so the panel
+ * height never jumps. Every option uses the same ghost style — no
+ * filled Google button, no colored accents — so the row reads as one
+ * unified control.
+ *
+ * Labels intentionally drop the "Maps" suffix per request:
+ * "Google" / "Apple" / "네이버" / "카카오" / "Yahoo!地図" / "Bing".
+ */
+function MapsToggle({
+  options,
+  ghostBtn,
+  lang,
+}: {
+  options: { label: string; href: string }[];
+  ghostBtn: React.CSSProperties;
+  lang: 'ko' | 'ja' | 'en';
+}) {
+  const [open, setOpen] = useState(false);
+  if (options.length === 0) return null;
+  const closeLabel = lang === 'ko' ? '닫기' : lang === 'ja' ? '閉じる' : 'close';
+  // Motion language matches the rest of the panel:
+  //   • cubic-bezier(0.22, 1, 0.36, 1) ease-out (same as panel chase)
+  //   • 180ms primary / 280ms container reveal
+  //   • options stagger 35ms each on open, snap closed in reverse
+  // The horizontal "fan" never collapses panel height because the
+  // container animates max-width inside an overflow:hidden wrapper.
+  const REVEAL_MS = 280;
+  const ITEM_MS = 180;
+  const STAGGER_MS = 35;
+  const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={open ? closeLabel : 'Maps'}
+        style={{ ...ghostBtn, cursor: 'pointer' }}
+      >
+        Maps
+      </button>
+      <div
+        aria-hidden={!open}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          overflow: 'hidden',
+          // Container width grows from 0 → enough-for-all, then options
+          // fade+slide in over the top. 800px is a safe upper bound for
+          // the longest possible label set; max-width transition is
+          // smooth as long as content fits comfortably.
+          maxWidth: open ? 800 : 0,
+          marginLeft: open ? 4 : 0,
+          transitionProperty: 'max-width, margin-left',
+          transitionDuration: `${REVEAL_MS}ms, 200ms`,
+          transitionTimingFunction: `${EASE}, ease`,
+        }}
+      >
+        {options.map((u, idx) => (
+          <a
+            key={u.label}
+            href={u.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            tabIndex={open ? 0 : -1}
+            style={{
+              ...ghostBtn,
+              opacity: open ? 1 : 0,
+              transform: open ? 'translateX(0)' : 'translateX(-6px)',
+              transitionProperty: 'opacity, transform',
+              transitionDuration: `${ITEM_MS}ms, ${ITEM_MS}ms`,
+              transitionTimingFunction: `ease, ${EASE}`,
+              // Stagger from left to right on open; reverse + shorter
+              // delays on close so the row clears quickly.
+              transitionDelay: open
+                ? `${60 + idx * STAGGER_MS}ms`
+                : `${(options.length - idx - 1) * 15}ms`,
+              pointerEvents: open ? 'auto' : 'none',
+            }}
+          >
+            {u.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function LocaleDeeplinks({
   urls,
   ghostBtn,
@@ -125,97 +217,191 @@ function App() {
   // tagger's playlist instead of the default building sections.
   const [detailTaggerId, setDetailTaggerId] = useState<string | null>(null);
   useEffect(() => { setDetailTaggerId(null); }, [selectedBuilding?.id]);
-  // Live screen-space anchor for the selected building. Updated each
-  // frame from inside Canvas (BuildingScreenProjector). Used to float
-  // the left panel next to the building without overlapping it.
-  const [bldgAnchor, setBldgAnchor] = useState<BuildingScreenAnchor | null>(null);
-  useEffect(() => { if (!selectedBuilding) setBldgAnchor(null); }, [selectedBuilding]);
-
-  // ── Smooth panel motion (rAF lerp toward target) ──
-  // CSS transitions stutter when the target updates every frame
-  // because each update restarts the easing curve. Instead we keep a
-  // mutable `target` (recomputed when anchor/viewport changes) and a
-  // mutable `current` that chases the target with critical damping
-  // each frame, writing directly to the DOM via ref. This avoids both
-  // React re-renders AND the "always re-easing" stutter, producing a
-  // smooth, perceptually-natural follow.
+  // ── Smooth panel motion (zero-render, rAF-driven) ──
+  // The previous implementation used React state for the building's
+  // projected screen anchor — which fired setState every frame the
+  // camera moved (60+ Hz) and caused the App tree to re-render at
+  // the same rate. That produced visible stutter while orbiting.
+  //
+  // New design: the anchor lives in a REF that the projector mutates
+  // directly (no setState). The rAF chase loop reads the ref each
+  // frame, computes the target inline, lerps current toward target,
+  // and writes the result straight to the DOM via leftPanelRef.
+  // Result: ZERO React re-renders for camera motion → no stutter.
   const leftPanelRef = useRef<HTMLDivElement | null>(null);
-  const panelTargetRef = useRef<{ left: number; top: number } | null>(null);
-  const panelCurrentRef = useRef<{ left: number; top: number } | null>(null);
+  const bldgAnchorRef = useRef<BuildingScreenAnchor | null>(null);
+  const panelCurrentRef = useRef<{ left: number; top: number; scale: number } | null>(null);
+  // Latest tenant-list length, updated from inside the panel render.
+  const tenantCountRef = useRef(0);
 
-  // Recompute the target whenever the anchor or window size changes.
+  // Reset chase state when the selected building changes so the panel
+  // snaps to the new building (rather than lerping across the screen
+  // from the previous anchor).
+  useEffect(() => {
+    if (!selectedBuilding) {
+      bldgAnchorRef.current = null;
+    }
+    panelCurrentRef.current = null;
+  }, [selectedBuilding]);
+
+  // Single rAF loop owns the entire panel motion: computeTarget per
+  // frame from the ref, lerp, write DOM. Mounted once for the App's
+  // lifetime; cheap (a handful of math ops + one inline-style write).
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const PANEL_W = 280;
-    const PANEL_GAP = 28;
+    const PANEL_W = 320;
+    const PANEL_H_ESTIMATE = 380;
+    const RIGHT_MUSIC_W = 440;
     const PANEL_VIEWPORT_INSET = 16;
-    const PANEL_HEADER_INSET = 88;
-    function computeTarget(): { left: number; top: number } {
+    const PANEL_HEADER_INSET = 80;
+    const PANEL_BOTTOM_INSET = 24;
+    const HALF_LIFE_MS = 110;
+
+    function clamp(v: number, lo: number, hi: number): number {
+      return Math.max(lo, Math.min(hi, v));
+    }
+
+    function computeTarget(
+      anchor: BuildingScreenAnchor | null,
+    ): { left: number; top: number; scale: number } {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      if (!bldgAnchor || !bldgAnchor.inFront) {
-        return { left: 360, top: vh * 0.38 };
+      if (!anchor || !anchor.inFront) {
+        return { left: 360, top: vh * 0.30, scale: 1 };
       }
-      const halfW = Math.max(40, bldgAnchor.radius);
-      let lx = bldgAnchor.x - halfW - PANEL_GAP - PANEL_W;
-      if (lx < PANEL_VIEWPORT_INSET) {
-        lx = bldgAnchor.x + halfW + PANEL_GAP;
-        if (lx + PANEL_W > vw - PANEL_VIEWPORT_INSET) {
-          lx = vw - PANEL_W - PANEL_VIEWPORT_INSET;
-        }
+      // Zoom-aware sizing — use the LARGER projected dimension as the
+      // size driver. Wide low buildings dominate horizontally (large
+      // bbW); tall slim towers dominate vertically (large bbH after
+      // the camera flies back to fit the whole tower in frame). Using
+      // max(bbW, bbH) keeps the panel at full size in BOTH cases at
+      // the default-fit zoom, so a 270m skyscraper doesn't accidentally
+      // get a 50%-shrunk tiny panel just because its silhouette is
+      // narrow horizontally.
+      const bbW = Math.max(0, anchor.right - anchor.left);
+      const bbH = Math.max(0, anchor.bottom - anchor.top);
+      const bbMax = Math.max(bbW, bbH);
+      const REFERENCE_BBMAX = 700; // ≈ post-fly-to dominant size on 1080p
+      const HEAD_ROOM = 0.65;     // shrink starts a touch earlier
+      const MIN_SCALE = 0.28;     // shrink further when fully zoomed out
+      const ratio = clamp(bbMax / REFERENCE_BBMAX, 0, 1);
+      let scale: number;
+      if (ratio >= HEAD_ROOM) {
+        scale = 1.0;
+      } else {
+        const t = ratio / HEAD_ROOM;
+        const s = t * t * (3 - 2 * t);
+        scale = MIN_SCALE + (1 - MIN_SCALE) * s;
       }
-      let ty = bldgAnchor.y - 24;
-      if (ty < PANEL_HEADER_INSET) ty = PANEL_HEADER_INSET;
-      if (ty > vh - 220) ty = vh - 220;
-      return { left: lx, top: ty };
-    }
-    const t = computeTarget();
-    panelTargetRef.current = t;
-    if (panelCurrentRef.current === null) {
-      // First-time placement: snap so the panel doesn't visibly fly in.
-      panelCurrentRef.current = { ...t };
-      if (leftPanelRef.current) {
-        leftPanelRef.current.style.left = `${t.left}px`;
-        leftPanelRef.current.style.top = `${t.top}px`;
+      const gapX = 180 * scale;
+      const gapY = 96 * scale;
+      const safeRightLimit = vw - RIGHT_MUSIC_W - gapX;
+      const tenantCount = tenantCountRef.current;
+      const tenantLift = tenantCount >= 5
+        ? Math.min(180, (tenantCount - 4) * 28)
+        : 0;
+      const clampY = (y: number) => {
+        const minY = PANEL_HEADER_INSET;
+        const maxY = vh - PANEL_BOTTOM_INSET - PANEL_H_ESTIMATE;
+        return Math.max(minY, Math.min(maxY, y));
+      };
+      // 1) LEFT of building
+      const leftLx = anchor.left - gapX - PANEL_W;
+      if (leftLx >= PANEL_VIEWPORT_INSET) {
+        return { left: leftLx, top: clampY(anchor.top - gapY - tenantLift), scale };
       }
+      // 2) RIGHT of building (collision-checked against music panel)
+      const rightLx = anchor.right + gapX;
+      if (rightLx + PANEL_W <= safeRightLimit) {
+        return { left: rightLx, top: clampY(anchor.top - gapY - tenantLift), scale };
+      }
+      const centerX = () => {
+        const ideal = (anchor.left + anchor.right) / 2 - PANEL_W / 2;
+        const minX = PANEL_VIEWPORT_INSET;
+        const maxX = Math.min(
+          safeRightLimit - PANEL_W,
+          vw - PANEL_W - PANEL_VIEWPORT_INSET,
+        );
+        return Math.max(minX, Math.min(maxX, ideal));
+      };
+      // 3) ABOVE
+      const aboveTy = anchor.top - gapY - PANEL_H_ESTIMATE;
+      if (aboveTy >= PANEL_HEADER_INSET) {
+        return { left: centerX(), top: aboveTy, scale };
+      }
+      // 4) BELOW
+      const belowTy = anchor.bottom + gapY;
+      if (belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET) {
+        return { left: centerX(), top: belowTy, scale };
+      }
+      // 5) Safe corner
+      return { left: PANEL_VIEWPORT_INSET, top: PANEL_HEADER_INSET, scale };
     }
-    function onResize() {
-      panelTargetRef.current = computeTarget();
-    }
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [bldgAnchor]);
 
-  // rAF chase loop — runs continuously while a panel is mounted.
-  // Uses a frame-rate-independent exponential smoother so motion feels
-  // identical at 60 / 120 / 144 Hz: with halfLifeMs = 110, the panel
-  // covers half the remaining distance to the target every ~110 ms,
-  // creating a critically-damped slide that settles within ~3 frames
-  // of the camera coming to rest.
-  useEffect(() => {
     let raf = 0;
     let prev = performance.now();
-    const HALF_LIFE_MS = 110;
     function step(now: number) {
       const dt = Math.max(1, now - prev);
       prev = now;
-      const t = panelTargetRef.current;
-      const c = panelCurrentRef.current;
-      if (t && c && leftPanelRef.current) {
-        // Frame-rate-independent lerp: alpha = 1 - 0.5^(dt/halfLife)
-        const alpha = 1 - Math.pow(0.5, dt / HALF_LIFE_MS);
-        c.left += (t.left - c.left) * alpha;
-        c.top += (t.top - c.top) * alpha;
-        // Snap when within sub-pixel distance to avoid jittering.
-        if (Math.abs(t.left - c.left) < 0.25) c.left = t.left;
-        if (Math.abs(t.top  - c.top)  < 0.25) c.top  = t.top;
-        leftPanelRef.current.style.left = `${c.left}px`;
-        leftPanelRef.current.style.top = `${c.top}px`;
+      const el = leftPanelRef.current;
+      if (el) {
+        const target = computeTarget(bldgAnchorRef.current);
+        let c = panelCurrentRef.current;
+        if (!c) {
+          // First frame after mount or after selection change → snap
+          // so the panel doesn't visibly fly across the screen.
+          c = { ...target };
+          panelCurrentRef.current = c;
+        } else {
+          // Frame-rate-independent exponential smoother. alpha = 1 -
+          // 0.5^(dt/halfLife) → covers half the remaining distance
+          // every HALF_LIFE_MS regardless of refresh rate.
+          const alpha = 1 - Math.pow(0.5, dt / HALF_LIFE_MS);
+          c.left  += (target.left  - c.left)  * alpha;
+          c.top   += (target.top   - c.top)   * alpha;
+          c.scale += (target.scale - c.scale) * alpha;
+          if (Math.abs(target.left  - c.left)  < 0.25)  c.left  = target.left;
+          if (Math.abs(target.top   - c.top)   < 0.25)  c.top   = target.top;
+          if (Math.abs(target.scale - c.scale) < 0.005) c.scale = target.scale;
+        }
+        el.style.left = `${c.left}px`;
+        el.style.top = `${c.top}px`;
+        el.style.transform = `scale(${c.scale})`;
+        // Zoom-out fog: as the panel shrinks, fade it slightly so it
+        // visually "recedes into the haze" with the building. Subtle
+        // by request — never below 65% opacity, with a touch of
+        // desaturation so colored chips don't pop while everything
+        // else is muted. At scale = 1 (default fit) the panel is
+        // 100% opaque and unfiltered.
+        // Map remaining scale-headroom (1 → MIN_SCALE 0.28) to 0..1
+        // for fog. Keeps the fog curve hitting full strength exactly
+        // when the panel has shrunk to its smallest size.
+        const fogT = Math.max(0, Math.min(1, (1 - c.scale) / 0.72));
+        const opacity  = 1 - fogT * 0.65;       // 1.0 → 0.35
+        const saturate = 1 - fogT * 0.45;       // 1.0 → 0.55
+        const blurPx   = fogT * 1.6;            // 0   → 1.6 px
+        el.style.opacity = `${opacity}`;
+        // IMPORTANT: setting `filter` on the parent breaks the child
+        // halo's `backdrop-filter` (the parent becomes a backdrop
+        // root, so the halo can no longer sample the map behind it).
+        // Only enable the parent filter once fog actually starts —
+        // by that point the panel is shrinking + fading and the halo
+        // is barely visible anyway, so losing it is fine.
+        if (fogT > 0.001) {
+          el.style.filter = `saturate(${saturate}) blur(${blurPx}px)`;
+        } else {
+          el.style.filter = 'none';
+        }
       }
       raf = requestAnimationFrame(step);
     }
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // The projector mutates the ref directly. NO setState → no React
+  // re-renders triggered by camera motion.
+  const onSelectedAnchor = useCallback((a: BuildingScreenAnchor | null) => {
+    bldgAnchorRef.current = a;
   }, []);
   // Apple Look Around convention (Apple HIG, 2026): immersive
   // imagery is shown on-demand, never embedded above the fold. The
@@ -333,18 +519,35 @@ function App() {
     );
   }, []);
 
+  // Live mirror of the latest selected building. Used by the lock
+  // check inside handleBuildingSelect so we always read the CURRENT
+  // selection, never a stale closure value. (The previous useCallback
+  // closure could fall behind during rapid click bursts — child
+  // components like the merged building mesh can fire onClick with
+  // an older handler reference before React's re-render replaces it.
+  // Using a ref sidesteps that race entirely.)
+  const selectedBuildingRef = useRef<OSMBuilding | null>(null);
+  useEffect(() => { selectedBuildingRef.current = selectedBuilding; }, [selectedBuilding]);
+
   const handleBuildingSelect = useCallback((b: OSMBuilding | null) => {
+    // ── Selection lock ──
+    //   1. Clicking a DIFFERENT building → ignored. Must right-click
+    //      to release first.
+    //   2. Re-clicking the SAME building (or stray clicks while the
+    //      user is left-drag-orbiting) → full no-op so the fly-to
+    //      animation never re-fires and yanks the camera back.
+    //   3. Explicit deselect (b === null) → always allowed.
+    const prev = selectedBuildingRef.current;
+    if (b !== null && prev) {
+      if (b.id === prev.id) return; // re-click same → no-op
+      return;                       // switch attempt → blocked
+    }
     setSelectedBuilding(b);
     setGeocodedInfo(null);
     setSanitizedCoord(null);
     if (b) {
       // Mirror the search-bar interaction: any building selection (3D click,
       // search, address-jump) should fly the camera to a consistent framing.
-      // Standard pattern in BIM viewers (xeokit, Forge) and map libraries
-      // (Mapbox flyTo, deck.gl FlyToInterpolator) — clicks are the user's
-      // strongest "I want to see this" signal, so the viewport should follow.
-      // Pass the full footprint so CameraNavigator can orient the 3/4 view
-      // along the building's actual long axis.
       handleNavigate([b.center[0], b.center[1]], b.height, b.footprint);
 
       // Reverse geocode to get real name/address
@@ -415,8 +618,20 @@ function App() {
   }, [liveTimeEnabled, area]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <PlateauScene area={area} navigateTarget={navigateTarget} darkMode={darkMode} sunLightPos={sunLightPos} selectedBuilding={selectedBuilding} onBuildingSelect={handleBuildingSelect} onBuildingsLoaded={setBuildings} onSelectedAnchor={setBldgAnchor} />
+    <div
+      style={{ width: '100vw', height: '100vh', position: 'relative' }}
+      // Right-click anywhere → deselect the current building. Suppresses
+      // the browser context menu so the gesture is purely a "back" /
+      // "close panel" affordance. Does not affect any other state
+      // (camera, area, area chips, music selection persist).
+      onContextMenu={(e) => {
+        if (selectedBuilding) {
+          e.preventDefault();
+          handleBuildingSelect(null);
+        }
+      }}
+    >
+      <PlateauScene area={area} navigateTarget={navigateTarget} darkMode={darkMode} sunLightPos={sunLightPos} selectedBuilding={selectedBuilding} onBuildingSelect={handleBuildingSelect} onBuildingsLoaded={setBuildings} onSelectedAnchor={onSelectedAnchor} />
 
       {/* Logo + Profile */}
       <div
@@ -832,6 +1047,9 @@ function App() {
             });
           }
         }
+        // Mirror final count into the ref read by the panel-target
+        // compute hook so the panel lifts higher when the list is long.
+        tenantCountRef.current = allTenantsList.length;
         const titleId = 'vibloc-place-title';
 
         // ── LEFT INFO PANEL (desktop only) ────────────────────────────
@@ -864,37 +1082,147 @@ function App() {
               // Initial fallback — overwritten on first rAF tick.
               top: '38%',
               left: 360,
-              width: 280,
-              // Cap height so the floating panel never overflows the
-              // viewport on small screens; internal scroll handles
-              // long content (tenant lists, etc.).
-              maxHeight: 'calc(100vh - 120px)',
-              // Intentionally NO CSS transition — rAF lerp manages
-              // motion frame-by-frame for a stutter-free chase.
-              // Transparent — map shows through
-              background: 'transparent',
-              border: 'none',
-              boxShadow: 'none',
-              fontFamily: "'IBM Plex Mono', monospace",
-              color: text,
-              display: 'flex',
-              flexDirection: 'column',
+              width: 320,
+              // Outer wrapper does NOT clip — the soft blur child below
+              // extends past the visible panel on purpose so the mask
+              // can fade outside the content area.
+              overflow: 'visible',
               zIndex: 30,
-              padding: '4px 20px 4px 4px',
-              overflowY: 'auto',
-              // Soft text shadow for readability over varying map content
-              textShadow: darkMode
-                ? '0 1px 2px rgba(0,0,0,0.6)'
-                : '0 1px 2px rgba(255,255,255,0.7)',
+              // The rAF loop writes `transform: scale(...)` here.
+              // Origin = top right so as the panel shrinks (zoom-out)
+              // it collapses TOWARD the building (which sits to the
+              // right of the panel in the dominant left-side
+              // placement), preserving the "upper-left of building"
+              // anchor feel at every zoom level.
+              transformOrigin: 'top right',
+              willChange: 'transform, top, left',
             }}
           >
+            {/* Edgeless backdrop blur — sits behind the panel content
+                with no border, no fill, no visible boundary. The mask
+                is a soft radial gradient so the blur fades to clear at
+                the edges, creating a halo effect around the text
+                without ever drawing a hard rectangle. */}
+            {(() => {
+              // ─────────────────────────────────────────────────────
+              // Progressive (gradient) blur halo — color-free, edgeless
+              // ─────────────────────────────────────────────────────
+              //
+              // Research (kennethnym.com "Progressive blur in CSS",
+              // devslovecoffee.com "Apple progressive blur on web",
+              // Smashing Magazine "CSS Blurry Shimmer Effect"):
+              //
+              // A SINGLE backdrop-filter element — no matter how soft
+              // the mask — has exactly one alpha falloff curve. The
+              // human eye picks that curve up as a halo edge, even
+              // when intellectually the boundary is "soft". The
+              // industry-standard fix is **stacked layers of blur**,
+              // each with a progressively stronger blur radius and
+              // a smaller visible region. Because the layers are
+              // NESTED, every child's backdrop is the parent's already
+              // blurred output, so the blur strength compounds toward
+              // the center while the OUTER region only ever receives
+              // the weakest layer. Result: a smooth gradient of blur
+              // intensity from "no blur" at the very edge to "strong
+              // blur" at the centre — no single boundary to register.
+              //
+              // No `background` color anywhere → fully translucent.
+              // No JS, no remote URLs, no user-input in style strings
+              // → CSP-safe / injection-safe.
+              const FEATHER = 100; // px soft-fade band on every side
+              // Per-layer feather (gradient transition distance). Each
+              // inner layer fades earlier so its blur is concentrated
+              // toward the centre; the outer layer carries the soft
+              // edge alone.
+              const featherFor = (px: number) => `transparent 0,
+                black ${px}px,
+                black calc(100% - ${px}px),
+                transparent 100%`;
+              const softMask = (px: number) =>
+                `linear-gradient(to bottom, ${featherFor(px)}),
+                 linear-gradient(to right,  ${featherFor(px)})`;
+              const maskCommon = {
+                maskComposite: 'intersect' as const,
+                WebkitMaskComposite: 'source-in' as const,
+              };
+              // Three nested layers. Blur compounds because each
+              // child's backdrop is the parent's already-blurred output.
+              // Total at centre ≈ blur(3) + blur(7) + blur(14) → very
+              // soft frosted; at edge only blur(3) is active → barely
+              // perceptible, indistinguishable from "no blur".
+              return (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    top:    -FEATHER,
+                    left:   -FEATHER,
+                    right:  -FEATHER,
+                    bottom: -FEATHER,
+                    pointerEvents: 'none',
+                    zIndex: -1,
+                    // L1 — outermost, weakest blur, widest visible area.
+                    backdropFilter: 'blur(3px)',
+                    WebkitBackdropFilter: 'blur(3px)',
+                    maskImage: softMask(FEATHER),
+                    WebkitMaskImage: softMask(FEATHER),
+                    ...maskCommon,
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: FEATHER * 0.25,
+                      pointerEvents: 'none',
+                      // L2 — middle, medium blur, medium area.
+                      backdropFilter: 'blur(7px)',
+                      WebkitBackdropFilter: 'blur(7px)',
+                      maskImage: softMask(FEATHER * 0.7),
+                      WebkitMaskImage: softMask(FEATHER * 0.7),
+                      ...maskCommon,
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: FEATHER * 0.25,
+                        pointerEvents: 'none',
+                        // L3 — innermost, strongest blur, smallest area
+                        // (sits over the panel content only).
+                        backdropFilter: 'blur(14px)',
+                        WebkitBackdropFilter: 'blur(14px)',
+                        maskImage: softMask(FEATHER * 0.5),
+                        WebkitMaskImage: softMask(FEATHER * 0.5),
+                        ...maskCommon,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+            {/* Scrollable content layer — sits on top of the blur halo. */}
+            <div
+              style={{
+                position: 'relative',
+                maxHeight: 'calc(100vh - 120px)',
+                overflowY: 'auto',
+                padding: '4px 20px 4px 4px',
+                fontFamily: "'IBM Plex Mono', monospace",
+                color: text,
+                display: 'flex',
+                flexDirection: 'column',
+                textShadow: darkMode
+                  ? '0 1px 2px rgba(0,0,0,0.6)'
+                  : '0 1px 2px rgba(255,255,255,0.7)',
+              }}
+            >
             <div style={{
-              fontSize: 9, fontWeight: 700, letterSpacing: 1.4,
-              textTransform: 'uppercase', color: text3, marginBottom: 6,
-              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
+              textTransform: 'uppercase', color: text3, marginBottom: 8,
+              display: 'flex', alignItems: 'center', gap: 7,
             }}>
               <span aria-hidden="true" style={{
-                width: 5, height: 5, borderRadius: '50%',
+                width: 6, height: 6, borderRadius: '50%',
                 background: darkMode ? '#ec4899' : '#db2777', flexShrink: 0,
               }}/>
               {t('panel.place')}
@@ -902,22 +1230,22 @@ function App() {
 
             {kicker ? (
               <div style={{
-                fontSize: 10.5, fontWeight: 600, color: text2, marginBottom: 2,
-                letterSpacing: 0.1, lineHeight: 1.3, wordBreak: 'break-word',
+                fontSize: 13, fontWeight: 600, color: text2, marginBottom: 4,
+                letterSpacing: 0.1, lineHeight: 1.35, wordBreak: 'break-word',
               }}>{kicker}</div>
             ) : null}
 
             <div style={{
-              fontSize: kicker ? 13 : 15, fontWeight: 700, lineHeight: 1.25,
-              letterSpacing: -0.2, color: text, wordBreak: 'break-word',
+              fontSize: kicker ? 17 : 20, fontWeight: 700, lineHeight: 1.25,
+              letterSpacing: -0.3, color: text, wordBreak: 'break-word',
             }}>{title}</div>
 
             {(selectedBuilding.height > 0 || selectedBuilding.levels > 0 || isSkyscraper) ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 {(selectedBuilding.height > 0 || selectedBuilding.levels > 0) ? (
                   <span style={{
-                    fontSize: 9.5, color: text2, fontWeight: 600,
-                    letterSpacing: 0.3, textTransform: 'uppercase', opacity: 0.8,
+                    fontSize: 12, color: text2, fontWeight: 600,
+                    letterSpacing: 0.4, textTransform: 'uppercase', opacity: 0.85,
                   }}>
                     {selectedBuilding.height > 0 ? `${Math.round(selectedBuilding.height)} m` : ''}
                     {selectedBuilding.height > 0 && selectedBuilding.levels > 0 ? ' · ' : ''}
@@ -926,10 +1254,10 @@ function App() {
                 ) : null}
                 {isSkyscraper ? (
                   <span style={{
-                    padding: '1px 6px', borderRadius: 999,
+                    padding: '2px 8px', borderRadius: 999,
                     background: darkMode ? 'rgba(129,140,248,0.18)' : 'rgba(99,102,241,0.12)',
                     color: darkMode ? '#a5b4fc' : '#4f46e5',
-                    fontSize: 8.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase',
+                    fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
                     border: darkMode ? '1px solid rgba(165,180,252,0.25)' : '1px solid rgba(99,102,241,0.25)',
                     textShadow: 'none',
                   }}>{t('panel.skyscraper')}</span>
@@ -938,43 +1266,40 @@ function App() {
             ) : null}
 
             {geocoding && !kicker ? (
-              <div style={{ fontSize: 10, color: text2, marginTop: 8 }} aria-live="polite">
+              <div style={{ fontSize: 12, color: text2, marginTop: 10 }} aria-live="polite">
                 {t('panel.loadingAddr')}
               </div>
             ) : null}
 
-            {/* Map deeplinks — compact row */}
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 10 }}>
-              <a href={_lGURL} target="_blank" rel="noopener noreferrer" style={{
-                fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 700,
-                letterSpacing: 0.3, padding: '3px 8px', borderRadius: 6, textDecoration: 'none',
-                color: darkMode ? '#0a0a0f' : '#fff',
-                background: darkMode ? '#e0e0e8' : '#1a1a2e',
-                textShadow: 'none',
-              }}>Google Maps ↗</a>
-              <a href={_lAURL} target="_blank" rel="noopener noreferrer" style={{
-                fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 700,
-                letterSpacing: 0.3, padding: '3px 8px', borderRadius: 6, textDecoration: 'none',
-                color: text, background: darkMode ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.5)',
-                border: `1px solid ${divider}`, textShadow: 'none',
-                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-              }}>Apple Maps ↗</a>
+            {/* Map deeplinks — single unified Maps toggle.
+                Click → fans the destinations sideways. No colored
+                Google button; every option uses the same ghost pill. */}
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: 12 }}>
               {(() => {
                 const ghostBtn: React.CSSProperties = {
-                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, fontWeight: 700,
-                  letterSpacing: 0.3, padding: '3px 8px', borderRadius: 6, textDecoration: 'none',
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 0.4,
+                  padding: '5px 11px',
+                  borderRadius: 8,
+                  textDecoration: 'none',
                   color: text,
                   background: darkMode ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.5)',
                   border: `1px solid ${divider}`,
-                  whiteSpace: 'nowrap', textShadow: 'none',
-                  backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+                  whiteSpace: 'nowrap',
+                  textShadow: 'none',
+                  backdropFilter: 'blur(6px)',
+                  WebkitBackdropFilter: 'blur(6px)',
                 };
-                const urls: { label: string; href: string }[] = [];
-                if (_lNaverURL) urls.push({ label: '네이버맵', href: _lNaverURL });
-                if (_lKakaoURL) urls.push({ label: '카카오맵', href: _lKakaoURL });
-                if (_lYahooURL) urls.push({ label: 'Yahoo!地図', href: _lYahooURL });
-                if (_lBingURL)  urls.push({ label: 'Bing', href: _lBingURL });
-                return <LocaleDeeplinks urls={urls} ghostBtn={ghostBtn} lang={lang} />;
+                const opts: { label: string; href: string }[] = [];
+                opts.push({ label: 'Google', href: _lGURL });
+                opts.push({ label: 'Apple', href: _lAURL });
+                if (_lNaverURL) opts.push({ label: '네이버', href: _lNaverURL });
+                if (_lKakaoURL) opts.push({ label: '카카오', href: _lKakaoURL });
+                if (_lYahooURL) opts.push({ label: 'Yahoo!地図', href: _lYahooURL });
+                if (_lBingURL)  opts.push({ label: 'Bing', href: _lBingURL });
+                return <MapsToggle options={opts} ghostBtn={ghostBtn} lang={lang} />;
               })()}
             </div>
 
@@ -984,17 +1309,16 @@ function App() {
                 type="button"
                 onClick={() => setStreetViewExpanded(true)}
                 style={{
-                  marginTop: 10, width: '100%', padding: '8px 12px',
-                  borderRadius: 10, border: `1px dashed ${divider}`,
+                  marginTop: 12, width: '100%', padding: '11px 14px',
+                  borderRadius: 12, border: `1px dashed ${divider}`,
                   background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)',
                   backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 9.5, fontWeight: 700,
-                  letterSpacing: 0.5, textTransform: 'uppercase', color: text2,
+                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 700,
+                  letterSpacing: 0.6, textTransform: 'uppercase', color: text2,
                   cursor: 'pointer', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', gap: 6, textShadow: 'none',
+                  justifyContent: 'center', gap: 8, textShadow: 'none',
                 }}
               >
-                <span aria-hidden="true">📷</span>
                 Open Street View
               </button>
             ) : (() => {
@@ -1022,19 +1346,19 @@ function App() {
             {/* ── Tenant list (moved from right panel) ── */}
             {allTenantsList.length > 0 && (
               <div style={{
-                marginTop: 14,
+                marginTop: 16,
                 borderTop: `1px solid ${divider}`,
-                paddingTop: 10,
+                paddingTop: 12,
               }}>
                 <div style={{
-                  fontSize: 8.5, fontWeight: 800, letterSpacing: 0.7,
+                  fontSize: 11, fontWeight: 800, letterSpacing: 0.9,
                   textTransform: 'uppercase', color: text3,
                   fontFamily: "'IBM Plex Mono', monospace",
-                  marginBottom: 6,
+                  marginBottom: 8,
                 }}>
                   {t('panel.tenants') || '입점 정보'}
                 </div>
-                <div role="list" aria-label="Tenants" style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <div role="list" aria-label="Tenants" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {/* "더보기" removed — every tenant is rendered directly. */}
                   {allTenantsList.map((tenant, i) => {
                     const s = swatch(tenant.category);
@@ -1046,9 +1370,9 @@ function App() {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 8,
-                          padding: '4px 6px',
-                          borderRadius: 6,
+                          gap: 10,
+                          padding: '6px 8px',
+                          borderRadius: 8,
                           background: 'transparent',
                           border: 'none',
                           transition: reducedMotion ? 'none' : 'background 150ms ease',
@@ -1063,7 +1387,7 @@ function App() {
                       >
                         <div
                           style={{
-                            width: 22, height: 22, borderRadius: 6,
+                            width: 28, height: 28, borderRadius: 8,
                             background: logoUrl ? 'transparent' : s.fill,
                             border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1071,8 +1395,8 @@ function App() {
                           }}
                         >
                           {logoUrl ? (
-                            <img src={logoUrl} alt="" width={16} height={16}
-                              style={{ objectFit: 'contain', borderRadius: 2 }}
+                            <img src={logoUrl} alt="" width={20} height={20}
+                              style={{ objectFit: 'contain', borderRadius: 3 }}
                               onError={(e) => {
                                 const parent = e.currentTarget.parentElement;
                                 if (parent) {
@@ -1080,24 +1404,24 @@ function App() {
                                   e.currentTarget.replaceWith(
                                     Object.assign(document.createElement('span'), {
                                       textContent: CATEGORY_GLYPH[tenant.category] || '📍',
-                                      style: 'font-size:10px',
+                                      style: 'font-size:13px',
                                     })
                                   );
                                 }
                               }}
                             />
                           ) : (
-                            <span style={{ fontSize: 10 }}>{CATEGORY_GLYPH[tenant.category] || '📍'}</span>
+                            <span style={{ fontSize: 13 }}>{CATEGORY_GLYPH[tenant.category] || '📍'}</span>
                           )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div title={tenant.name} style={{
-                            fontSize: 10, fontWeight: 600, color: text, lineHeight: 1.25,
+                            fontSize: 13, fontWeight: 600, color: text, lineHeight: 1.3,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                           }}>{tenant.name}</div>
                           <div style={{
-                            fontSize: 8, fontWeight: 600, color: text3, marginTop: 0,
-                            letterSpacing: 0.25, textTransform: 'uppercase',
+                            fontSize: 10, fontWeight: 600, color: text3, marginTop: 1,
+                            letterSpacing: 0.3, textTransform: 'uppercase',
                           }}>{translateTagLabel(tenant.label, lang)}</div>
                         </div>
                       </div>
@@ -1106,6 +1430,7 @@ function App() {
                 </div>
               </div>
             )}
+            </div>{/* /scrollable content layer */}
           </div>
         ) : null;
 

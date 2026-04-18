@@ -18,3 +18,20 @@ body.map-active,
 body.map-active #root {
   overflow: hidden;
 }
+
+/* ── Shared motion utilities ──
+   Used by skeleton loaders (Street View while iframe loads, etc.).
+   Same easing language as the floating panel: cubic-bezier(0.22,1,0.36,1)
+   for "soft arrival", linear for steady-state shimmers. */
+@keyframes vibloc-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes vibloc-pulse-dot {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.1);  }
+}
+@keyframes vibloc-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}

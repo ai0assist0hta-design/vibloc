@@ -422,6 +422,14 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
           cArr[v * 2 + 1] = bcz;
         }
         geo.setAttribute('aBuildingCenterXZ', new Float32BufferAttribute(cArr, 2));
+        // Per-building height — lets the focus-ring shader compare each
+        // neighbour to the selected building's height. Used by the
+        // skyscraper-mode rule: when the selected building is tall, we
+        // only fade neighbours that are similar-or-taller, so smaller
+        // surrounding context stays visible.
+        const hArr = new Float32Array(vCount);
+        hArr.fill(building.height);
+        geo.setAttribute('aBuildingHeight', new Float32BufferAttribute(hArr, 1));
         // Per-building residential flag (0=commercial, 1=residential)
         const resArr = new Float32Array(vCount);
         resArr.fill(building.isResidential ?? 0);
@@ -508,6 +516,13 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
       // their normal opacity so the rest of the city stays as context.
       shader.uniforms.uFocusCenterXZ = { value: [0, 0] };
       shader.uniforms.uFocusRadius = { value: 0.0 };
+      // Skyscraper-mode: only fade neighbours whose own height is at
+      // least uHeightFilterMin × uSelectedHeight. With min = 0 this
+      // disables the filter (everything in the ring fades, original
+      // behaviour). With min ≈ 0.85 only similar-or-taller towers
+      // around a skyscraper fade — short surrounding context stays.
+      shader.uniforms.uSelectedHeight = { value: 0.0 };
+      shader.uniforms.uHeightFilterMin = { value: 0.0 };
       _buildingShader = shader;
 
       // Inject varyings
@@ -517,9 +532,11 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
 attribute float aBuildingId;
 attribute vec2 aBuildingCenterXZ;
 attribute float aIsResidential;
+attribute float aBuildingHeight;
 varying float vBuildingId;
 varying vec2 vBuildingCenterXZ;
 varying float vIsResidential;
+varying float vBuildingHeight;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;`
       );
@@ -529,6 +546,7 @@ varying vec3 vWorldNormal;`
 vBuildingId = aBuildingId;
 vBuildingCenterXZ = aBuildingCenterXZ;
 vIsResidential = aIsResidential;
+vBuildingHeight = aBuildingHeight;
 vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
 vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);`
       );
@@ -542,9 +560,12 @@ uniform float uSelectedBuildingId;
 uniform float uFocusActive;
 uniform vec2 uFocusCenterXZ;
 uniform float uFocusRadius;
+uniform float uSelectedHeight;
+uniform float uHeightFilterMin;
 varying float vBuildingId;
 varying vec2 vBuildingCenterXZ;
 varying float vIsResidential;
+varying float vBuildingHeight;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 
@@ -715,7 +736,14 @@ float dxz = distance(vBuildingCenterXZ, uFocusCenterXZ);
 float inRing = (uFocusRadius > 0.0)
   ? step(dxz, uFocusRadius)
   : 0.0;
-float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
+// Height gate: only fade buildings whose own height is at least
+// uHeightFilterMin × selected. With Min = 0 the gate is always 1
+// (original behaviour); with Min ≈ 0.85 only similar-or-taller
+// neighbours fade around a selected skyscraper.
+float heightGate = (uHeightFilterMin <= 0.0)
+  ? 1.0
+  : step(uHeightFilterMin * uSelectedHeight, vBuildingHeight);
+float ghostMask = (1.0 - insideFocus) * inRing * heightGate * step(0.5, uFocusActive);
 if (ghostMask > 0.5) discard;
 
 // ====== Selection glow ======
@@ -754,6 +782,8 @@ if (selFocus > 0.001) {
       shader.uniforms.uFocusActive = { value: 0.0 };
       shader.uniforms.uFocusCenterXZ = { value: [0, 0] };
       shader.uniforms.uFocusRadius = { value: 0.0 };
+      shader.uniforms.uSelectedHeight = { value: 0.0 };
+      shader.uniforms.uHeightFilterMin = { value: 0.0 };
       _ghostShader = shader;
 
       shader.vertexShader = shader.vertexShader.replace(
@@ -761,14 +791,17 @@ if (selFocus > 0.001) {
         `#include <common>
 attribute float aBuildingId;
 attribute vec2 aBuildingCenterXZ;
+attribute float aBuildingHeight;
 varying float vBuildingId;
-varying vec2 vBuildingCenterG;`
+varying vec2 vBuildingCenterG;
+varying float vBuildingHeightG;`
       );
       shader.vertexShader = shader.vertexShader.replace(
         '#include <worldpos_vertex>',
         `#include <worldpos_vertex>
 vBuildingId = aBuildingId;
-vBuildingCenterG = aBuildingCenterXZ;`
+vBuildingCenterG = aBuildingCenterXZ;
+vBuildingHeightG = aBuildingHeight;`
       );
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -778,8 +811,11 @@ uniform float uSelectedBuildingId;
 uniform float uFocusActive;
 uniform vec2 uFocusCenterXZ;
 uniform float uFocusRadius;
+uniform float uSelectedHeight;
+uniform float uHeightFilterMin;
 varying float vBuildingId;
-varying vec2 vBuildingCenterG;`
+varying vec2 vBuildingCenterG;
+varying float vBuildingHeightG;`
       );
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <dithering_fragment>',
@@ -787,7 +823,11 @@ varying vec2 vBuildingCenterG;`
 // Per-OBJECT ring test using the building's own centre (not fragment XZ).
 float dxz = distance(vBuildingCenterG, uFocusCenterXZ);
 float inRing = (uFocusRadius > 0.0) ? step(dxz, uFocusRadius) : 0.0;
-float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
+// Skyscraper-mode height gate (mirrors the opaque pass).
+float heightGate = (uHeightFilterMin <= 0.0)
+  ? 1.0
+  : step(uHeightFilterMin * uSelectedHeight, vBuildingHeightG);
+float ghostMask = (1.0 - insideFocus) * inRing * heightGate * step(0.5, uFocusActive);
 if (ghostMask < 0.5) discard;
 #include <dithering_fragment>`
       );
@@ -843,21 +883,33 @@ if (ghostMask < 0.5) discard;
     }
     _buildingShader.uniforms.uFocusActive.value = focusActiveRef.current;
     _buildingShader.uniforms.uSelectedBuildingId.value = selectedBuildingId;
-    // Push the selected building's centre + a 120 m ghost-ring radius.
-    // 120 m ≈ a tight half-block ring around the selection — close
-    // enough that only the immediate neighbours fade, distant context
-    // stays opaque.
+    // Push the selected building's centre + ghost-ring radius.
+    //   • Default      : 120 m ring, fade EVERY neighbour inside it.
+    //   • Skyscraper   : 200 m ring, fade ONLY similar-or-taller
+    //     neighbours (heightFilterMin = 0.85). Short surrounding
+    //     buildings stay opaque so the user keeps spatial context
+    //     when isolating a tall tower from its peer cluster.
+    // Skyscraper threshold: 80 m ≈ ~22 floors. This roughly matches
+    // the panel's "skyscraper" tag heuristic without requiring us to
+    // pass the full tag list down to the renderer.
     let radius = 0.0;
     let cx = 0, cz = 0;
+    let selectedHeight = 0.0;
+    let heightFilterMin = 0.0;
     if (selectedBuildingId >= 0 && selectedBuildingId < buildings.length) {
-      const center = buildings[selectedBuildingId].center;
-      cx = center[0]; cz = center[1];
-      radius = 120.0;
+      const sel = buildings[selectedBuildingId];
+      cx = sel.center[0]; cz = sel.center[1];
+      selectedHeight = sel.height;
+      const isSkyscraper = sel.height >= 80;
+      radius = isSkyscraper ? 200.0 : 120.0;
+      heightFilterMin = isSkyscraper ? 0.85 : 0.0;
     }
     {
       const c = _buildingShader.uniforms.uFocusCenterXZ.value as number[];
       c[0] = cx; c[1] = cz;
       _buildingShader.uniforms.uFocusRadius.value = radius;
+      _buildingShader.uniforms.uSelectedHeight.value = selectedHeight;
+      _buildingShader.uniforms.uHeightFilterMin.value = heightFilterMin;
     }
     if (_ghostShader) {
       _ghostShader.uniforms.uFocusActive.value = focusActiveRef.current;
@@ -865,6 +917,8 @@ if (ghostMask < 0.5) discard;
       const gc = _ghostShader.uniforms.uFocusCenterXZ.value as number[];
       gc[0] = cx; gc[1] = cz;
       _ghostShader.uniforms.uFocusRadius.value = radius;
+      _ghostShader.uniforms.uSelectedHeight.value = selectedHeight;
+      _ghostShader.uniforms.uHeightFilterMin.value = heightFilterMin;
     }
   });
 
