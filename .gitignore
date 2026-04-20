@@ -23,3 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# ── Third-party assets (license-protected) ──
+# HEADZ avatars by ThreeDee — purchased license forbids redistribution.
+# Each developer regenerates these locally from their own HEADZ purchase
+# via `scripts/headz/setup.sh`. See docs/legal/headz-license.md.
+public/models/headz/*.glb
+public/avatars/headz-thumbs/*.png
+public/avatars/layers/*/*.png
+
+# Vite cache
+.vite/

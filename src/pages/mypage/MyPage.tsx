@@ -20,9 +20,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/useAuthStore';
-import { UserAvatar } from '@/features/auth/UserAvatar';
 import { isDevAdmin } from '@/features/auth/devAdmin';
 import { useProfileData } from '@/features/profile/useProfileData';
+import { AvatarEditor } from '@/features/avatar/AvatarEditor';
+import { AvatarHeadshot } from '@/features/avatar/AvatarHeadshot';
 import { PH } from '@/content/placeholders';
 
 /* ── Tokens ── */
@@ -169,6 +170,7 @@ export function MyPage() {
   });
   const [customTag, setCustomTag] = useState('');
   const [showAllPlaylists, setShowAllPlaylists] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const saveTags = (next: string[]) => {
     setTags(next);
@@ -221,11 +223,20 @@ export function MyPage() {
         fontFamily: sans,
       }}
     >
-      {/* ━━━ PROFILE HEADER ━━━ */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-        <UserAvatar user={user} size={80} className="" />
+      {/* ━━━ PROFILE HEADER ━━━
+          SNS-inspired layout (Twitter / Instagram / Facebook):
+          large 3D HEADZ headshot on the left, name + email + an
+          "프로필 편집" button on the right. Headshot is itself a
+          shortcut to the editor (same pattern as Facebook's
+          pencil-on-photo). */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <AvatarHeadshot
+          userId={user.id}
+          size={96}
+          onClick={() => setEditorOpen(true)}
+        />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <h1
               style={{
                 fontSize: 'clamp(1.25rem, 2.5vw, 1.75rem)',
@@ -259,8 +270,38 @@ export function MyPage() {
           <p style={{ marginTop: 4, fontSize: 13, color: C.text3, lineHeight: 1.4 }}>
             {user.email}
           </p>
+          <button
+            type="button"
+            onClick={() => setEditorOpen(true)}
+            style={{
+              marginTop: 12,
+              padding: '8px 18px',
+              borderRadius: 999,
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: '-0.01em',
+              background: C.cardBg,
+              color: C.ink,
+              border: `1px solid ${C.border}`,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <span aria-hidden="true">🎭</span>
+            프로필 편집
+          </button>
         </div>
       </div>
+
+      {/* HEADZ avatar customizer modal */}
+      <AvatarEditor
+        userId={user.id}
+        userName={user.displayName ?? undefined}
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+      />
 
       {/* ━━━ STATS ━━━
           Same pattern as landing stats — mono numbers + uppercase labels.

@@ -18,7 +18,9 @@ import {
   isPlaylistLikedByMe,
   MIN_PLAYLIST_TRACKS,
 } from '../../../lib/music/buildingPlaylist';
-import { resolveAvatarUrl } from '../../../features/auth/avatar';
+import { rollAvatarForId } from '../../../features/avatar/avatarConfig';
+import { useUserAvatar } from '../../../features/avatar/useUserAvatar';
+import { avatarThumbUrl } from '../../../features/avatar/avatarConfig';
 
 type Props = {
   buildingId: string;
@@ -135,21 +137,12 @@ export function TopTaggerCard({
               {idx + 1}
             </div>
 
-            {/* Avatar */}
-            <img
-              src={resolveAvatarUrl(g.taggerAvatarUrl)}
-              alt={g.taggerName}
-              width={28}
-              height={28}
-              style={{
-                width: 28, height: 28, borderRadius: '50%',
-                objectFit: 'cover',
-                border: `2px solid ${divider}`,
-                boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
-                flexShrink: 0,
-                background: divider,
-              }}
-            />
+            {/* HEADZ portrait — pure <img> from a pre-rendered turntable
+                frame. Cheap (one image fetch, no Canvas/WebGL) so we
+                can show one per row without paying GPU cost. Falls
+                back to the seeded base if the user has never opened
+                the avatar editor. */}
+            <TaggerThumb taggerId={g.taggerId} divider={divider} alt={g.taggerName} />
 
             {/* Name + alias */}
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -211,5 +204,34 @@ export function TopTaggerCard({
         );
       })}
     </div>
+  );
+}
+
+/** Picks the HEADZ thumbnail for a tagger — uses the user's saved
+ *  avatar config when present, otherwise the deterministic roll. */
+function TaggerThumb({
+  taggerId, divider, alt,
+}: {
+  taggerId: string; divider: string; alt: string;
+}) {
+  const saved = useUserAvatar(taggerId);
+  const base = (saved ?? rollAvatarForId(taggerId)).base;
+  return (
+    <img
+      src={avatarThumbUrl(base)}
+      alt={alt}
+      width={28}
+      height={28}
+      loading="lazy"
+      decoding="async"
+      style={{
+        width: 28, height: 28, borderRadius: '50%',
+        objectFit: 'cover',
+        border: `2px solid ${divider}`,
+        boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
+        flexShrink: 0,
+        background: divider,
+      }}
+    />
   );
 }

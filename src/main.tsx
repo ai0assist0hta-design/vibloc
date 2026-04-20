@@ -5,6 +5,11 @@ import { AppProviders } from './app/providers';
 import { seedDevAdmin } from './features/auth/devAdmin';
 import { setUserIdentityProvider } from './lib/music/buildingPlaylist';
 import { useAuthStore } from './features/auth/useAuthStore';
+import { preloadAvatarBases } from './features/avatar/AvatarMesh';
+
+// Preload all 6 HEADZ base GLBs (~1.2MB Draco) so the avatar pops in
+// instantly the first time a building is selected.
+preloadAvatarBases();
 
 // Dev 모드: 어드민 계정 자동 주입 (로그인/회원가입 불필요)
 if (import.meta.env.DEV) {
