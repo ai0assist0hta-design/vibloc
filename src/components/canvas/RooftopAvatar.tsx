@@ -1,34 +1,26 @@
 /**
- * Layered-PNG HEADZ avatar floating above a selected building's rooftop.
+ * 3D HEADZ avatar floating above a selected building's rooftop.
  *
- * This used to mount a Three.js GLB (head-only mesh exported from
- * Blender), but the GLB pipeline was fragile:
- *   • Hair meshes silently dropped when their visibility drivers
- *     said `hide_render=True` at export time
- *   • Eye materials inherited transparent shader nodes → invisible
- *   • Lighting/material debugging never ended
+ * Uses head-only GLBs exported by `scripts/headz/export-head.py`
+ * (Body sliced at the neck). Each GLB ships ALL hair / glasses /
+ * hat / earrings / beard / mustache variants — `<AvatarMesh>`
+ * toggles per-mesh `.visible` based on the user's saved config so
+ * customizer changes appear instantly without re-fetching anything.
  *
- * NEW APPROACH: render the SAME layered PNG composite that the 2D
- * profile customizer uses, but as a flat texture inside a 3D
- * billboard. Result:
- *   • Identical look across rooftop / mypage / tagger card
- *   • Zero GLB loads, zero material/light debugging
- *   • Hair/glasses/hat all show because they're in the layer assets
- *   • Auto-faces the camera (true billboard, locks to camera basis)
- *
- * Sizing/lift logic preserved from the GLB version so existing
- * footprint→head-size feel is unchanged.
+ * Why GLBs and not the layered PNG composite?
+ *   • Real depth + parallax — the head reads as a 3D head, not a
+ *     sticker on a quad.
+ *   • Camera-locked Y-billboard so the face always greets the user.
+ *   • Avatar lights live on a dedicated layer so the world's harsh
+ *     directional sun never crosses onto the cartoon face.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Billboard } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
-import { CanvasTexture, type Group, type Mesh } from 'three';
-import {
-  avatarLayerUrl,
-  rollAvatarForId,
-  type VibAvatarConfig,
-} from '../../features/avatar/avatarConfig';
+import { useFrame, useThree } from '@react-three/fiber';
+import type { Group, Light } from 'three';
+import { AvatarMesh, AVATAR_LAYER } from '../../features/avatar/AvatarMesh';
+import { rollAvatarForId, type VibAvatarConfig } from '../../features/avatar/avatarConfig';
 import { useUserAvatar } from '../../features/avatar/useUserAvatar';
 import {
   useTopTaggers,
@@ -36,14 +28,15 @@ import {
 } from '../../lib/music/buildingPlaylist';
 import type { OSMBuilding } from '../../lib/geo/osmLoader';
 
-// Visible head-size band (world meters).
+// HEADZ head-model anatomy (world units after the neck-cut export)
+const HEAD_NECK_Y   = 1.30;
+const HEAD_CROWN_Y  = 1.62;
+const HEAD_CENTER_Y = (HEAD_NECK_Y + HEAD_CROWN_Y) / 2;        // ≈ 1.46
+const HEAD_HEIGHT   = HEAD_CROWN_Y - HEAD_NECK_Y;              // ≈ 0.32
+
+// Visible head size band (world meters) — driven by the building.
 const HEAD_MIN_M = 5;
 const HEAD_MAX_M = 50;
-
-// Source PNG aspect (matches normalize_layers.py output: 256×280).
-const TEX_W = 256;
-const TEX_H = 280;
-const TEX_ASPECT = TEX_W / TEX_H; // ≈ 0.914
 
 type Props = {
   selectedBuilding: OSMBuilding | null;
@@ -56,13 +49,19 @@ export function RooftopAvatar({ selectedBuilding, groundY }: Props) {
   const top: TaggerGroup | null = taggers[0] ?? null;
   if (!selectedBuilding || !top) return null;
   return (
-    <RooftopAvatarInner
-      building={selectedBuilding}
-      taggerId={top.taggerId}
-      groundY={groundY}
-    />
+    <Suspense fallback={null}>
+      <RooftopAvatarInner
+        building={selectedBuilding}
+        taggerId={top.taggerId}
+        groundY={groundY}
+      />
+    </Suspense>
   );
 }
+
+/** Helper: pin a light to AVATAR_LAYER so it ONLY illuminates avatar
+ *  meshes — the city stays under its own world directional sun. */
+const onLightRef = (l: Light | null) => { if (l) l.layers.set(AVATAR_LAYER); };
 
 function RooftopAvatarInner({
   building,
@@ -73,6 +72,12 @@ function RooftopAvatarInner({
   taggerId: string;
   groundY?: ((x: number, z: number) => number) | null;
 }) {
+  // Make sure the camera renders the avatar layer too.
+  const { camera } = useThree();
+  useEffect(() => {
+    camera.layers.enable(AVATAR_LAYER);
+  }, [camera]);
+
   const sizing = useMemo(() => {
     const fp = building.footprint;
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -91,24 +96,16 @@ function RooftopAvatarInner({
       Math.max(building.height, 0) * 0.12,
     );
     const targetHeadM = Math.max(HEAD_MIN_M, Math.min(HEAD_MAX_M, sizeDriver));
-    const headW = targetHeadM * TEX_ASPECT;
-    const liftAboveRoof = targetHeadM * 0.65;
+    const SCALE = targetHeadM / HEAD_HEIGHT;
+
+    const headRadiusM = targetHeadM / 2;
+    const liftAboveRoof = headRadiusM + targetHeadM * 0.25;
     const groupY = roofY + liftAboveRoof;
 
-    return { roofY, groupY, targetHeadM, headW };
+    return { roofY, groupY, SCALE, targetHeadM };
   }, [building, groundY]);
 
-  // Saved customizer config or deterministic fallback.
-  const saved = useUserAvatar(taggerId);
-  const config = useMemo<VibAvatarConfig>(() => {
-    return saved ?? rollAvatarForId(taggerId);
-  }, [saved, taggerId]);
-
-  // Composite all layer PNGs into a single CanvasTexture so the
-  // billboard renders one quad. Re-runs whenever the config changes.
-  const texture = useLayeredAvatarTexture(config);
-
-  // Idle bob — subtle vertical sway proportional to head size.
+  // Idle bob — proportional to head size so it reads consistently.
   const grpRef = useRef<Group | null>(null);
   useFrame(({ clock }) => {
     if (!grpRef.current) return;
@@ -116,97 +113,75 @@ function RooftopAvatarInner({
     grpRef.current.position.y = sizing.groupY + Math.sin(t * 1.6) * (sizing.targetHeadM * 0.04);
   });
 
-  if (!texture) return null;
+  // Saved customizer config or deterministic fallback. Layered PNG
+  // schema fields (hair/glasses/hat/earrings/beard/mustache) are
+  // identical to what AvatarMesh.isPartVisible() reads, so the GLB
+  // shows the SAME look the user picked in the editor.
+  const saved = useUserAvatar(taggerId);
+  const config = useMemo<VibAvatarConfig>(() => {
+    const picked = saved ?? rollAvatarForId(taggerId);
+    return {
+      base: picked.base,
+      pose: picked.pose,
+      hair: picked.hair ?? 5,
+      glasses: picked.glasses ?? null,
+      hat: picked.hat ?? false,
+      earrings: picked.earrings ?? false,
+      beard: picked.beard ?? null,
+      mustache: picked.mustache ?? null,
+    };
+  }, [saved, taggerId]);
 
+  // Light positions scale with head size for consistent falloff.
+  const L = sizing.targetHeadM;
   return (
     <group ref={grpRef} position={[building.center[0], sizing.groupY, building.center[1]]}>
+      {/*
+        ── Local studio lighting (Memoji-style) ──
+        These lights live on AVATAR_LAYER only. The world's harsh
+        directional sun stays on layer 0 → it never hits the avatar
+        and never casts the cross-eye / dark-eye-socket shadow.
+      */}
+      <ambientLight ref={onLightRef} intensity={0.55} color="#ffffff" />
+      <hemisphereLight ref={onLightRef} args={['#ffffff', '#cdd5e3', 0.45]} />
+      <pointLight
+        ref={onLightRef}
+        position={[L * 0.9, L * 1.2, L * 1.1]}
+        intensity={L * L * 1.4}
+        distance={L * 6}
+        decay={1.6}
+        color="#fff5e6"
+      />
+      <pointLight
+        ref={onLightRef}
+        position={[-L * 0.9, L * 0.8, L * 0.8]}
+        intensity={L * L * 0.7}
+        distance={L * 6}
+        decay={1.6}
+        color="#dde9ff"
+      />
+      <pointLight
+        ref={onLightRef}
+        position={[0, L * 0.7, -L * 1.2]}
+        intensity={L * L * 0.5}
+        distance={L * 5}
+        decay={1.6}
+        color="#ffffff"
+      />
+
+      {/*
+        Billboard rotates only around Y (lockX, lockZ) so the head
+        stays upright while always facing the camera. Inside, scale
+        the model and shift down by HEAD_CENTER_Y so the head's
+        visual centre sits at the group origin.
+      */}
       <Billboard follow lockX lockZ>
-        <mesh>
-          <planeGeometry args={[sizing.headW, sizing.targetHeadM]} />
-          <meshBasicMaterial
-            map={texture}
-            transparent
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
+        <group scale={sizing.SCALE}>
+          <group position={[0, -HEAD_CENTER_Y, 0]}>
+            <AvatarMesh config={config} />
+          </group>
+        </group>
       </Billboard>
     </group>
   );
-}
-
-/** Build a single canvas texture from the avatar's stacked PNG
- *  layers. Returns null until images load. Re-renders when config
- *  changes (the deps key dedupes by content, not object identity). */
-function useLayeredAvatarTexture(config: VibAvatarConfig): CanvasTexture | null {
-  const key = JSON.stringify({
-    base: config.base,
-    hair: config.hair ?? null,
-    glasses: config.glasses ?? null,
-    hat: !!config.hat,
-    earrings: !!config.earrings,
-    beard: config.beard ?? null,
-    mustache: config.mustache ?? null,
-  });
-
-  const [tex, setTex] = useState<CanvasTexture | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    // Layer URLs in z-order (bottom → top).
-    const urls: string[] = [];
-    urls.push(avatarLayerUrl(config.base, 'base')!);
-    if (config.beard)    urls.push(avatarLayerUrl(config.base, 'beard',    config.beard)!);
-    if (config.mustache) urls.push(avatarLayerUrl(config.base, 'mustache', config.mustache)!);
-    if (config.hair)     urls.push(avatarLayerUrl(config.base, 'hair',     config.hair)!);
-    if (config.earrings) urls.push(avatarLayerUrl(config.base, 'earrings')!);
-    if (config.glasses)  urls.push(avatarLayerUrl(config.base, 'glasses',  config.glasses)!);
-    if (config.hat)      urls.push(avatarLayerUrl(config.base, 'hat')!);
-
-    Promise.all(urls.map((u) => loadImage(u))).then((imgs) => {
-      if (cancelled) return;
-      const canvas = document.createElement('canvas');
-      canvas.width = TEX_W;
-      canvas.height = TEX_H;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      for (const img of imgs) {
-        if (!img) continue;
-        ctx.drawImage(img, 0, 0, TEX_W, TEX_H);
-      }
-      const t = new CanvasTexture(canvas);
-      t.needsUpdate = true;
-      // Color space — match the rest of the scene (sRGB).
-      t.colorSpace = 'srgb' as never;
-      setTex((prev) => {
-        prev?.dispose();
-        return t;
-      });
-    }).catch(() => { /* missing layer — ignore, partial composite is fine */ });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-
-  // Cleanup on unmount.
-  useEffect(() => {
-    return () => { tex?.dispose(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return tex;
-}
-
-function loadImage(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
 }

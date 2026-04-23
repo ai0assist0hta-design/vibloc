@@ -44,6 +44,37 @@ ctx = bpy.context
 view_layer = ctx.view_layer
 view_layer_obj_names = {o.name for o in view_layer.objects}
 
+# ── Kill ALL visibility-controlling drivers across every datablock.
+# HEADZ rigs drive Geo_*.hide_render and Mask*.show_render from
+# armature UI bone props. Without this, ANY value we set for
+# `obj.hide_render` is overwritten on the next depsgraph evaluation,
+# so hair/glasses/hat meshes never make it into the export selection.
+# (Same logic as scripts/headz/render_layer.py.)
+def kill_visibility_drivers_on(datablock):
+    n = 0
+    ad = getattr(datablock, 'animation_data', None)
+    if not ad: return 0
+    for d in list(ad.drivers or []):
+        dp = d.data_path
+        if (dp in ('hide_viewport', 'hide_render') or
+            dp.endswith('.show_viewport') or dp.endswith('.show_render') or
+            '.hide_render' in dp or '.hide_viewport' in dp):
+            try: ad.drivers.remove(d)
+            except Exception: d.mute = True
+            n += 1
+    return n
+
+drv_killed = 0
+for prop in dir(bpy.data):
+    coll = getattr(bpy.data, prop, None)
+    if not hasattr(coll, '__iter__'): continue
+    try:
+        for db in coll:
+            drv_killed += kill_visibility_drivers_on(db)
+    except Exception:
+        pass
+print(f"Removed/muted {drv_killed} visibility drivers")
+
 # ── Apply the requested pose action (face expression) ──
 # Each HEADZ pose action lives in bpy.data.actions and stores the
 # face/body shape at frame 72. Setting the armature's action to that
@@ -228,6 +259,13 @@ for obj in bpy.data.objects:
 print(f"  (skipped {skipped_alien} meshes from other characters)")
 
 view_layer.objects.active = body_obj
+
+# Force a clean depsgraph rebuild so the export sees the latest
+# visibility / pose / modifier state. `view_layer.update()` alone
+# misses some toggles in batch context; frame_set is the reliable
+# trigger (per Blender 4.x batch-render best practices).
+ctx.scene.frame_set(ctx.scene.frame_current)
+view_layer.update()
 
 print(f"\nExporting {selected_count} meshes → {out_path}")
 os.makedirs(os.path.dirname(out_path), exist_ok=True)
