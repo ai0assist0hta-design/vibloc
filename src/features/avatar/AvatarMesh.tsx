@@ -79,6 +79,18 @@ export function AvatarMesh({ config }: Props) {
       const after = m.name.replace(/^Geo_(Female|Male)_(white|brown|black)_/i, '');
       const isEye = /^Cartoony Eyes\.[LR]$/.test(after);
       if (isEye) {
+        // Iris/pupil decals: SQUARE plane mesh with a CIRCULAR alpha
+        // texture. We need:
+        //   • transparent: true (so the square corners cut out)
+        //   • alphaTest: 0.5 (discard pixels under threshold so the
+        //     iris reads as a clean circle, not a fuzzy halo)
+        //   • opacity: 1 (HEADZ shader nodes encode opacity=0 by
+        //     default that we don't carry over → without this the
+        //     entire iris vanishes)
+        //   • depthWrite: false (the decal sits in FRONT of the
+        //     sclera; without this, the sclera punches through it)
+        //   • renderOrder: 1 + small polygon offset to win the
+        //     z-fight against the sclera
         const old = m.material as MeshStandardMaterial | MeshStandardMaterial[];
         const swapOne = (orig: MeshStandardMaterial) =>
           new MeshBasicMaterial({
@@ -86,10 +98,13 @@ export function AvatarMesh({ config }: Props) {
             map: orig.map,
             side: orig.side,
             toneMapped: false,
-            transparent: false,
+            transparent: true,
             opacity: 1,
+            alphaTest: 0.5,
+            depthWrite: false,
           });
         m.material = Array.isArray(old) ? old.map(swapOne) : swapOne(old);
+        m.renderOrder = 2;
       }
 
       // Defensive: force the white-sclera mesh to be opaque too —
