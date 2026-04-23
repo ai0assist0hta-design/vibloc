@@ -38,6 +38,66 @@ char_prefix = arm.name.replace('rig-', '').replace('rig_', '').lower()
 # char_prefix examples: 'female_white' / 'male_black'
 print(f"Character: {char_prefix} (from armature '{arm.name}')")
 
+# Optional 3rd arg: a sibling .blend to APPEND missing utility meshes
+# from. HEADZ m-black ships with NO Eyebrow mesh — borrow m-white's
+# so the rendered face has brows. Caller is responsible for choosing
+# a same-gender file (head proportions match).
+donor_blend = argv[2] if len(argv) > 2 else None
+DONOR_PARTS = ('Eyebrow',)  # parts to fill in if missing
+def cross_import_missing(donor_path, parts):
+    """Append donor `Geo_*_<part>` meshes whose part this file lacks.
+    Renames them to the local prefix so isPartVisible matches."""
+    if not donor_path or not os.path.exists(donor_path):
+        return 0
+    have_parts = set()
+    for o in bpy.data.objects:
+        if o.type != 'MESH' or not o.name.startswith('Geo_'): continue
+        after = o.name[len('Geo_'):].lower()
+        for p in parts:
+            if after.endswith('_' + p.lower()) or after.endswith(p.lower()):
+                have_parts.add(p)
+    missing = [p for p in parts if p not in have_parts]
+    if not missing:
+        return 0
+    print(f"Cross-import from {os.path.basename(donor_path)}: {missing}")
+    appended = 0
+    with bpy.data.libraries.load(donor_path, link=False) as (src, dst):
+        # Find donor mesh objects matching missing parts
+        donor_obj_names = []
+        for n in src.objects:
+            for p in missing:
+                if n.startswith('Geo_') and (n.endswith('_' + p) or n.endswith(p)):
+                    donor_obj_names.append(n)
+                    break
+        dst.objects = donor_obj_names
+    # Link appended objects into the active collection + rename to
+    # the local character prefix so the export selection picks them up.
+    for obj in dst.objects:
+        if obj is None: continue
+        bpy.context.collection.objects.link(obj)
+        # Rename Geo_Male_White_Eyebrow → Geo_Male_Black_Eyebrow
+        new = obj.name
+        for old_prefix in ('Geo_Male_White_', 'Geo_Female_White_',
+                           'Geo_Male_Black_', 'Geo_Female_Black_',
+                           'Geo_Male_Brown_', 'Geo_Female_Brown_'):
+            if new.startswith(old_prefix):
+                # Convert char_prefix back to TitleCase
+                title = '_'.join(part.capitalize() for part in char_prefix.split('_'))
+                new = f'Geo_{title}_' + new[len(old_prefix):]
+                break
+        obj.name = new
+        # Strip armature parent (donor's rig is foreign) so it just
+        # sits in head-local position. The mesh's vertices were
+        # authored in the donor's world space at head height; HEADZ
+        # rigs share canonical head Z so this lands close enough.
+        obj.parent = None
+        appended += 1
+        print(f"  appended {obj.name}")
+    return appended
+
+if donor_blend:
+    cross_import_missing(donor_blend, DONOR_PARTS)
+
 NECK_CUT_Z = 1.30  # everything below is removed (torso, arms, hands)
 
 ctx = bpy.context

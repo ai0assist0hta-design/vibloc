@@ -14,7 +14,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { MeshBasicMaterial } from 'three';
+import { Color, MeshBasicMaterial } from 'three';
 import type { Group, Mesh, MeshStandardMaterial } from 'three';
 import { avatarGlbUrl, AVATAR_BASES } from './avatarConfig';
 import type { VibAvatarConfig } from './avatarConfig';
@@ -95,12 +95,17 @@ export function AvatarMesh({ config }: Props) {
       // Defensive: force the white-sclera mesh to be opaque too —
       // its shader-node setup in the original .blend can carry an
       // alpha value of 0 that has the same effect as the iris case.
+      // Also give it a tiny self-emissive so the eyes stay visible
+      // on dark-skinned characters from a distance (Memoji trick:
+      // the sclera glows just enough to read as "eye" in any light).
       const isSclera = /^Eyes$/.test(after);
       if (isSclera) {
         const fix = (mat: MeshStandardMaterial) => {
           mat.transparent = false;
           mat.opacity = 1;
           mat.depthWrite = true;
+          mat.emissive = new Color('#ffffff');
+          mat.emissiveIntensity = 0.18;
           mat.needsUpdate = true;
         };
         const cur = m.material as MeshStandardMaterial | MeshStandardMaterial[];

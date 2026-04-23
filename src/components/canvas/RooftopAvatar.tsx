@@ -134,6 +134,11 @@ function RooftopAvatarInner({
 
   // Light positions scale with head size for consistent falloff.
   const L = sizing.targetHeadM;
+  // Dark-skinned characters need stronger fill so the face features
+  // don't disappear into the silhouette. Boost ambient + key + fill
+  // ~40% for *-black/*-brown bases (Memoji uses the same trick).
+  const isDark = config.base.endsWith('-black') || config.base.endsWith('-brown');
+  const lightBoost = isDark ? 1.4 : 1.0;
   return (
     <group ref={grpRef} position={[building.center[0], sizing.groupY, building.center[1]]}>
       {/*
@@ -142,12 +147,12 @@ function RooftopAvatarInner({
         directional sun stays on layer 0 → it never hits the avatar
         and never casts the cross-eye / dark-eye-socket shadow.
       */}
-      <ambientLight ref={onLightRef} intensity={0.55} color="#ffffff" />
-      <hemisphereLight ref={onLightRef} args={['#ffffff', '#cdd5e3', 0.45]} />
+      <ambientLight ref={onLightRef} intensity={0.55 * lightBoost} color="#ffffff" />
+      <hemisphereLight ref={onLightRef} args={['#ffffff', '#cdd5e3', 0.45 * lightBoost]} />
       <pointLight
         ref={onLightRef}
         position={[L * 0.9, L * 1.2, L * 1.1]}
-        intensity={L * L * 1.4}
+        intensity={L * L * 1.4 * lightBoost}
         distance={L * 6}
         decay={1.6}
         color="#fff5e6"
@@ -155,7 +160,7 @@ function RooftopAvatarInner({
       <pointLight
         ref={onLightRef}
         position={[-L * 0.9, L * 0.8, L * 0.8]}
-        intensity={L * L * 0.7}
+        intensity={L * L * 0.7 * lightBoost}
         distance={L * 6}
         decay={1.6}
         color="#dde9ff"
@@ -163,7 +168,7 @@ function RooftopAvatarInner({
       <pointLight
         ref={onLightRef}
         position={[0, L * 0.7, -L * 1.2]}
-        intensity={L * L * 0.5}
+        intensity={L * L * 0.5 * lightBoost}
         distance={L * 5}
         decay={1.6}
         color="#ffffff"
