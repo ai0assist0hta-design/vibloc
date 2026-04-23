@@ -39,9 +39,12 @@ OUT="$REPO_ROOT/public/models/headz"
 mkdir -p "$OUT"
 
 PY="$SCRIPT_DIR/export-head.py"
-# Default face pose for the avatar. Override via:
-#   POSE="pose 7 (flat face)" ./scripts/headz/setup.sh
-POSE="${POSE:-pose 10 (smiling)}"
+# Default face pose for the avatar. Pose 7 (flat face) keeps eyes
+# wide open — pose 10 (smiling) closes them into squint slits which
+# hides the iris/sclera entirely. For 3D avatars seen from a distance
+# we want eyes visible. Override via:
+#   POSE="pose 10 (smiling)" ./scripts/headz/setup.sh
+POSE="${POSE:-pose 7 (flat face)}"
 
 echo "Blender: $BLENDER"
 echo "Source : $SRC"
@@ -76,7 +79,22 @@ done
 # Male: folder is just "Source files"  (HEADZ pack quirk)
 for v in white black; do
   V=$(echo "$v" | sed 's/.*/\u&/')
-  run_export "$SRC/Source_Files/Source files/$V.blend" "m-$v.glb"
+  # m-black ships with NO Eyebrow mesh in source — borrow m-white's
+  # via the donor 3rd arg so the rendered face has brows.
+  if [[ "$v" == "black" ]]; then
+    DONOR="$SRC/Source_Files/Source files/White.blend"
+    "$BLENDER" --background "$SRC/Source_Files/Source files/$V.blend" \
+      --python "$PY" -- "$OUT/m-$v.glb" "$POSE" "$DONOR" \
+      > /tmp/headz-export-m-$v.log 2>&1 || true
+    if [[ -f "$OUT/m-$v.glb" ]]; then
+      kb=$(du -k "$OUT/m-$v.glb" | awk '{print $1}')
+      echo "→ m-$v.glb (with Eyebrow donor) ok  ${kb}KB"
+    else
+      echo "   FAILED m-$v.glb — see /tmp/headz-export-m-$v.log" >&2
+    fi
+  else
+    run_export "$SRC/Source_Files/Source files/$V.blend" "m-$v.glb"
+  fi
 done
 
 echo
