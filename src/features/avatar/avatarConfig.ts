@@ -83,6 +83,10 @@ export const DEFAULT_AVATAR: VibAvatarConfig = {
 /** Per-base availability of layer variants. Hand-curated from the
  *  bake output (see /tmp/headz-work/layers/<base>/web/). null entries
  *  mean the layer .png does not exist for that base. */
+// AUTO-VERIFIED against actual GLB contents via
+// `node scripts/headz/audit-glb.mjs`. Re-run that script after any
+// re-export to keep this in sync — drift here causes "bald" / "no
+// beard" rolls because the avatar GLB has no matching mesh to show.
 export const LAYER_AVAILABILITY: Record<AvatarBase, {
   hair: number[];
   glasses: number[];
@@ -91,12 +95,12 @@ export const LAYER_AVAILABILITY: Record<AvatarBase, {
   beard: number[];
   mustache: number[];
 }> = {
-  'f-white': { hair: [1,2,3,4,5,6,7,8,9,10], glasses: [1,2,3], hat: true, earrings: true, beard: [], mustache: [] },
-  'f-brown': { hair: [1,2,3,4,5,6,7,8,9,10], glasses: [1,2,3], hat: true, earrings: true, beard: [], mustache: [] },
-  'f-black': { hair: [1,2,3,4,5,6,7,8,9,10], glasses: [1,2,3], hat: true, earrings: true, beard: [], mustache: [] },
-  'm-white': { hair: [1,2,3,4,5,6,7,8,9],    glasses: [1,2,3], hat: true, earrings: false, beard: [1,2,3], mustache: [1,2,3] },
-  'm-brown': { hair: [1,2,4,5,6,7,8,9],      glasses: [1,2,3], hat: true, earrings: false, beard: [],      mustache: [1,2,3] },
-  'm-black': { hair: [1,2,4,5,6,7,8,9],      glasses: [1,2,3], hat: true, earrings: false, beard: [],      mustache: [1,2,3] },
+  'f-white': { hair: [1,2,3,4,5,6,7,9,10],  glasses: [1,2,3], hat: true, earrings: true,  beard: [],    mustache: [] },
+  'f-brown': { hair: [1,2,3,4,5,6,7,9,10],  glasses: [1,2,3], hat: true, earrings: true,  beard: [],    mustache: [] },
+  'f-black': { hair: [1,2,3,4,5,6,7,9,10],  glasses: [1,2,3], hat: true, earrings: true,  beard: [],    mustache: [] },
+  'm-white': { hair: [1,2,3,4,5,6,7,8,9,12],glasses: [1,2,3], hat: true, earrings: false, beard: [1,3], mustache: [1,2,3] },
+  'm-brown': { hair: [1,2,3,4,5,6,7,8,9],   glasses: [1,2,3], hat: true, earrings: false, beard: [],    mustache: [1,2,3] },
+  'm-black': { hair: [1,2,3,4,5,6,7,8,9],   glasses: [1,2,3], hat: true, earrings: false, beard: [],    mustache: [1,2,3] },
 };
 
 /** URL of a single bakedlayer PNG for a (base, part) combo.

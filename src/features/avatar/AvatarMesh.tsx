@@ -191,8 +191,11 @@ function isPartVisible(name: string, cfg: VibAvatarConfig): boolean {
   // "Mustache.001..003" set instead.
   if (/^Moustache\d+$/.test(after)) return false;
 
-  // Hair: match Hair.NNN (1..12) or Hair011/Hair012
-  const hairMatch = after.match(/^Hair\.0*(\d+)$/) || after.match(/^Hair0*(\d+)$/);
+  // Hair: match Hair.NNN, Hair.NNN.MMM (m-black double-suffix
+  // quirk — treat as same idx), or HairNNN (Hair011/Hair012).
+  const hairMatch =
+    after.match(/^Hair\.0*(\d+)(?:\.\d+)?$/) ||
+    after.match(/^Hair0*(\d+)$/);
   if (hairMatch) {
     const idx = parseInt(hairMatch[1], 10);
     return cfg.hair === idx;
