@@ -5,11 +5,15 @@ import { AppProviders } from './app/providers';
 import { seedDevAdmin } from './features/auth/devAdmin';
 import { setUserIdentityProvider } from './lib/music/buildingPlaylist';
 import { useAuthStore } from './features/auth/useAuthStore';
-import { preloadAvatarBases } from './features/avatar/AvatarMesh';
+import { AVATAR_BASES, avatarLayerUrl } from './features/avatar/avatarConfig';
 
-// Preload all 6 HEADZ base GLBs (~1.2MB Draco) so the avatar pops in
-// instantly the first time a building is selected.
-preloadAvatarBases();
+// Warm the avatar PNG-layer cache for every base so the rooftop
+// composite renders instantly on first selection. Just `base.png` is
+// enough — variant layers stream in as the user customizes.
+for (const b of AVATAR_BASES) {
+  const url = avatarLayerUrl(b, 'base');
+  if (url) { const img = new Image(); img.src = url; }
+}
 
 // Dev 모드: 어드민 계정 자동 주입 (로그인/회원가입 불필요)
 if (import.meta.env.DEV) {

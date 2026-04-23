@@ -83,6 +83,33 @@ echo
 echo "All 4 GLBs ready in $OUT"
 ls -la "$OUT"
 
+# ── Per-part PNG layers (used by the layered avatar customizer) ──
+# Bakes head + each variant separately, then normalizes to uniform
+# 256×280 head-centered canvases with diff-extracted alpha layers.
+LAYER_BAKE=/tmp/headz-bake
+LAYER_OUT="$REPO_ROOT/public/avatars/layers"
+LAYER_POSE="${LAYER_POSE:-pose 7 (flat face)}"
+echo
+echo "Baking per-part PNG layers (this takes ~20 min for 4 chars)…"
+echo "  pose: $LAYER_POSE"
+mkdir -p "$LAYER_BAKE"
+for v in white black; do
+  V=$(echo "$v" | sed 's/.*/\u&/')
+  bash "$SCRIPT_DIR/bake-layers.sh" \
+    "$SRC/Source_Files/Female - Source files/$V.blend" \
+    "$LAYER_BAKE/f-$v" "$LAYER_POSE"
+done
+for v in white black; do
+  V=$(echo "$v" | sed 's/.*/\u&/')
+  bash "$SCRIPT_DIR/bake-layers.sh" \
+    "$SRC/Source_Files/Source files/$V.blend" \
+    "$LAYER_BAKE/m-$v" "$LAYER_POSE"
+done
+echo
+echo "Normalizing layers → $LAYER_OUT …"
+python3 "$SCRIPT_DIR/normalize-layers.py" "$LAYER_BAKE" "$LAYER_OUT"
+echo "Done. Layers ready at $LAYER_OUT"
+
 # ── Per-character PNG thumbnails ──
 # Pulled from the official HEADZ render sets (Pose 10 smiling,
 # frontal frames). Used by the lightweight 2D <HeadzThumb>
