@@ -24,7 +24,6 @@ import {
 } from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Text, Billboard } from '@react-three/drei';
-import { RooftopAvatar } from './RooftopAvatar';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {
   fetchOSMBuildings,
@@ -1774,13 +1773,6 @@ export function OSMCity({ area = 'shinjuku', darkMode = false, selectedBuilding 
 
       {/* Buildings */}
       <MergedBuildings buildings={buildings} hm={hm} darkMode={darkMode} selectedBuilding={selectedBuilding} onBuildingClick={onBuildingSelect} />
-
-      {/* HEADZ avatar floating above the selected building (only when
-          that building has a qualifying TOP-1 curator). */}
-      <RooftopAvatar
-        selectedBuilding={selectedBuilding}
-        groundY={hm ? (x, z) => groundHeightAt(x, z, hm) : null}
-      />
 
       {/* Labels */}
       {/* District labels disabled */}

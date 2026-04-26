@@ -18,9 +18,6 @@ import {
   isPlaylistLikedByMe,
   MIN_PLAYLIST_TRACKS,
 } from '../../../lib/music/buildingPlaylist';
-import { rollAvatarForId } from '../../../features/avatar/avatarConfig';
-import { useUserAvatar } from '../../../features/avatar/useUserAvatar';
-import { avatarThumbUrl } from '../../../features/avatar/avatarConfig';
 
 type Props = {
   buildingId: string;
@@ -207,31 +204,32 @@ export function TopTaggerCard({
   );
 }
 
-/** Picks the HEADZ thumbnail for a tagger — uses the user's saved
- *  avatar config when present, otherwise the deterministic roll. */
+/** Initial-letter monogram circle — Slack/Discord style placeholder
+ *  for a tagger's avatar. Background hue is derived from the
+ *  taggerId so the same user always gets the same color. */
 function TaggerThumb({
   taggerId, divider, alt,
 }: {
   taggerId: string; divider: string; alt: string;
 }) {
-  const saved = useUserAvatar(taggerId);
-  const base = (saved ?? rollAvatarForId(taggerId)).base;
+  const initial = (alt || taggerId).trim().charAt(0).toUpperCase() || '?';
+  let h = 0;
+  for (let i = 0; i < taggerId.length; i++) h = (h * 31 + taggerId.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
   return (
-    <img
-      src={avatarThumbUrl(base)}
-      alt={alt}
-      width={28}
-      height={28}
-      loading="lazy"
-      decoding="async"
+    <span
+      aria-label={alt}
       style={{
         width: 28, height: 28, borderRadius: '50%',
-        objectFit: 'cover',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: `hsl(${hue}, 55%, 70%)`,
+        color: '#1a1a2e',
+        fontFamily: "'IBM Plex Mono', monospace",
+        fontSize: 12, fontWeight: 700,
         border: `2px solid ${divider}`,
         boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
         flexShrink: 0,
-        background: divider,
       }}
-    />
+    >{initial}</span>
   );
 }
