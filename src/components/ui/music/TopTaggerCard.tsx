@@ -166,12 +166,7 @@ export function TopTaggerCard({
                       letterSpacing: 0.2,
                     }}
                   >
-                    {customName ? (
-                      <>{g.taggerName}<span style={{ color: text3, margin: '0 5px' }}>·</span></>
-                    ) : (
-                      <><span style={{ color: text3 }}>@</span>{g.alias}<span style={{ color: text3, margin: '0 5px' }}>·</span></>
-                    )}
-                    {g.trackCount}t
+                    {customName ? g.taggerName : <><span style={{ color: text3 }}>@</span>{g.alias}</>}
                   </span>
                 </div>
               );
