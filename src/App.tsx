@@ -203,6 +203,12 @@ function App() {
   const [liveTimeEnabled, setLiveTimeEnabled] = useState(false);
   const [sunLightPos, setSunLightPos] = useState<[number, number, number] | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<OSMBuilding | null>(null);
+  // Tenant list "더보기" toggle — collapsed by default, expanded shows
+  // every tenant. Resets to false whenever the selected building
+  // changes so a new selection always opens with the compact list.
+  const [tenantsExpanded, setTenantsExpanded] = useState(false);
+  useEffect(() => { setTenantsExpanded(false); }, [selectedBuilding?.id]);
+  const TENANT_COLLAPSED_LIMIT = 10;
   // Coordinate sanitized by StreetViewBox's OSM-station Overpass query.
   // When the building's raw entry coord is within ~40 m of a subway /
   // station entrance, this gets shifted ~70 m away in the bearing
@@ -1359,8 +1365,10 @@ function App() {
                   {t('panel.tenants') || '입점 정보'}
                 </div>
                 <div role="list" aria-label="Tenants" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {/* "더보기" removed — every tenant is rendered directly. */}
-                  {allTenantsList.map((tenant, i) => {
+                  {(tenantsExpanded
+                    ? allTenantsList
+                    : allTenantsList.slice(0, TENANT_COLLAPSED_LIMIT)
+                  ).map((tenant, i) => {
                     const s = swatch(tenant.category);
                     const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
                     return (
@@ -1428,6 +1436,31 @@ function App() {
                     );
                   })}
                 </div>
+                {allTenantsList.length > TENANT_COLLAPSED_LIMIT && (
+                  <button
+                    type="button"
+                    onClick={() => setTenantsExpanded((v) => !v)}
+                    style={{
+                      marginTop: 8,
+                      padding: '7px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${divider}`,
+                      background: 'transparent',
+                      color: text2,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: 0.6,
+                      textTransform: 'uppercase',
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      cursor: 'pointer',
+                      width: '100%',
+                    }}
+                  >
+                    {tenantsExpanded
+                      ? `접기 · ${allTenantsList.length}`
+                      : `더보기 +${allTenantsList.length - TENANT_COLLAPSED_LIMIT}`}
+                  </button>
+                )}
               </div>
             )}
             </div>{/* /scrollable content layer */}
@@ -2046,8 +2079,10 @@ function App() {
                     {t('panel.tenants') || '입점 정보'}
                   </div>
                   <div role="list" aria-label="Tenants" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {/* "더보기" removed — render every tenant. */}
-                    {allTenantsList.map((tenant, i) => {
+                    {(tenantsExpanded
+                      ? allTenantsList
+                      : allTenantsList.slice(0, TENANT_COLLAPSED_LIMIT)
+                    ).map((tenant, i) => {
                       const s = swatch(tenant.category);
                       const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
                       return (
@@ -2104,6 +2139,31 @@ function App() {
                       );
                     })}
                   </div>
+                  {allTenantsList.length > TENANT_COLLAPSED_LIMIT && (
+                    <button
+                      type="button"
+                      onClick={() => setTenantsExpanded((v) => !v)}
+                      style={{
+                        marginTop: 10,
+                        padding: '9px 14px',
+                        borderRadius: 10,
+                        border: `1px solid ${divider}`,
+                        background: card,
+                        color: text2,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: 0.6,
+                        textTransform: 'uppercase',
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        cursor: 'pointer',
+                        width: '100%',
+                      }}
+                    >
+                      {tenantsExpanded
+                        ? `접기 · ${allTenantsList.length}`
+                        : `더보기 +${allTenantsList.length - TENANT_COLLAPSED_LIMIT}`}
+                    </button>
+                  )}
                 </div>
               )}
               </div>
