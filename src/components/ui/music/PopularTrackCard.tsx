@@ -1,24 +1,19 @@
 /**
  * PopularTrackCard — top 3 most-popular TRACKs for this building.
  *
- * Distinct from TopTaggerCard (which ranks playlists/curators). This
- * surfaces individual songs with the highest pin/like count so visitors
- * get an immediate "what's the anthem of this place?" hit.
+ * Apple Music-style row: artwork (with hover play/pause overlay) +
+ * title + artist + small mono stat line. The leftmost rank badge
+ * matches TopTaggerCard so the right panel reads as one design system.
  *
- * Scope hierarchy (per row, but uniform within a single render):
- *   - 'building' (이 건물): tracks pinned to this building, ranked by likes
- *   - 'nearby'   (동·구 fallback): when this building has no pins,
- *     fall back to the most-pinned tracks across other buildings
- *
- * Layout matches TopTaggerCard's rank rows so the right panel reads
- * as one design system: ranked badges 1/2/3 in gold/silver/bronze,
- * artwork as the avatar, title + artist + small genre+stats line.
+ * Scope hierarchy applies to the whole list, not per-row:
+ *   - 'building' (이 건물) — tracks pinned here, ranked by likes
+ *   - 'nearby'   (동·구 fallback) — most-pinned across other buildings
  */
 
+import { useState } from 'react';
+import { Play, Pause, MoreHorizontal } from 'lucide-react';
 import { useTopTracks } from '../../../lib/music/buildingPlaylist';
-import { GENRE_COLORS } from '../../../data/genres';
 import { playPreview, usePlayerState } from './PreviewPlayer';
-import { contrastColor } from '../../../lib/ui/contrastColor';
 
 type Props = {
   buildingId: string;
@@ -29,12 +24,11 @@ type Props = {
   darkMode?: boolean;
 };
 
-const RANK_COLORS = ['#f5b301', '#b6b6c1', '#c97a4a'] as const; // gold / silver / bronze
+const RANK_COLORS = ['#f5b301', '#b6b6c1', '#c97a4a'] as const;
 
 export function PopularTrackCard({
-  buildingId, text, text2, text3, divider, darkMode = false,
+  buildingId, text, text2, text3, divider,
 }: Props) {
-  const mode = darkMode ? 'dark' : 'light';
   const tops = useTopTracks(buildingId, 3);
   const player = usePlayerState();
   const scope = tops[0]?.scope ?? 'building';
@@ -83,116 +77,164 @@ export function PopularTrackCard({
           No data yet — pin a track to set the anthem.
         </div>
       ) : (
-        tops.map((p, idx) => {
-          const t = p.track;
-          const baseC = (GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop).color;
-          const c = baseC;                       // for fills (chip bg, play btn ring)
-          const cText = contrastColor(baseC, mode); // for text on the panel BG
-          const isCurrent = player.currentId === t.id && player.isPlaying;
-          const rankColor = RANK_COLORS[idx] ?? RANK_COLORS[2];
-          return (
-            <div
-              key={`${t.id}-${idx}`}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 10px',
-                border: `1px solid ${divider}`,
-                borderRadius: 12,
-                background: isCurrent ? 'rgba(26,26,46,0.05)' : 'transparent',
-                transition: 'background 120ms ease, border-color 150ms ease',
-              }}
-              onMouseEnter={(e) => {
-                if (!isCurrent) e.currentTarget.style.background = 'rgba(26,26,46,0.05)';
-                e.currentTarget.style.borderColor = rankColor + '66';
-              }}
-              onMouseLeave={(e) => {
-                if (!isCurrent) e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.borderColor = divider;
-              }}
-            >
-              {/* Rank badge — same style as TopTaggerCard */}
-              <div
-                aria-hidden="true"
-                style={{
-                  width: 18, height: 18, borderRadius: '50%',
-                  background: rankColor,
-                  color: '#fff',
-                  fontSize: 10, fontWeight: 800,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                {idx + 1}
-              </div>
-
-              <img
-                src={t.artworkUrl}
-                alt=""
-                width={48}
-                height={48}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-                style={{
-                  width: 48, height: 48, borderRadius: 8,
-                  objectFit: 'cover', flexShrink: 0, background: divider,
-                }}
-              />
-              <div style={{
-                flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2,
-              }}>
-                <div style={{
-                  fontSize: 12, fontWeight: 700, color: text,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }} title={t.trackName}>
-                  {t.trackName}
-                </div>
-                <div style={{
-                  fontSize: 10.5, color: text2,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }} title={t.artistName}>
-                  {t.artistName}
-                </div>
-                <div style={{
-                  display: 'flex', gap: 6, alignItems: 'center',
-                  fontSize: 9, fontWeight: 700, color: text3, letterSpacing: 0.4,
-                  marginTop: 1,
-                }}>
-                  <span style={{
-                    padding: '1px 6px', borderRadius: 999,
-                    background: c + '22', color: cText,
-                    textTransform: 'uppercase',
-                  }}>
-                    {(GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop).label.split('/')[0].trim()}
-                  </span>
-                  <span>PIN {p.pinCount}</span>
-                  {p.totalLikes > 0 && (
-                    <span style={{ color: '#ff375f' }}>LIKE {p.totalLikes}</span>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => playPreview(t.id, t.previewUrl)}
-                disabled={!t.previewUrl}
-                aria-pressed={isCurrent}
-                aria-label={isCurrent ? 'Pause preview' : 'Play preview'}
-                style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  border: `1px solid ${isCurrent ? c : divider}`,
-                  background: isCurrent ? c + '22' : 'transparent',
-                  color: isCurrent ? c : text,
-                  fontSize: 14, fontWeight: 700,
-                  cursor: t.previewUrl ? 'pointer' : 'not-allowed',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'inherit', flexShrink: 0,
-                }}
-              >
-                {isCurrent ? '⏸' : '▶'}
-              </button>
-            </div>
-          );
-        })
+        tops.map((p, idx) => (
+          <PopularRow
+            key={`${p.track.id}-${idx}`}
+            rank={idx + 1}
+            popular={p}
+            text={text}
+            text2={text2}
+            text3={text3}
+            divider={divider}
+            isCurrent={player.currentId === p.track.id && player.isPlaying}
+          />
+        ))
       )}
+    </div>
+  );
+}
+
+function PopularRow({
+  rank, popular, text, text2, text3, divider, isCurrent,
+}: {
+  rank: number;
+  popular: ReturnType<typeof useTopTracks>[number];
+  text: string;
+  text2: string;
+  text3: string;
+  divider: string;
+  isCurrent: boolean;
+}) {
+  const [hover, setHover] = useState(false);
+  const t = popular.track;
+  const rankColor = RANK_COLORS[rank - 1] ?? RANK_COLORS[2];
+
+  function handleClick() {
+    if (t.previewUrl) playPreview(t.id, t.previewUrl);
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-label={`Rank ${rank}: ${t.trackName} by ${t.artistName}`}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '6px 10px',
+        border: `1px solid ${hover ? rankColor + '66' : divider}`,
+        borderRadius: 12,
+        background: isCurrent || hover ? 'rgba(26,26,46,0.05)' : 'transparent',
+        transition: 'background 120ms ease, border-color 150ms ease',
+        cursor: t.previewUrl ? 'pointer' : 'default',
+        outline: 'none',
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          width: 18, height: 18, borderRadius: '50%',
+          background: rankColor,
+          color: '#fff',
+          fontSize: 10, fontWeight: 800,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {rank}
+      </div>
+
+      {/* Artwork + hover play overlay */}
+      <span style={{
+        position: 'relative',
+        width: 40, height: 40, borderRadius: 6,
+        flexShrink: 0,
+        background: divider,
+        overflow: 'hidden',
+        display: 'inline-block',
+      }}>
+        <img
+          src={t.artworkUrl}
+          alt=""
+          width={40}
+          height={40}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          style={{ width: 40, height: 40, objectFit: 'cover', display: 'block' }}
+        />
+        {(hover || isCurrent) && (
+          <span
+            aria-hidden="true"
+            style={{
+              position: 'absolute', inset: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0,0,0,0.45)',
+              color: '#fff',
+              pointerEvents: 'none',
+            }}
+          >
+            {isCurrent ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}
+          </span>
+        )}
+      </span>
+
+      <div style={{
+        flex: 1, minWidth: 0,
+        display: 'flex', flexDirection: 'column', gap: 2,
+      }}>
+        <div style={{
+          fontSize: 12.5, fontWeight: 700, color: text,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          lineHeight: 1.3,
+        }} title={t.trackName}>
+          {t.trackName}
+        </div>
+        {/* Single-line "Artist · ♥ N" — Apple Music compact pattern.
+            Pin/genre/scope dropped from the row to clear visual noise. */}
+        <div style={{
+          fontSize: 10.5, color: text2,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          lineHeight: 1.3,
+          display: 'flex', alignItems: 'center', gap: 6,
+        }} title={t.artistName}>
+          <span style={{
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            minWidth: 0, flex: '0 1 auto',
+          }}>
+            {t.artistName}
+          </span>
+          {popular.totalLikes > 0 && (
+            <>
+              <span style={{ color: text3, opacity: 0.6 }}>·</span>
+              <span style={{ color: '#ff375f', whiteSpace: 'nowrap' }}>
+                ♥ {popular.totalLikes}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Subtle ⋯ — appears on hover, doesn't compete for attention */}
+      <span
+        aria-hidden="true"
+        style={{
+          color: text3,
+          opacity: hover ? 1 : 0.35,
+          display: 'inline-flex',
+          transition: 'opacity 120ms ease',
+          flexShrink: 0,
+        }}
+      >
+        <MoreHorizontal size={16} strokeWidth={2} />
+      </span>
     </div>
   );
 }
