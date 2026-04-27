@@ -396,8 +396,7 @@ export function MyPage() {
               padding: '48px 24px',
             }}
           >
-            <p style={{ fontSize: 32, lineHeight: 1 }}>🎵</p>
-            <p style={{ marginTop: 16, fontSize: 14, fontWeight: 500, color: C.text2 }}>
+            <p style={{ marginTop: 0, fontSize: 14, fontWeight: 500, color: C.text2 }}>
               아직 태그한 곡이 없어요
             </p>
             <p style={{ marginTop: 8, fontSize: 12, color: C.text3, lineHeight: 1.5 }}>
@@ -472,7 +471,7 @@ export function MyPage() {
                     ) : arts.length > 0 ? (
                       <img src={arts[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
                     ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🏙</div>
+                      <div style={{ width: '100%', height: '100%', background: C.surface }} />
                     )}
                   </div>
 
@@ -493,7 +492,7 @@ export function MyPage() {
                     )}
                     {topTrack && (
                       <p style={{ fontSize: 11, color: C.text3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
-                        ♪ {topTrack.trackName} — {topTrack.artistName}
+                        {topTrack.trackName} — {topTrack.artistName}
                       </p>
                     )}
                     <p style={{ fontFamily: mono, fontSize: 10, color: C.text3, opacity: 0.6, margin: 0 }}>

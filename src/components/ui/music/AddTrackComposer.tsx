@@ -85,7 +85,7 @@ export function AddTrackComposer({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="🔎 search song or artist…"
+          placeholder="search song or artist…"
           aria-label="Search for a track to pin"
           style={{
             flex: 1,

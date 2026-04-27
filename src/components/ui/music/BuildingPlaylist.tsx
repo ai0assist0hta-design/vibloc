@@ -127,7 +127,6 @@ export function BuildingPlaylist({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span aria-hidden="true">🎧</span>
               <span>
                 <strong style={{ color: text }}>{travelers}</strong> {t('music.travelersVibe')}
               </span>

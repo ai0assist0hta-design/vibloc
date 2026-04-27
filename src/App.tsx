@@ -1411,15 +1411,19 @@ function App() {
                                   parent.style.background = s.fill;
                                   e.currentTarget.replaceWith(
                                     Object.assign(document.createElement('span'), {
-                                      textContent: CATEGORY_GLYPH[tenant.category] || '📍',
-                                      style: 'font-size:13px',
+                                      textContent: CATEGORY_GLYPH[tenant.category] || '·',
+                                      style: "font:700 11px/1 'IBM Plex Mono',monospace;color:#fff;letter-spacing:.4px",
                                     })
                                   );
                                 }
                               }}
                             />
                           ) : (
-                            <span style={{ fontSize: 13 }}>{CATEGORY_GLYPH[tenant.category] || '📍'}</span>
+                            <span style={{
+                              fontFamily: "'IBM Plex Mono', monospace",
+                              fontSize: 11, fontWeight: 700, color: '#fff',
+                              letterSpacing: 0.4,
+                            }}>{CATEGORY_GLYPH[tenant.category] || '·'}</span>
                           )}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1881,7 +1885,6 @@ function App() {
                         }}
                         aria-expanded={false}
                       >
-                        <span aria-hidden="true">📷</span>
                         Open Street View
                       </button>
                     )}
@@ -2114,15 +2117,19 @@ function App() {
                                     parent.style.background = s.fill;
                                     e.currentTarget.replaceWith(
                                       Object.assign(document.createElement('span'), {
-                                        textContent: CATEGORY_GLYPH[tenant.category] || '📍',
-                                        style: 'font-size:16px',
+                                        textContent: CATEGORY_GLYPH[tenant.category] || '·',
+                                        style: "font:700 14px/1 'IBM Plex Mono',monospace;color:#fff;letter-spacing:.4px",
                                       })
                                     );
                                   }
                                 }}
                               />
                             ) : (
-                              <span style={{ fontSize: 16 }}>{CATEGORY_GLYPH[tenant.category] || '📍'}</span>
+                              <span style={{
+                                fontFamily: "'IBM Plex Mono', monospace",
+                                fontSize: 14, fontWeight: 700, color: '#fff',
+                                letterSpacing: 0.4,
+                              }}>{CATEGORY_GLYPH[tenant.category] || '·'}</span>
                             )}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>

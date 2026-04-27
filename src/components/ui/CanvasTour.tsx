@@ -24,17 +24,17 @@ type Step = {
 
 const STEPS: Step[] = [
   {
-    icon: '🖱️',
+    icon: '01',
     title: 'Drag to orbit',
     body: 'Click and drag anywhere to rotate the city.',
   },
   {
-    icon: '⊕',
+    icon: '02',
     title: 'Scroll to zoom',
     body: 'Use the scroll wheel or pinch to get closer.',
   },
   {
-    icon: '🏢',
+    icon: '03',
     title: 'Click a building',
     body: 'Tag music, see the local vibe, open Street View.',
   },

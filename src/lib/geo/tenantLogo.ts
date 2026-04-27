@@ -165,17 +165,20 @@ export function getTenantLogoUrl(
   return null;
 }
 
-/** Category → emoji glyph for fallback avatars */
+/** Category → 1-2 char monogram for fallback tenant tiles. Drawn in
+ *  the tile's category color via the parent's logoUrl-fallback path.
+ *  We deliberately use letters rather than emoji so the panel reads
+ *  as a clean directory listing, not a sticker pack. */
 export const CATEGORY_GLYPH: Record<string, string> = {
-  food: '🍽',
-  shop: '🛍',
-  hotel: '🏨',
-  office: '🏢',
-  entertainment: '🎭',
-  medical: '🏥',
-  education: '🎓',
-  religious: '⛩',
-  government: '🏛',
-  residential: '🏠',
-  other: '📍',
+  food:          'F',
+  shop:          'S',
+  hotel:         'H',
+  office:        'O',
+  entertainment: 'E',
+  medical:       'M',
+  education:     'U',  // U = university / education ("E" already taken)
+  religious:     'R',
+  government:    'G',
+  residential:   'A',  // A = apartment ("R" already taken)
+  other:         '·',
 };

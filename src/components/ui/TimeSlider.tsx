@@ -156,7 +156,7 @@ export function TimeSlider({ area, enabled, onToggle, onSunUpdate, darkMode }: T
         }}
         title="Real-Time Mode"
       >
-        {'\u23F0'} {t('time.realTime')}
+        {t('time.realTime')}
       </button>
 
       {/* Slider panel — only visible when enabled */}

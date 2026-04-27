@@ -1009,8 +1009,8 @@ export const CITY_AREAS = {
   shibuya: { file: '/data/shibuya.json', refLat: 35.659, refLon: 139.701, label: '渋谷 Shibuya' },
   itaewon: { file: '/data/itaewon.json', refLat: 37.536, refLon: 126.995, label: '이태원 Itaewon' },
   gangnam: { file: '/data/gangnam.json', refLat: 37.499, refLon: 127.029, label: '강남 Gangnam' },
-  manhattan: { file: '/data/manhattan.json', refLat: 40.7565, refLon: -73.983, label: '🗽 Manhattan' },
-  la: { file: '/data/la.json', refLat: 34.050, refLon: -118.250, label: '🌴 Los Angeles' },
+  manhattan: { file: '/data/manhattan.json', refLat: 40.7565, refLon: -73.983, label: 'Manhattan' },
+  la: { file: '/data/la.json', refLat: 34.050, refLon: -118.250, label: 'Los Angeles' },
 } as const;
 
 export type CityAreaKey = keyof typeof CITY_AREAS;

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 const cards = [
   {
-    icon: <span className="text-3xl">🌏</span>,
+    icon: <span className="text-3xl font-bold" style={{ color: "#34a763" }}>◇</span>,
     title: "6개 도시, 50,000+ 건물",
     desc: "도쿄 · 서울 · LA · 맨해튼을 3D로 탐험",
   },

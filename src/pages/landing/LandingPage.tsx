@@ -59,7 +59,7 @@ const copy: Record<
     join: '회원가입',
     statsLabel: ['도시', '건물', '장르 패밀리'],
     features: [
-      { icon: '🌏', title: '6개 도시, 50,000+ 건물', desc: '도쿄 · 서울 · LA · 맨해튼을 3D로 탐험' },
+      { icon: '◇', title: '6개 도시, 50,000+ 건물', desc: '도쿄 · 서울 · LA · 맨해튼을 3D로 탐험' },
       { icon: '◆', title: '환경 맞춤 AI 추천', desc: '날씨 · 시간 · 계절 · 테넌트가 플레이리스트를 바꿈' },
       { icon: '●', title: '실시간 동기화', desc: '현재 시간의 태양 · 날씨 · 차트가 도시에 반영' },
       { icon: '♬', title: '7 장르 패밀리', desc: '18개 장르를 7가지 색으로 한눈에' },
@@ -76,7 +76,7 @@ const copy: Record<
     join: 'Sign Up',
     statsLabel: ['Cities', 'Buildings', 'Genre Families'],
     features: [
-      { icon: '🌏', title: '6 Cities, 50,000+ Buildings', desc: 'Explore Tokyo · Seoul · LA · Manhattan in 3D' },
+      { icon: '◇', title: '6 Cities, 50,000+ Buildings', desc: 'Explore Tokyo · Seoul · LA · Manhattan in 3D' },
       { icon: '◆', title: 'Context-Aware AI Picks', desc: 'Weather · time · season · tenants shape your playlist' },
       { icon: '●', title: 'Real-Time Sync', desc: 'Live sun, weather, and charts reflected on the city' },
       { icon: '♬', title: '7 Genre Families', desc: '18 genres mapped to 7 distinct colors at a glance' },
@@ -93,7 +93,7 @@ const copy: Record<
     join: '新規登録',
     statsLabel: ['都市', 'ビル', 'ジャンル'],
     features: [
-      { icon: '🌏', title: '6都市、50,000+ビル', desc: '東京・ソウル・LA・マンハッタンを3Dで探検' },
+      { icon: '◇', title: '6都市、50,000+ビル', desc: '東京・ソウル・LA・マンハッタンを3Dで探検' },
       { icon: '◆', title: '環境適応AIレコメンド', desc: '天気・時間・季節・テナントがプレイリストを変える' },
       { icon: '●', title: 'リアルタイム同期', desc: '現在の太陽・天気・チャートが都市に反映' },
       { icon: '♬', title: '7ジャンルファミリー', desc: '18ジャンルを7色で一目で把握' },

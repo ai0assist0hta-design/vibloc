@@ -53,7 +53,7 @@ export function BuildingPanel() {
 
       <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
         {building.levels}F · {tags.length} tags · {state}
-        {topDj && <span> · 🎧 {topDj}</span>}
+        {topDj && <span> · {topDj}</span>}
       </div>
 
       {/* Floor selector */}

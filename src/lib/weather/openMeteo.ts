@@ -41,7 +41,7 @@ const CACHE_PREFIX = 'vibloc.weather.v1.';
 /**
  * Six visual buckets the UI cares about. Wind is intentionally a
  * separate flag rather than a category so a windy-but-clear day
- * still shows ☀ rather than collapsing into 💨.
+ * still shows CLR rather than collapsing into WIND.
  */
 export type WeatherCategory =
   | 'clear'
@@ -188,18 +188,19 @@ export async function fetchCurrentWeather(
 }
 
 /**
- * Pure helper: pick the emoji for a weather snapshot. Kept here so
- * the UI never has to know about WMO codes or category strings.
+ * Pure helper: short text label for a weather snapshot. Replaces
+ * the earlier emoji glyphs per the 2026-04-27 emoji-free pass — UI
+ * now renders these as monospace uppercase chips.
  */
 export function weatherEmoji(snap: WeatherSnapshot): string {
   switch (snap.category) {
-    case 'clear':   return snap.windy ? '\u{1F324}\u{FE0F}' : '\u2600\u{FE0F}';     // 🌤 / ☀
-    case 'cloudy':  return '\u2601\u{FE0F}';                                         // ☁
-    case 'rain':    return '\u{1F327}\u{FE0F}';                                      // 🌧
-    case 'snow':    return '\u2744\u{FE0F}';                                         // ❄
-    case 'thunder': return '\u26C8\u{FE0F}';                                         // ⛈
-    case 'fog':     return '\u{1F32B}\u{FE0F}';                                      // 🌫
-    default:        return '\u2601\u{FE0F}';
+    case 'clear':   return snap.windy ? 'WIND' : 'CLR';
+    case 'cloudy':  return 'CLD';
+    case 'rain':    return 'RAIN';
+    case 'snow':    return 'SNOW';
+    case 'thunder': return 'STRM';
+    case 'fog':     return 'FOG';
+    default:        return 'CLD';
   }
 }
 
