@@ -53,10 +53,17 @@ export type PinnedTrack = RecommendedTrack & {
 
 export type BuildingPlaylistEntry = {
   tracks: PinnedTrack[];
-  /** Legacy / building-wide description (kept for back-compat). */
+  /** Legacy / building-wide description (kept for back-compat with
+   *  older localStorage payloads — UI no longer surfaces it). */
   description: string;
-  /** Per-tagger comment shown on the playlist detail view. */
+  /** DEPRECATED — kept on disk for back-compat, no longer rendered.
+   *  The note feature was removed 2026-04-27. */
   taggerNotes?: Record<string, string>;
+  /** Per-tagger custom playlist NAME — the only user-editable text on
+   *  a playlist now. Appears on the TopTaggerCard rank rows and as
+   *  the page title in PlaylistDetailView. Empty/missing = falls back
+   *  to the curator's display name. */
+  taggerPlaylistNames?: Record<string, string>;
   /** Per-playlist (per-tagger) likes — userIds who liked the playlist
    *  itself (separate from per-track likes). Surfaces the heart pill
    *  on the TopTaggerCard rank rows. */
@@ -97,6 +104,9 @@ function loadFromStorage(): Store {
           description: typeof entry.description === 'string' ? entry.description : '',
           taggerNotes: entry.taggerNotes && typeof entry.taggerNotes === 'object'
             ? entry.taggerNotes
+            : {},
+          taggerPlaylistNames: entry.taggerPlaylistNames && typeof entry.taggerPlaylistNames === 'object'
+            ? entry.taggerPlaylistNames
             : {},
           playlistLikedBy: entry.playlistLikedBy && typeof entry.playlistLikedBy === 'object'
             ? entry.playlistLikedBy
@@ -445,18 +455,20 @@ export function useTopTrack(buildingId: string): PopularTrack | null {
   return top;
 }
 
-/** Per-tagger comment (the playlist creator's note). */
-export function getTaggerNote(buildingId: string, taggerId: string): string {
-  return store[buildingId]?.taggerNotes?.[taggerId] ?? '';
+/** Per-tagger custom playlist NAME (the only user-editable string on
+ *  a playlist as of 2026-04-27). Empty string = "no custom name set,
+ *  fall back to the curator's display name". */
+export function getTaggerPlaylistName(buildingId: string, taggerId: string): string {
+  return store[buildingId]?.taggerPlaylistNames?.[taggerId] ?? '';
 }
 
-export function setTaggerNote(buildingId: string, taggerId: string, note: string): void {
+export function setTaggerPlaylistName(buildingId: string, taggerId: string, name: string): void {
   const entry = getEntry(buildingId);
   store = {
     ...store,
     [buildingId]: {
       ...entry,
-      taggerNotes: { ...(entry.taggerNotes ?? {}), [taggerId]: note },
+      taggerPlaylistNames: { ...(entry.taggerPlaylistNames ?? {}), [taggerId]: name },
     },
   };
   saveToStorage();
@@ -467,20 +479,20 @@ export function setTaggerNote(buildingId: string, taggerId: string, note: string
 export function useTaggerPlaylist(buildingId: string, taggerId: string): {
   group: TaggerGroup | null;
   tracks: PinnedTrack[];
-  note: string;
-  setNote: (note: string) => void;
+  name: string;
+  setName: (name: string) => void;
   isMine: boolean;
 } {
   const [snap, setSnap] = useState(() => ({
     group: getTaggerGroup(buildingId, taggerId),
     tracks: getTracksByTagger(buildingId, taggerId),
-    note: getTaggerNote(buildingId, taggerId),
+    name: getTaggerPlaylistName(buildingId, taggerId),
   }));
   useEffect(() => {
     const refresh = () => setSnap({
       group: getTaggerGroup(buildingId, taggerId),
       tracks: getTracksByTagger(buildingId, taggerId),
-      note: getTaggerNote(buildingId, taggerId),
+      name: getTaggerPlaylistName(buildingId, taggerId),
     });
     refresh();
     const l: Listener = () => refresh();
@@ -492,7 +504,7 @@ export function useTaggerPlaylist(buildingId: string, taggerId: string): {
   return {
     ...snap,
     isMine: myId === taggerId,
-    setNote: (note: string) => setTaggerNote(buildingId, taggerId, note),
+    setName: (name: string) => setTaggerPlaylistName(buildingId, taggerId, name),
   };
 }
 

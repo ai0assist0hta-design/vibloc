@@ -16,6 +16,7 @@ import {
   useTopTaggers,
   togglePlaylistLike,
   isPlaylistLikedByMe,
+  getTaggerPlaylistName,
   MIN_PLAYLIST_TRACKS,
 } from '../../../lib/music/buildingPlaylist';
 
@@ -140,30 +141,39 @@ export function TopTaggerCard({
                 the avatar editor. */}
             <TaggerThumb taggerId={g.taggerId} divider={divider} alt={g.taggerName} />
 
-            {/* Name + alias */}
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <span
-                style={{
-                  fontSize: 11, fontWeight: 700, color: text,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  letterSpacing: 0.1,
-                }}
-                title={g.taggerName}
-              >
-                {g.taggerName}
-              </span>
-              <span
-                style={{
-                  fontSize: 9, fontWeight: 600, color: text2,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  letterSpacing: 0.3,
-                }}
-              >
-                <span style={{ color: text3 }}>@</span>{g.alias}
-                <span style={{ color: text3, margin: '0 4px' }}>·</span>
-                {g.trackCount}t
-              </span>
-            </div>
+            {/* Playlist name (custom) — falls back to curator name */}
+            {(() => {
+              const customName = getTaggerPlaylistName(buildingId, g.taggerId);
+              const headline = customName || g.taggerName;
+              return (
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <span
+                    style={{
+                      fontSize: 11, fontWeight: 700, color: text,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      letterSpacing: 0.1,
+                    }}
+                    title={headline}
+                  >
+                    {headline}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 9, fontWeight: 600, color: text2,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    {customName ? (
+                      <>{g.taggerName}<span style={{ color: text3, margin: '0 4px' }}>·</span></>
+                    ) : (
+                      <><span style={{ color: text3 }}>@</span>{g.alias}<span style={{ color: text3, margin: '0 4px' }}>·</span></>
+                    )}
+                    {g.trackCount}t
+                  </span>
+                </div>
+              );
+            })()}
 
             {/* Like button — clickable heart pill that stops propagation
                 so it never triggers the row's open-detail handler. */}

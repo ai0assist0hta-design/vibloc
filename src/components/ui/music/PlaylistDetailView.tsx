@@ -1,21 +1,16 @@
 /**
  * PlaylistDetailView — replaces the right-panel body when a top
- * playlist row is clicked. Shows the curator's profile, their note,
- * and the list of tracks they tagged in this building.
+ * playlist row is clicked. Shows the curator's profile, an editable
+ * playlist NAME (curator-only), and the list of tracks they tagged
+ * in this building.
  *
- * Read-only for other people's playlists; if `isMine` the note is
+ * Read-only for other people's playlists; if `isMine` the name is
  * editable inline.
  *
- * Layout
- *   ┌────────────────────────────────────────┐
- *   │  ← back            ❤ 12 · 7 tracks     │
- *   │  ◯  VIBLOC Admin                        │
- *   │     @midnight.tape                       │
- *   │  ─────────────────────────────────────── │
- *   │  "late-night Itaewon walk soundtrack"   │
- *   │  ─────────────────────────────────────── │
- *   │  [TrackRow] [TrackRow] [TrackRow] …     │
- *   └────────────────────────────────────────┘
+ * Note: the free-form curator "comment" feature (taggerNotes) and
+ * the per-building description "글 태그" feature were removed
+ * 2026-04-27. The custom playlist NAME is the only editable string
+ * left on a playlist.
  */
 
 import { useEffect, useState } from 'react';
@@ -23,7 +18,7 @@ import { useTaggerPlaylist, usePlaylist } from '../../../lib/music/buildingPlayl
 import { resolveAvatarUrl } from '../../../features/auth/avatar';
 import { TrackRow } from './TrackRow';
 
-const NOTE_MAX_LEN = 240;
+const NAME_MAX_LEN = 60;
 
 type Props = {
   buildingId: string;
@@ -38,10 +33,10 @@ type Props = {
 export function PlaylistDetailView({
   buildingId, taggerId, text, text2, text3, divider, onBack,
 }: Props) {
-  const { group, tracks, note, setNote, isMine } = useTaggerPlaylist(buildingId, taggerId);
+  const { group, tracks, name, setName, isMine } = useTaggerPlaylist(buildingId, taggerId);
   const playlist = usePlaylist(buildingId);
-  const [draft, setDraft] = useState(note);
-  useEffect(() => { setDraft(note); }, [note, taggerId]);
+  const [draft, setDraft] = useState(name);
+  useEffect(() => { setDraft(name); }, [name, taggerId]);
 
   if (!group) {
     return (
@@ -126,53 +121,51 @@ export function PlaylistDetailView({
         </div>
       </div>
 
-      {/* Curator's comment */}
+      {/* Playlist NAME — only editable string on a playlist. */}
       {isMine ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <textarea
+          <label style={{
+            fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
+            textTransform: 'uppercase', color: text3,
+          }}>
+            플레이리스트 이름
+          </label>
+          <input
+            type="text"
             value={draft}
-            onChange={(e) => setDraft(e.target.value.slice(0, NOTE_MAX_LEN))}
-            onBlur={() => { if (draft !== note) setNote(draft); }}
-            placeholder="Leave a note for visitors… (e.g. 'late-night Itaewon walk')"
-            aria-label="Playlist note"
-            maxLength={NOTE_MAX_LEN}
-            rows={3}
+            onChange={(e) => setDraft(e.target.value.slice(0, NAME_MAX_LEN))}
+            onBlur={() => { if (draft !== name) setName(draft); }}
+            placeholder="이름을 적어주세요… (예: '시부야 오후 산책')"
+            aria-label="Playlist name"
+            maxLength={NAME_MAX_LEN}
             style={{
               width: '100%', boxSizing: 'border-box',
               background: 'transparent',
               border: `1px solid ${divider}`,
               borderRadius: 10, padding: '10px 12px',
-              fontSize: 11.5, lineHeight: 1.5, color: text,
+              fontSize: 13, fontWeight: 600, color: text,
               fontFamily: "'IBM Plex Mono', monospace",
-              resize: 'none', outline: 'none',
+              outline: 'none',
             }}
           />
           <div style={{
             fontSize: 9, color: text3, textAlign: 'right', letterSpacing: 0.4,
           }}>
-            {draft.length}/{NOTE_MAX_LEN}
+            {draft.length}/{NAME_MAX_LEN}
           </div>
         </div>
-      ) : note ? (
+      ) : name ? (
         <div style={{
           padding: '10px 12px',
           borderRadius: 10,
           border: `1px solid ${divider}`,
           background: 'rgba(0,0,0,0.02)',
-          fontSize: 11.5, lineHeight: 1.5, color: text,
-          fontStyle: 'italic',
-          whiteSpace: 'pre-wrap',
+          fontSize: 13, fontWeight: 700, color: text,
+          letterSpacing: 0.2,
         }}>
-          “{note}”
+          {name}
         </div>
-      ) : (
-        <div style={{
-          fontSize: 10, color: text3, fontStyle: 'italic',
-          padding: '4px 0',
-        }}>
-          (no note from the curator)
-        </div>
-      )}
+      ) : null}
 
       {/* Track list */}
       <div style={{

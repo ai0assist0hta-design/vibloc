@@ -23,18 +23,12 @@
  * it tells the user what to do next.
  */
 
-import { useEffect, useState } from 'react';
 import { usePlaylist, MIN_PLAYLIST_TRACKS } from '../../../lib/music/buildingPlaylist';
 import { TrackRow } from './TrackRow';
 import type { CityVibe } from '../../../lib/music/trackTypes';
 import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
 import { useT } from '../../../lib/app/i18n';
-
-/** Description input only unlocks once the playlist itself qualifies
- *  (>= MIN_PLAYLIST_TRACKS). Single-source-of-truth lives in the store. */
-const DESCRIPTION_MIN_TRACKS = MIN_PLAYLIST_TRACKS;
-const DESCRIPTION_MAX_LEN = 140;
 
 type Props = {
   buildingId: string;
@@ -68,14 +62,6 @@ export function BuildingPlaylist({
 }: Props) {
   const t = useT();
   const playlist = usePlaylist(buildingId);
-  // Local draft state so typing isn't gated by every store re-render.
-  // Synced from store on building change OR external mutation.
-  const [draftDesc, setDraftDesc] = useState(playlist.description);
-  useEffect(() => {
-    setDraftDesc(playlist.description);
-  }, [buildingId, playlist.description]);
-
-  const showDescription = playlist.tracks.length >= DESCRIPTION_MIN_TRACKS;
 
   return (
     <div
@@ -202,51 +188,6 @@ export function BuildingPlaylist({
         );
       })}
 
-      {showDescription && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-          <textarea
-            value={draftDesc}
-            onChange={(e) => {
-              const v = e.target.value.slice(0, DESCRIPTION_MAX_LEN);
-              setDraftDesc(v);
-            }}
-            onBlur={() => {
-              if (draftDesc !== playlist.description) {
-                playlist.setDescription(draftDesc);
-              }
-            }}
-            placeholder="describe this playlist… (e.g. 'late-night Itaewon walk')"
-            aria-label="Playlist description"
-            maxLength={DESCRIPTION_MAX_LEN}
-            rows={2}
-            style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              background: 'transparent',
-              border: `1px solid ${divider}`,
-              borderRadius: 8,
-              padding: '8px 10px',
-              fontSize: 11,
-              lineHeight: 1.5,
-              color: text,
-              fontFamily: "'IBM Plex Mono', monospace",
-              resize: 'none',
-              outline: 'none',
-            }}
-          />
-          <div
-            style={{
-              fontSize: 9,
-              color: text3,
-              fontFamily: "'IBM Plex Mono', monospace",
-              textAlign: 'right',
-              letterSpacing: 0.4,
-            }}
-          >
-            {draftDesc.length}/{DESCRIPTION_MAX_LEN}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
