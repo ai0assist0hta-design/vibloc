@@ -1,15 +1,14 @@
 /**
- * Top-Liked Playlists — right panel header (rank 1~3).
+ * Top-Liked Playlists — right-panel section.
  *
- * Shows up to three taggers whose pinned tracks for THIS building have
- * received the most total likes. Each row is clickable → fires
- * `onSelect(taggerId)` so the parent can swap the panel into a detail
- * view of that playlist.
+ * Lists every qualifying tagger for this building, ordered by total
+ * likes (desc). The first 5 are visible; anything beyond scrolls in
+ * place inside a 320px capped pane (matches the tenant-list pattern
+ * — no "더보기" toggle, just scroll).
  *
- * Layout per row:
- *   [#1] [◯ avatar] [Name / @alias · Nt]  [❤ N]
- *
- * Hidden when the building has no pinned tracks yet.
+ * Click a row → opens the detail view for that playlist. The heart
+ * pill (right side) is a nested button that stops propagation so it
+ * adds a like without navigating.
  */
 
 import {
@@ -29,12 +28,15 @@ type Props = {
   onSelect: (taggerId: string) => void;
 };
 
-const RANK_COLORS = ['#f5b301', '#b6b6c1', '#c97a4a'] as const; // gold / silver / bronze
+const VISIBLE_BEFORE_SCROLL = 5;
+const SCROLL_MAX_PX = 320;
 
 export function TopTaggerCard({
   buildingId, text, text2, text3, divider, onSelect,
 }: Props) {
-  const ranked = useTopTaggers(buildingId, 3);
+  // Fetch a generous pool; the scroll pane handles the overflow.
+  const ranked = useTopTaggers(buildingId, 50);
+  const overflow = ranked.length > VISIBLE_BEFORE_SCROLL;
 
   return (
     <div
@@ -53,9 +55,11 @@ export function TopTaggerCard({
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         TOP PLAYLISTS
-        <span style={{ color: text3, opacity: 0.6, marginLeft: 'auto', letterSpacing: 0.6 }}>
-          {ranked.length}/3
-        </span>
+        {ranked.length > 0 && (
+          <span style={{ color: text3, opacity: 0.6, marginLeft: 'auto', letterSpacing: 0.6 }}>
+            {ranked.length}
+          </span>
+        )}
       </div>
 
       {ranked.length === 0 && (
@@ -77,12 +81,20 @@ export function TopTaggerCard({
         </div>
       )}
 
-      {ranked.map((g, idx) => {
-        const rankColor = RANK_COLORS[idx];
+      <div
+        style={{
+          display: 'flex', flexDirection: 'column', gap: 2,
+          maxHeight: overflow ? SCROLL_MAX_PX : undefined,
+          overflowY: overflow ? 'auto' : undefined,
+          paddingRight: overflow ? 4 : 0,
+          maskImage: overflow
+            ? 'linear-gradient(to bottom, black 92%, transparent)' : undefined,
+          WebkitMaskImage: overflow
+            ? 'linear-gradient(to bottom, black 92%, transparent)' : undefined,
+        }}
+      >
+      {ranked.map((g) => {
         const liked = isPlaylistLikedByMe(buildingId, g.taggerId);
-        // Whole row is clickable → opens detail. Heart pill is a nested
-        // button that stops propagation so it adds a like WITHOUT
-        // navigating into the playlist.
         return (
           <div
             key={g.taggerId}
@@ -95,7 +107,7 @@ export function TopTaggerCard({
                 onSelect(g.taggerId);
               }
             }}
-            aria-label={`Open playlist by ${g.taggerName}, rank ${idx + 1}, ${g.totalLikes} likes`}
+            aria-label={`Open playlist by ${g.taggerName}, ${g.totalLikes} likes`}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -116,26 +128,6 @@ export function TopTaggerCard({
               e.currentTarget.style.background = 'transparent';
             }}
           >
-            {/* Rank badge */}
-            <div
-              aria-hidden="true"
-              style={{
-                width: 18, height: 18, borderRadius: '50%',
-                background: rankColor,
-                color: '#fff',
-                fontSize: 10, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {idx + 1}
-            </div>
-
-            {/* HEADZ portrait — pure <img> from a pre-rendered turntable
-                frame. Cheap (one image fetch, no Canvas/WebGL) so we
-                can show one per row without paying GPU cost. Falls
-                back to the seeded base if the user has never opened
-                the avatar editor. */}
             <TaggerThumb taggerId={g.taggerId} divider={divider} alt={g.taggerName} />
 
             {/* Playlist name (custom) — bigger headline, curator name
@@ -202,6 +194,7 @@ export function TopTaggerCard({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
