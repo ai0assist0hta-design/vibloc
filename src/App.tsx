@@ -2075,6 +2075,7 @@ function App() {
                 text2={text2}
                 text3={text3}
                 divider={divider}
+                onOpenDetail={(id) => setDetailTaggerId(id)}
               />
               </>)}
 
