@@ -391,27 +391,26 @@ export type PopularTrack = {
   buildingCount: number;
 };
 
-/** Most popular track for a building.
+/** Top N popular tracks for a building.
  *  Within the building → ranked by likes (each track appears once).
  *  When the building has no pins → falls back to global pin count. */
-export function getTopTrack(buildingId: string): PopularTrack | null {
-  // 1) Per-building — pick the track with the most likes (then most recent).
+export function getTopTracks(buildingId: string, n = 3): PopularTrack[] {
+  // 1) Per-building — sort by likes desc, then most recent.
   const local = store[buildingId]?.tracks ?? [];
   if (local.length > 0) {
-    const top = [...local].sort((a, b) =>
-      (b.likes ?? 0) - (a.likes ?? 0) || b.pinnedAt - a.pinnedAt
-    )[0];
-    return {
-      track: top,
-      scope: 'building',
-      pinCount: 1,
-      totalLikes: top.likes ?? 0,
-      buildingCount: 1,
-    };
+    return [...local]
+      .sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0) || b.pinnedAt - a.pinnedAt)
+      .slice(0, n)
+      .map((t) => ({
+        track: t,
+        scope: 'building' as const,
+        pinCount: 1,
+        totalLikes: t.likes ?? 0,
+        buildingCount: 1,
+      }));
   }
 
-  // 2) Fallback — count pins across every other building. Treat each
-  //    distinct (buildingId, trackId) as one "addition to a playlist".
+  // 2) Fallback — aggregate across every other building.
   const counts = new Map<string, {
     track: PinnedTrack; pinCount: number; totalLikes: number;
   }>();
@@ -430,17 +429,36 @@ export function getTopTrack(buildingId: string): PopularTrack | null {
       }
     }
   }
-  if (counts.size === 0) return null;
-  const top = [...counts.values()].sort((a, b) =>
-    b.pinCount - a.pinCount || b.totalLikes - a.totalLikes
-  )[0];
-  return {
-    track: top.track,
-    scope: 'nearby',
-    pinCount: top.pinCount,
-    totalLikes: top.totalLikes,
-    buildingCount: buildingsSeen,
-  };
+  if (counts.size === 0) return [];
+  return [...counts.values()]
+    .sort((a, b) => b.pinCount - a.pinCount || b.totalLikes - a.totalLikes)
+    .slice(0, n)
+    .map((c) => ({
+      track: c.track,
+      scope: 'nearby' as const,
+      pinCount: c.pinCount,
+      totalLikes: c.totalLikes,
+      buildingCount: buildingsSeen,
+    }));
+}
+
+/** Back-compat single-top accessor — uses `getTopTracks` under the hood. */
+export function getTopTrack(buildingId: string): PopularTrack | null {
+  return getTopTracks(buildingId, 1)[0] ?? null;
+}
+
+export function useTopTracks(buildingId: string, n = 3): PopularTrack[] {
+  const [tops, setTops] = useState<PopularTrack[]>(
+    () => getTopTracks(buildingId, n),
+  );
+  useEffect(() => {
+    const refresh = () => setTops(getTopTracks(buildingId, n));
+    refresh();
+    const l: Listener = () => refresh();
+    listeners.add(l);
+    return () => { listeners.delete(l); };
+  }, [buildingId, n]);
+  return tops;
 }
 
 export function useTopTrack(buildingId: string): PopularTrack | null {
