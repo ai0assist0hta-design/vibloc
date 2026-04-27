@@ -16,6 +16,7 @@ import type { CityVibe } from '../../../lib/music/trackTypes';
 import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
 import { useT } from '../../../lib/app/i18n';
+import { contrastColor } from '../../../lib/ui/contrastColor';
 
 type Props = {
   vibe: CityVibe;
@@ -25,9 +26,11 @@ type Props = {
   text3: string;
   /** 1px divider color from the parent. */
   divider: string;
+  darkMode?: boolean;
 };
 
-export function CityVibeBlock({ vibe, text, text3, divider }: Props) {
+export function CityVibeBlock({ vibe, text, text3, divider, darkMode = false }: Props) {
+  const mode = darkMode ? 'dark' : 'light';
   const t = useT();
   return (
     <div
@@ -86,7 +89,7 @@ export function CityVibeBlock({ vibe, text, text3, divider }: Props) {
                 padding: '3px 9px',
                 borderRadius: 999,
                 background: fam.color + '22',
-                color: fam.color,
+                color: contrastColor(fam.color, mode),
                 fontSize: 10.5,
                 fontWeight: 700,
                 letterSpacing: 0.4,

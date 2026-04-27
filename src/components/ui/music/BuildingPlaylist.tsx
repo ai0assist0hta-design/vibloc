@@ -33,6 +33,7 @@ import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
 import { useT } from '../../../lib/app/i18n';
 import { useAuthStore } from '../../../features/auth/useAuthStore';
+import { contrastColor } from '../../../lib/ui/contrastColor';
 
 type Props = {
   buildingId: string;
@@ -43,6 +44,7 @@ type Props = {
   text2: string;
   text3: string;
   divider: string;
+  darkMode?: boolean;
   /** Open my-playlist detail (full track list + name editor). */
   onOpenDetail?: (taggerId: string) => void;
 };
@@ -65,8 +67,10 @@ export function BuildingPlaylist({
   text2,
   text3,
   divider,
+  darkMode = false,
   onOpenDetail,
 }: Props) {
+  const mode = darkMode ? 'dark' : 'light';
   const t = useT();
   const playlist = usePlaylist(buildingId);
   const user = useAuthStore((s) => s.user);
@@ -92,7 +96,7 @@ export function BuildingPlaylist({
       const fam = getFamily(top[0]);
       topGenreLabel = (GENRE_COLORS[top[0]]?.label ?? '').split('/')[0].trim()
         || fam.label;
-      topGenreColor = fam.color;
+      topGenreColor = contrastColor(fam.color, mode);
     }
   }
 
@@ -182,7 +186,7 @@ export function BuildingPlaylist({
                         padding: '3px 9px',
                         borderRadius: 999,
                         background: fam.color + '22',
-                        color: fam.color,
+                        color: contrastColor(fam.color, mode),
                         fontSize: 10,
                         fontWeight: 700,
                         letterSpacing: 0.4,

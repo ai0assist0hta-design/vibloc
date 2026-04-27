@@ -2023,6 +2023,7 @@ function App() {
                 text={text}
                 text3={text3}
                 divider={divider}
+                darkMode={darkMode}
               />
 
               <AddTrackComposer
@@ -2053,6 +2054,7 @@ function App() {
                 text2={text2}
                 text3={text3}
                 divider={divider}
+                darkMode={darkMode}
               />
 
               <RecommendedList
@@ -2075,6 +2077,7 @@ function App() {
                 text2={text2}
                 text3={text3}
                 divider={divider}
+                darkMode={darkMode}
                 onOpenDetail={(id) => setDetailTaggerId(id)}
               />
               </>)}

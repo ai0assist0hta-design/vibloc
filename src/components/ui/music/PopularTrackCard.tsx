@@ -18,6 +18,7 @@
 import { useTopTracks } from '../../../lib/music/buildingPlaylist';
 import { GENRE_COLORS } from '../../../data/genres';
 import { playPreview, usePlayerState } from './PreviewPlayer';
+import { contrastColor } from '../../../lib/ui/contrastColor';
 
 type Props = {
   buildingId: string;
@@ -25,13 +26,15 @@ type Props = {
   text2: string;
   text3: string;
   divider: string;
+  darkMode?: boolean;
 };
 
 const RANK_COLORS = ['#f5b301', '#b6b6c1', '#c97a4a'] as const; // gold / silver / bronze
 
 export function PopularTrackCard({
-  buildingId, text, text2, text3, divider,
+  buildingId, text, text2, text3, divider, darkMode = false,
 }: Props) {
+  const mode = darkMode ? 'dark' : 'light';
   const tops = useTopTracks(buildingId, 3);
   const player = usePlayerState();
   const scope = tops[0]?.scope ?? 'building';
@@ -82,7 +85,9 @@ export function PopularTrackCard({
       ) : (
         tops.map((p, idx) => {
           const t = p.track;
-          const c = (GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop).color;
+          const baseC = (GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop).color;
+          const c = baseC;                       // for fills (chip bg, play btn ring)
+          const cText = contrastColor(baseC, mode); // for text on the panel BG
           const isCurrent = player.currentId === t.id && player.isPlaying;
           const rankColor = RANK_COLORS[idx] ?? RANK_COLORS[2];
           return (
@@ -154,7 +159,7 @@ export function PopularTrackCard({
                 }}>
                   <span style={{
                     padding: '1px 6px', borderRadius: 999,
-                    background: c + '22', color: c,
+                    background: c + '22', color: cText,
                     textTransform: 'uppercase',
                   }}>
                     {(GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop).label.split('/')[0].trim()}
