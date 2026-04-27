@@ -16,6 +16,7 @@
     "@react-three/postprocessing": "^3.0.4",
     "3d-tiles-renderer": "^0.4.23",
     "framer-motion": "^12.38.0",
+    "lucide-react": "^1.11.0",
     "n8ao": "^1.10.1",
     "postprocessing": "^6.39.0",
     "react": "^19.2.4",

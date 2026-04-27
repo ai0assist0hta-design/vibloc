@@ -187,22 +187,8 @@ export async function fetchCurrentWeather(
   }
 }
 
-/**
- * Pure helper: short text label for a weather snapshot. Replaces
- * the earlier emoji glyphs per the 2026-04-27 emoji-free pass — UI
- * now renders these as monospace uppercase chips.
- */
-export function weatherEmoji(snap: WeatherSnapshot): string {
-  switch (snap.category) {
-    case 'clear':   return snap.windy ? 'WIND' : 'CLR';
-    case 'cloudy':  return 'CLD';
-    case 'rain':    return 'RAIN';
-    case 'snow':    return 'SNOW';
-    case 'thunder': return 'STRM';
-    case 'fog':     return 'FOG';
-    default:        return 'CLD';
-  }
-}
+// (removed `weatherEmoji` 2026-04-27 — UI now renders Lucide icons
+//  directly via `weatherIcon` in components/ui/TimeSlider.tsx.)
 
 /**
  * Human-readable label, used as the tooltip on the indicator. Kept

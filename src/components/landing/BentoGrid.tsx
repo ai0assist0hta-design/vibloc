@@ -1,53 +1,35 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Globe, Sparkles, Activity, Music } from "lucide-react";
 
 const cards = [
   {
-    icon: <span className="text-3xl font-bold" style={{ color: "#34a763" }}>◇</span>,
+    icon: <Globe size={28} strokeWidth={1.6} style={{ color: "#34a763" }} />,
     title: "6개 도시, 50,000+ 건물",
     desc: "도쿄 · 서울 · LA · 맨해튼을 3D로 탐험",
   },
   {
-    icon: (
-      <span className="text-3xl font-bold" style={{ color: "#ff2d6f" }}>
-        ◆
-      </span>
-    ),
+    icon: <Sparkles size={28} strokeWidth={1.6} style={{ color: "#ff2d6f" }} />,
     title: "환경 맞춤 AI 추천",
     desc: "날씨 · 시간 · 계절 · 건물 테넌트가 플레이리스트를 바꿈",
   },
   {
     icon: (
       <motion.span
-        className="inline-block text-2xl"
+        className="inline-flex"
         style={{ color: "#4CAF50" }}
-        animate={{ opacity: [1, 0.3, 1] }}
+        animate={{ opacity: [1, 0.4, 1] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        ●
+        <Activity size={28} strokeWidth={1.6} />
       </motion.span>
     ),
     title: "실시간 동기화",
     desc: "현재 시간의 태양 · 날씨 · 차트가 도시에 반영",
   },
   {
-    icon: (
-      <span className="inline-flex items-center gap-1.5">
-        <span
-          className="inline-block h-3 w-3 rounded-full"
-          style={{ backgroundColor: "#ff2d6f" }}
-        />
-        <span
-          className="inline-block h-3 w-3 rounded-full"
-          style={{ backgroundColor: "#7b5cff" }}
-        />
-        <span
-          className="inline-block h-3 w-3 rounded-full"
-          style={{ backgroundColor: "#00b3c4" }}
-        />
-      </span>
-    ),
+    icon: <Music size={28} strokeWidth={1.6} style={{ color: "#7b5cff" }} />,
     title: "7 장르 패밀리",
     desc: "18개 장르를 7가지 색으로 한눈에",
   },

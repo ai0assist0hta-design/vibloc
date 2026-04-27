@@ -25,7 +25,8 @@ import { PopularTrackCard } from './components/ui/music/PopularTrackCard';
 import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
-import { getTenantLogoUrl, CATEGORY_GLYPH } from './lib/geo/tenantLogo';
+import { getTenantLogoUrl, CATEGORY_ICON } from './lib/geo/tenantLogo';
+import { MapPin } from 'lucide-react';
 import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetview/streetViewViewpoint';
 import { loadAppleGenreColors } from './lib/music/genreColorSource';
 import { useArtworkTint } from './lib/music/headerTint';
@@ -1406,25 +1407,33 @@ function App() {
                             <img src={logoUrl} alt="" width={20} height={20}
                               style={{ objectFit: 'contain', borderRadius: 3 }}
                               onError={(e) => {
+                                // Hide the broken img + reveal the icon
+                                // sibling rendered below it.
+                                e.currentTarget.style.display = 'none';
                                 const parent = e.currentTarget.parentElement;
                                 if (parent) {
                                   parent.style.background = s.fill;
-                                  e.currentTarget.replaceWith(
-                                    Object.assign(document.createElement('span'), {
-                                      textContent: CATEGORY_GLYPH[tenant.category] || '·',
-                                      style: "font:700 11px/1 'IBM Plex Mono',monospace;color:#fff;letter-spacing:.4px",
-                                    })
-                                  );
+                                  const fallback = parent.querySelector(
+                                    '[data-tenant-icon]'
+                                  ) as HTMLElement | null;
+                                  if (fallback) fallback.style.display = 'flex';
                                 }
                               }}
                             />
-                          ) : (
-                            <span style={{
-                              fontFamily: "'IBM Plex Mono', monospace",
-                              fontSize: 11, fontWeight: 700, color: '#fff',
-                              letterSpacing: 0.4,
-                            }}>{CATEGORY_GLYPH[tenant.category] || '·'}</span>
-                          )}
+                          ) : null}
+                          {(() => {
+                            const Icon = CATEGORY_ICON[tenant.category] ?? MapPin;
+                            return (
+                              <span data-tenant-icon style={{
+                                display: logoUrl ? 'none' : 'flex',
+                                alignItems: 'center', justifyContent: 'center',
+                                color: '#fff',
+                                position: logoUrl ? 'absolute' : 'static',
+                              }}>
+                                <Icon size={16} strokeWidth={2} />
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div title={tenant.name} style={{
@@ -2112,25 +2121,31 @@ function App() {
                               <img src={logoUrl} alt="" width={28} height={28}
                                 style={{ objectFit: 'contain', borderRadius: 4 }}
                                 onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
                                   const parent = e.currentTarget.parentElement;
                                   if (parent) {
                                     parent.style.background = s.fill;
-                                    e.currentTarget.replaceWith(
-                                      Object.assign(document.createElement('span'), {
-                                        textContent: CATEGORY_GLYPH[tenant.category] || '·',
-                                        style: "font:700 14px/1 'IBM Plex Mono',monospace;color:#fff;letter-spacing:.4px",
-                                      })
-                                    );
+                                    const fallback = parent.querySelector(
+                                      '[data-tenant-icon]'
+                                    ) as HTMLElement | null;
+                                    if (fallback) fallback.style.display = 'flex';
                                   }
                                 }}
                               />
-                            ) : (
-                              <span style={{
-                                fontFamily: "'IBM Plex Mono', monospace",
-                                fontSize: 14, fontWeight: 700, color: '#fff',
-                                letterSpacing: 0.4,
-                              }}>{CATEGORY_GLYPH[tenant.category] || '·'}</span>
-                            )}
+                            ) : null}
+                            {(() => {
+                              const Icon = CATEGORY_ICON[tenant.category] ?? MapPin;
+                              return (
+                                <span data-tenant-icon style={{
+                                  display: logoUrl ? 'none' : 'flex',
+                                  alignItems: 'center', justifyContent: 'center',
+                                  color: '#fff',
+                                  position: logoUrl ? 'absolute' : 'static',
+                                }}>
+                                  <Icon size={20} strokeWidth={2} />
+                                </span>
+                              );
+                            })()}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div title={tenant.name} style={{

@@ -12,8 +12,13 @@ import {
 import { CITY_AREAS, type CityAreaKey } from '../../lib/geo/osmLoader';
 import { useWeatherStore } from '../../stores/useWeatherStore';
 import { useTimeStore } from '../../stores/useTimeStore';
-import { weatherEmoji, weatherLabel } from '../../lib/weather/openMeteo';
+import { weatherLabel } from '../../lib/weather/openMeteo';
 import { useT } from '../../lib/app/i18n';
+import {
+  Sun, Cloud, CloudRain, CloudLightning, Snowflake, CloudFog, Wind,
+  type LucideIcon,
+} from 'lucide-react';
+import type { WeatherSnapshot } from '../../lib/weather/openMeteo';
 
 type TimeSliderProps = {
   area: CityAreaKey;
@@ -298,19 +303,36 @@ export function TimeSlider({ area, enabled, onToggle, onSunUpdate, darkMode }: T
   );
 }
 
+/** Map a weather snapshot to a Lucide icon component. */
+function weatherIcon(snap: WeatherSnapshot): LucideIcon {
+  switch (snap.category) {
+    case 'clear':   return snap.windy ? Wind : Sun;
+    case 'cloudy':  return Cloud;
+    case 'rain':    return CloudRain;
+    case 'snow':    return Snowflake;
+    case 'thunder': return CloudLightning;
+    case 'fog':     return CloudFog;
+    default:        return Cloud;
+  }
+}
+
 function WeatherGlyph() {
   const snap = useWeatherStore((s) => s.snapshot);
   if (!snap) return null;
   return (
     <span
       title={weatherLabel(snap)}
+      aria-label={weatherLabel(snap)}
       style={{
-        fontSize: 14,
-        lineHeight: 1,
+        display: 'inline-flex', alignItems: 'center',
         marginLeft: 2,
+        color: 'currentColor',
       }}
     >
-      {weatherEmoji(snap)}
+      {(() => {
+        const Icon = weatherIcon(snap);
+        return <Icon size={14} strokeWidth={2} />;
+      })()}
     </span>
   );
 }

@@ -2,6 +2,23 @@ import { Link } from 'react-router-dom';
 import { useI18nStore, type Lang } from '@/lib/app/i18n';
 import { PlateauScene } from '@/components/canvas/PlateauScene';
 import { LanguageToggle } from '@/components/ui/LanguageToggle';
+import { Globe, Sparkles, Activity, Music, type LucideIcon } from 'lucide-react';
+
+/** Semantic icon keys used in the feature cards copy maps. Keeps i18n
+ *  data emoji-free and lets the renderer pick the Lucide component. */
+type FeatureIconKey = 'globe' | 'sparkles' | 'pulse' | 'music';
+const FEATURE_ICON: Record<FeatureIconKey, LucideIcon> = {
+  globe:    Globe,
+  sparkles: Sparkles,
+  pulse:    Activity,
+  music:    Music,
+};
+const FEATURE_ICON_COLOR: Record<FeatureIconKey, string> = {
+  globe:    '#34a763',
+  sparkles: '#ff2d6f',
+  pulse:    '#4CAF50',
+  music:    '#7b5cff',
+};
 
 /*
  * Design tokens — 8px grid, Material Design dark theme opacities,
@@ -45,7 +62,7 @@ const copy: Record<
     login: string;
     join: string;
     statsLabel: [string, string, string];
-    features: { icon: string; title: string; desc: string }[];
+    features: { icon: FeatureIconKey; title: string; desc: string }[];
     bottomCta: string;
     bottomBtn: string;
   }
@@ -59,10 +76,10 @@ const copy: Record<
     join: '회원가입',
     statsLabel: ['도시', '건물', '장르 패밀리'],
     features: [
-      { icon: '◇', title: '6개 도시, 50,000+ 건물', desc: '도쿄 · 서울 · LA · 맨해튼을 3D로 탐험' },
-      { icon: '◆', title: '환경 맞춤 AI 추천', desc: '날씨 · 시간 · 계절 · 테넌트가 플레이리스트를 바꿈' },
-      { icon: '●', title: '실시간 동기화', desc: '현재 시간의 태양 · 날씨 · 차트가 도시에 반영' },
-      { icon: '♬', title: '7 장르 패밀리', desc: '18개 장르를 7가지 색으로 한눈에' },
+      { icon: 'globe', title: '6개 도시, 50,000+ 건물', desc: '도쿄 · 서울 · LA · 맨해튼을 3D로 탐험' },
+      { icon: 'sparkles', title: '환경 맞춤 AI 추천', desc: '날씨 · 시간 · 계절 · 테넌트가 플레이리스트를 바꿈' },
+      { icon: 'pulse', title: '실시간 동기화', desc: '현재 시간의 태양 · 날씨 · 차트가 도시에 반영' },
+      { icon: 'music', title: '7 장르 패밀리', desc: '18개 장르를 7가지 색으로 한눈에' },
     ],
     bottomCta: '지금 바로 탐험해보세요',
     bottomBtn: '맵 열기',
@@ -76,10 +93,10 @@ const copy: Record<
     join: 'Sign Up',
     statsLabel: ['Cities', 'Buildings', 'Genre Families'],
     features: [
-      { icon: '◇', title: '6 Cities, 50,000+ Buildings', desc: 'Explore Tokyo · Seoul · LA · Manhattan in 3D' },
-      { icon: '◆', title: 'Context-Aware AI Picks', desc: 'Weather · time · season · tenants shape your playlist' },
-      { icon: '●', title: 'Real-Time Sync', desc: 'Live sun, weather, and charts reflected on the city' },
-      { icon: '♬', title: '7 Genre Families', desc: '18 genres mapped to 7 distinct colors at a glance' },
+      { icon: 'globe', title: '6 Cities, 50,000+ Buildings', desc: 'Explore Tokyo · Seoul · LA · Manhattan in 3D' },
+      { icon: 'sparkles', title: 'Context-Aware AI Picks', desc: 'Weather · time · season · tenants shape your playlist' },
+      { icon: 'pulse', title: 'Real-Time Sync', desc: 'Live sun, weather, and charts reflected on the city' },
+      { icon: 'music', title: '7 Genre Families', desc: '18 genres mapped to 7 distinct colors at a glance' },
     ],
     bottomCta: 'Ready to explore?',
     bottomBtn: 'Open Map',
@@ -93,10 +110,10 @@ const copy: Record<
     join: '新規登録',
     statsLabel: ['都市', 'ビル', 'ジャンル'],
     features: [
-      { icon: '◇', title: '6都市、50,000+ビル', desc: '東京・ソウル・LA・マンハッタンを3Dで探検' },
-      { icon: '◆', title: '環境適応AIレコメンド', desc: '天気・時間・季節・テナントがプレイリストを変える' },
-      { icon: '●', title: 'リアルタイム同期', desc: '現在の太陽・天気・チャートが都市に反映' },
-      { icon: '♬', title: '7ジャンルファミリー', desc: '18ジャンルを7色で一目で把握' },
+      { icon: 'globe', title: '6都市、50,000+ビル', desc: '東京・ソウル・LA・マンハッタンを3Dで探検' },
+      { icon: 'sparkles', title: '環境適応AIレコメンド', desc: '天気・時間・季節・テナントがプレイリストを変える' },
+      { icon: 'pulse', title: 'リアルタイム同期', desc: '現在の太陽・天気・チャートが都市に反映' },
+      { icon: 'music', title: '7ジャンルファミリー', desc: '18ジャンルを7色で一目で把握' },
     ],
     bottomCta: '今すぐ探検しよう',
     bottomBtn: 'マップを開く',
@@ -117,8 +134,6 @@ const STATS = [
   { value: '50,000+', key: 1 },
   { value: '7', key: 2 },
 ] as const;
-
-const DOTS = ['#ff2d6f', '#7b5cff', '#00b3c4', '#e89833', '#34a763', '#ff6b35', '#889cf5'];
 
 export function LandingPage() {
   const lang = useI18nStore((s) => s.lang);
@@ -414,37 +429,19 @@ export function LandingPage() {
                 e.currentTarget.style.background = C.surface;
               }}
             >
-              {/* Icon — 24px, 16px bottom margin */}
+              {/* Icon — Lucide, 28px, colored per feature */}
               <div
                 style={{
                   marginBottom: 16,
-                  fontSize: 24,
-                  lineHeight: 1,
-                  ...(f.icon === '◆'
-                    ? { color: '#ff2d6f', fontWeight: 700 }
-                    : f.icon === '●'
-                    ? { color: '#4CAF50' }
-                    : {}),
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: FEATURE_ICON_COLOR[f.icon],
                 }}
               >
-                {f.icon === '♬' ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {DOTS.map((d) => (
-                      <span
-                        key={d}
-                        style={{
-                          display: 'inline-block',
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          backgroundColor: d,
-                        }}
-                      />
-                    ))}
-                  </span>
-                ) : (
-                  f.icon
-                )}
+                {(() => {
+                  const Icon = FEATURE_ICON[f.icon];
+                  return <Icon size={28} strokeWidth={1.6} />;
+                })()}
               </div>
               {/* Title — 16px, 600, primary */}
               <h3
