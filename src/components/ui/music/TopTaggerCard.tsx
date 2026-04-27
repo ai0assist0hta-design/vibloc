@@ -51,7 +51,6 @@ export function TopTaggerCard({
         textTransform: 'uppercase', color: text3, marginBottom: 2,
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
-        <span aria-hidden="true">👑</span>
         TOP PLAYLISTS
         <span style={{ color: text3, opacity: 0.6, marginLeft: 'auto', letterSpacing: 0.6 }}>
           {ranked.length}/3
@@ -194,7 +193,7 @@ export function TopTaggerCard({
                 transition: 'all 120ms ease',
               }}
             >
-              <span style={{ fontSize: 11 }}>{liked || g.totalLikes > 0 ? '❤️' : '🤍'}</span>
+              <span style={{ fontSize: 10, fontWeight: 800 }}>LIKE</span>
               {g.totalLikes}
             </button>
           </div>

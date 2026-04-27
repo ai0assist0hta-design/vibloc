@@ -20,7 +20,6 @@
  */
 
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
-import { GENRE_COLORS } from '../../../data/genres';
 import { playPreview, usePlayerState } from './PreviewPlayer';
 
 export type RightAction = 'add' | 'pinned' | 'remove';
@@ -49,7 +48,6 @@ export function TrackRow({
   // genre key that's since been removed from GENRE_COLORS (e.g. legacy
   // 'indie' before the Apple-taxonomy migration). Fall back to 'pop'
   // — Apple's default broadcast bucket — instead of crashing the row.
-  const c = (GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop).color;
   const isCurrent = player.currentId === t.id && player.isPlaying;
 
   const rightLabel =
@@ -68,15 +66,11 @@ export function TrackRow({
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        // 3px genre accent bar via left border + small inset, so the
-        // bar tracks row height even when title/artist wrap.
-        borderLeft: `3px solid ${c}`,
-        paddingLeft: 8,
-        // Active-row background — same color, very low alpha so the
-        // panel doesn't feel "lit up" when something plays.
-        background: isCurrent ? c + '14' : 'transparent',
+        // Subtle highlight while playing — genre color removed per
+        // 2026-04-20 simplification.
+        background: isCurrent ? 'rgba(26,26,46,0.05)' : 'transparent',
         borderRadius: 6,
-        padding: '4px 6px 4px 8px',
+        padding: '4px 6px',
         transition: 'background 120ms ease',
       }}
     >

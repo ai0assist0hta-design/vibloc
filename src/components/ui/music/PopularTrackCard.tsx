@@ -42,7 +42,6 @@ export function PopularTrackCard({
         textTransform: 'uppercase', color: text3,
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
-        <span aria-hidden="true">🔥</span>
         TOP PICKS
         {popular && (
           <span style={{
@@ -77,12 +76,9 @@ export function PopularTrackCard({
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '8px 10px',
-            borderLeft: `3px solid ${c}`,
-            borderTop: `1px solid ${divider}`,
-            borderRight: `1px solid ${divider}`,
-            borderBottom: `1px solid ${divider}`,
+            border: `1px solid ${divider}`,
             borderRadius: 12,
-            background: isCurrent ? c + '14' : 'transparent',
+            background: isCurrent ? 'rgba(26,26,46,0.05)' : 'transparent',
             transition: 'background 120ms ease',
           }}>
             <img
@@ -124,9 +120,9 @@ export function PopularTrackCard({
                 }}>
                   {(GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop).label.split('/')[0].trim()}
                 </span>
-                <span>📌 {popular.pinCount}</span>
+                <span>PIN {popular.pinCount}</span>
                 {popular.totalLikes > 0 && (
-                  <span style={{ color: '#ff375f' }}>❤ {popular.totalLikes}</span>
+                  <span style={{ color: '#ff375f' }}>LIKE {popular.totalLikes}</span>
                 )}
               </div>
             </div>

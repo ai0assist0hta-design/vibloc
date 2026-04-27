@@ -89,7 +89,7 @@ export function PlaylistDetailView({
             background: group.totalLikes > 0 ? '#ff375f14' : 'transparent',
             color: group.totalLikes > 0 ? '#ff375f' : text3,
           }}>
-            <span style={{ fontSize: 11 }}>{group.totalLikes > 0 ? '❤️' : '🤍'}</span>
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4 }}>LIKE</span>
             {group.totalLikes}
           </span>
           <span style={{ color: text3 }}>· {group.trackCount}t</span>
