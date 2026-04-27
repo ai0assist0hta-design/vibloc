@@ -141,17 +141,19 @@ export function TopTaggerCard({
                 the avatar editor. */}
             <TaggerThumb taggerId={g.taggerId} divider={divider} alt={g.taggerName} />
 
-            {/* Playlist name (custom) — falls back to curator name */}
+            {/* Playlist name (custom) — bigger headline, curator name
+                relegated to the secondary line. */}
             {(() => {
               const customName = getTaggerPlaylistName(buildingId, g.taggerId);
               const headline = customName || g.taggerName;
               return (
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span
                     style={{
-                      fontSize: 11, fontWeight: 700, color: text,
+                      fontSize: 14, fontWeight: 800, color: text,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      letterSpacing: 0.1,
+                      letterSpacing: 0,
+                      lineHeight: 1.15,
                     }}
                     title={headline}
                   >
@@ -159,15 +161,15 @@ export function TopTaggerCard({
                   </span>
                   <span
                     style={{
-                      fontSize: 9, fontWeight: 600, color: text2,
+                      fontSize: 10, fontWeight: 600, color: text2,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      letterSpacing: 0.3,
+                      letterSpacing: 0.2,
                     }}
                   >
                     {customName ? (
-                      <>{g.taggerName}<span style={{ color: text3, margin: '0 4px' }}>·</span></>
+                      <>{g.taggerName}<span style={{ color: text3, margin: '0 5px' }}>·</span></>
                     ) : (
-                      <><span style={{ color: text3 }}>@</span>{g.alias}<span style={{ color: text3, margin: '0 4px' }}>·</span></>
+                      <><span style={{ color: text3 }}>@</span>{g.alias}<span style={{ color: text3, margin: '0 5px' }}>·</span></>
                     )}
                     {g.trackCount}t
                   </span>
@@ -175,8 +177,7 @@ export function TopTaggerCard({
               );
             })()}
 
-            {/* Like button — clickable heart pill that stops propagation
-                so it never triggers the row's open-detail handler. */}
+            {/* Like — borderless heart that fills red when liked. */}
             <button
               type="button"
               onClick={(e) => {
@@ -189,22 +190,22 @@ export function TopTaggerCard({
                 : `Like ${g.taggerName}'s playlist`}
               title={liked ? 'Unlike playlist' : 'Like playlist'}
               style={{
-                display: 'flex', alignItems: 'center', gap: 3,
-                padding: '4px 9px', borderRadius: 999,
-                border: `1px solid ${liked ? '#ff375f' : (g.totalLikes > 0 ? '#ff375f44' : divider)}`,
-                background: liked
-                  ? '#ff375f22'
-                  : (g.totalLikes > 0 ? '#ff375f14' : 'transparent'),
-                fontSize: 9.5, fontWeight: 700,
-                color: liked ? '#ff375f' : (g.totalLikes > 0 ? '#ff375f' : text3),
-                flexShrink: 0, letterSpacing: 0.3,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: 4, border: 'none', background: 'transparent',
+                color: liked ? '#ff375f' : text3,
+                fontSize: 11, fontWeight: 700,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
-                transition: 'all 120ms ease',
+                transition: 'color 120ms ease, transform 120ms ease',
+                flexShrink: 0,
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
-              <span style={{ fontSize: 10, fontWeight: 800 }}>LIKE</span>
-              {g.totalLikes}
+              <Heart filled={liked} />
+              {g.totalLikes > 0 && (
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{g.totalLikes}</span>
+              )}
             </button>
           </div>
         );
@@ -240,5 +241,27 @@ function TaggerThumb({
         flexShrink: 0,
       }}
     >{initial}</span>
+  );
+}
+
+/** Inline SVG heart — outline when not liked, filled red when liked.
+ *  No background, no border — pure icon. */
+function Heart({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      style={{ display: 'block' }}
+    >
+      <path
+        d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3 5 6.5 5c1.9 0 3.7 1 5 2.7C12.8 6 14.6 5 16.5 5 20 5 21.8 8.6 20.5 11.8 18.5 16.4 12 21 12 21z"
+        fill={filled ? '#ff375f' : 'none'}
+        stroke={filled ? '#ff375f' : 'currentColor'}
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

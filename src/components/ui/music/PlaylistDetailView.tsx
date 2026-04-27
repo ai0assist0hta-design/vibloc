@@ -78,13 +78,19 @@ export function PlaylistDetailView({
           fontSize: 10, fontWeight: 700, color: text2, letterSpacing: 0.3,
         }}>
           <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 3,
-            padding: '3px 9px', borderRadius: 999,
-            border: `1px solid ${group.totalLikes > 0 ? '#ff375f44' : divider}`,
-            background: group.totalLikes > 0 ? '#ff375f14' : 'transparent',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
             color: group.totalLikes > 0 ? '#ff375f' : text3,
+            fontSize: 11, fontWeight: 700,
           }}>
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4 }}>LIKE</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style={{ display: 'block' }}>
+              <path
+                d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3 5 6.5 5c1.9 0 3.7 1 5 2.7C12.8 6 14.6 5 16.5 5 20 5 21.8 8.6 20.5 11.8 18.5 16.4 12 21 12 21z"
+                fill={group.totalLikes > 0 ? '#ff375f' : 'none'}
+                stroke={group.totalLikes > 0 ? '#ff375f' : 'currentColor'}
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+            </svg>
             {group.totalLikes}
           </span>
           <span style={{ color: text3 }}>· {group.trackCount}t</span>
