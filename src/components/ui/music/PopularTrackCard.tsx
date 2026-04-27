@@ -38,8 +38,8 @@ export function PopularTrackCard({
       fontFamily: "'IBM Plex Mono', monospace",
     }}>
       <div style={{
-        fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
-        textTransform: 'uppercase', color: text3,
+        fontSize: 12, fontWeight: 800, letterSpacing: 1.0,
+        textTransform: 'uppercase', color: text2, marginBottom: 6,
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         TOP PICKS
@@ -58,8 +58,8 @@ export function PopularTrackCard({
           </span>
         )}
         <span style={{
-          color: text3, opacity: 0.6, marginLeft: tops.length > 0 ? 0 : 'auto',
-          letterSpacing: 0.6,
+          color: text3, opacity: 0.7, marginLeft: tops.length > 0 ? 0 : 'auto',
+          letterSpacing: 0.6, fontSize: 10,
         }}>
           {tops.length}/3
         </span>
@@ -174,7 +174,7 @@ function PopularRow({
         display: 'flex', flexDirection: 'column', gap: 1,
       }}>
         <div style={{
-          fontSize: 12, fontWeight: isCurrent ? 700 : 600, color: text,
+          fontSize: 13, fontWeight: isCurrent ? 700 : 600, color: text,
           fontFamily: "'IBM Plex Mono', monospace",
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           lineHeight: 1.3,
@@ -182,7 +182,7 @@ function PopularRow({
           {t.trackName}
         </div>
         <div style={{
-          fontSize: 10.5, color: text2,
+          fontSize: 11.5, color: text2,
           fontFamily: "'IBM Plex Mono', monospace",
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           lineHeight: 1.3,

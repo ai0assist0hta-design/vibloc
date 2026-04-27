@@ -50,13 +50,13 @@ export function TopTaggerCard({
       aria-label="Top-liked playlists for this building"
     >
       <div style={{
-        fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
-        textTransform: 'uppercase', color: text3, marginBottom: 2,
+        fontSize: 12, fontWeight: 800, letterSpacing: 1.0,
+        textTransform: 'uppercase', color: text2, marginBottom: 6,
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         TOP PLAYLISTS
         {ranked.length > 0 && (
-          <span style={{ color: text3, opacity: 0.6, marginLeft: 'auto', letterSpacing: 0.6 }}>
+          <span style={{ color: text3, opacity: 0.7, marginLeft: 'auto', letterSpacing: 0.6, fontSize: 10 }}>
             {ranked.length}
           </span>
         )}
@@ -142,7 +142,7 @@ export function TopTaggerCard({
                       fontSize: 14, fontWeight: 800, color: text,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       letterSpacing: 0,
-                      lineHeight: 1.15,
+                      lineHeight: 1.2,
                     }}
                     title={headline}
                   >
@@ -150,7 +150,7 @@ export function TopTaggerCard({
                   </span>
                   <span
                     style={{
-                      fontSize: 10, fontWeight: 600, color: text2,
+                      fontSize: 11.5, fontWeight: 600, color: text2,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       letterSpacing: 0.2,
                     }}

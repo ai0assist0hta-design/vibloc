@@ -149,7 +149,7 @@ export function TrackRow({
       >
         <div
           style={{
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: isCurrent ? 700 : 600,
             color: text,
             fontFamily: "'IBM Plex Mono', monospace",
@@ -164,7 +164,7 @@ export function TrackRow({
         </div>
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 11.5,
             color: text2,
             fontFamily: "'IBM Plex Mono', monospace",
             whiteSpace: 'nowrap',

@@ -118,12 +118,13 @@ export function BuildingPlaylist({
     >
       <div
         style={{
-          fontSize: 9.5,
+          fontSize: 12,
           fontWeight: 800,
-          letterSpacing: 0.8,
+          letterSpacing: 1.0,
           textTransform: 'uppercase',
-          color: text3,
+          color: text2,
           fontFamily: "'IBM Plex Mono', monospace",
+          marginBottom: 4,
         }}
       >
         {t('music.myPlaylist')} {playlist.tracks.length > 0 && `(${playlist.tracks.length})`}
@@ -264,7 +265,7 @@ export function BuildingPlaylist({
               style={{
                 fontSize: 14, fontWeight: 800, color: text,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                lineHeight: 1.15,
+                lineHeight: 1.2,
               }}
               title={headline}
             >
@@ -272,7 +273,7 @@ export function BuildingPlaylist({
             </span>
             <span
               style={{
-                fontSize: 10, fontWeight: 600,
+                fontSize: 11.5, fontWeight: 600,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 letterSpacing: 0.2,
                 display: 'inline-flex', alignItems: 'center', gap: 6,

@@ -118,11 +118,11 @@ export function RecommendedList({
       >
         <span
           style={{
-            fontSize: 9.5,
+            fontSize: 12,
             fontWeight: 800,
-            letterSpacing: 0.8,
+            letterSpacing: 1.0,
             textTransform: 'uppercase',
-            color: text3,
+            color: text2,
             fontFamily: "'IBM Plex Mono', monospace",
             display: 'flex',
             alignItems: 'center',
