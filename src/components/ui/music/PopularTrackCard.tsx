@@ -2,8 +2,8 @@
  * PopularTrackCard — top 3 most-popular TRACKs for this building.
  *
  * Apple Music-style row: artwork (with hover play/pause overlay) +
- * title + artist + small mono stat line. The leftmost rank badge
- * matches TopTaggerCard so the right panel reads as one design system.
+ * title + artist + small mono stat line. Rank badges removed
+ * 2026-04-27 — TOP PICKS reads as a flat list now.
  *
  * Scope hierarchy applies to the whole list, not per-row:
  *   - 'building' (이 건물) — tracks pinned here, ranked by likes
@@ -23,8 +23,6 @@ type Props = {
   divider: string;
   darkMode?: boolean;
 };
-
-const RANK_COLORS = ['#f5b301', '#b6b6c1', '#c97a4a'] as const;
 
 export function PopularTrackCard({
   buildingId, text, text2, text3, divider,
@@ -80,7 +78,6 @@ export function PopularTrackCard({
         tops.map((p, idx) => (
           <PopularRow
             key={`${p.track.id}-${idx}`}
-            rank={idx + 1}
             popular={p}
             text={text}
             text2={text2}
@@ -95,9 +92,8 @@ export function PopularTrackCard({
 }
 
 function PopularRow({
-  rank, popular, text, text2, text3, divider, isCurrent,
+  popular, text, text2, text3, divider, isCurrent,
 }: {
-  rank: number;
   popular: ReturnType<typeof useTopTracks>[number];
   text: string;
   text2: string;
@@ -107,12 +103,15 @@ function PopularRow({
 }) {
   const [hover, setHover] = useState(false);
   const t = popular.track;
-  const rankColor = RANK_COLORS[rank - 1] ?? RANK_COLORS[2];
 
   function handleClick() {
     if (t.previewUrl) playPreview(t.id, t.previewUrl);
   }
 
+  // Layout matches TrackRow exactly so TOP PICKS and AI 추천곡 align
+  // visually as a single grid: 36×36 artwork, identical padding,
+  // identical typography. The only TOP-PICKS-only flourish is the
+  // ♥ N badge on the secondary line.
   return (
     <div
       role="button"
@@ -126,10 +125,10 @@ function PopularRow({
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      aria-label={`Rank ${rank}: ${t.trackName} by ${t.artistName}`}
+      aria-label={`${t.trackName} by ${t.artistName}`}
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '6px 6px',
+        padding: '5px 6px',
         borderRadius: 6,
         background: isCurrent || hover ? 'rgba(26,26,46,0.05)' : 'transparent',
         transition: 'background 120ms ease',
@@ -137,24 +136,9 @@ function PopularRow({
         outline: 'none',
       }}
     >
-      <div
-        aria-hidden="true"
-        style={{
-          width: 18, height: 18, borderRadius: '50%',
-          background: rankColor,
-          color: '#fff',
-          fontSize: 10, fontWeight: 800,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        {rank}
-      </div>
-
-      {/* Artwork + hover play overlay */}
       <span style={{
         position: 'relative',
-        width: 40, height: 40, borderRadius: 6,
+        width: 36, height: 36, borderRadius: 5,
         flexShrink: 0,
         background: divider,
         overflow: 'hidden',
@@ -163,11 +147,11 @@ function PopularRow({
         <img
           src={t.artworkUrl}
           alt=""
-          width={40}
-          height={40}
+          width={36}
+          height={36}
           loading="lazy"
           referrerPolicy="no-referrer"
-          style={{ width: 40, height: 40, objectFit: 'cover', display: 'block' }}
+          style={{ width: 36, height: 36, objectFit: 'cover', display: 'block' }}
         />
         {(hover || isCurrent) && (
           <span
@@ -180,26 +164,26 @@ function PopularRow({
               pointerEvents: 'none',
             }}
           >
-            {isCurrent ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}
+            {isCurrent ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
           </span>
         )}
       </span>
 
       <div style={{
         flex: 1, minWidth: 0,
-        display: 'flex', flexDirection: 'column', gap: 2,
+        display: 'flex', flexDirection: 'column', gap: 1,
       }}>
         <div style={{
-          fontSize: 12.5, fontWeight: 700, color: text,
+          fontSize: 12, fontWeight: isCurrent ? 700 : 600, color: text,
+          fontFamily: "'IBM Plex Mono', monospace",
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           lineHeight: 1.3,
         }} title={t.trackName}>
           {t.trackName}
         </div>
-        {/* Single-line "Artist · ♥ N" — Apple Music compact pattern.
-            Pin/genre/scope dropped from the row to clear visual noise. */}
         <div style={{
           fontSize: 10.5, color: text2,
+          fontFamily: "'IBM Plex Mono', monospace",
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           lineHeight: 1.3,
           display: 'flex', alignItems: 'center', gap: 6,
@@ -221,7 +205,6 @@ function PopularRow({
         </div>
       </div>
 
-      {/* Subtle ⋯ — appears on hover, doesn't compete for attention */}
       <span
         aria-hidden="true"
         style={{
