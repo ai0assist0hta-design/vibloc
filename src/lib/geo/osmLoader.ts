@@ -1357,12 +1357,18 @@ function extractPOITags(tags: Record<string, string>): BuildingTag[] {
   const shop = tags.shop;
   if (shop && SKIP_SHOPS.has(shop)) return result;
   if (shop) {
+    // SHOP_LABEL_OVERRIDE only renames the label ("Bakery" stays
+    // "Bakery", "clothes" → "Clothing Shop"). The CATEGORY must come
+    // from SHOP_MAP — otherwise food places that happen to be tagged
+    // shop=bakery / shop=coffee / shop=tea / shop=confectionery get
+    // mis-iconed as ShoppingBag instead of UtensilsCrossed.
     const override = SHOP_LABEL_OVERRIDE[shop];
+    const mapped = SHOP_MAP[shop];
     if (override) {
-      result.push({ label: override, category: 'shop', name: poiName, brandWikidata, website });
-    } else if (SHOP_MAP[shop]) {
-      const s = SHOP_MAP[shop];
-      result.push({ label: s.label, category: s.category, name: poiName, brandWikidata, website });
+      const category = mapped?.category ?? 'shop';
+      result.push({ label: override, category, name: poiName, brandWikidata, website });
+    } else if (mapped) {
+      result.push({ label: mapped.label, category: mapped.category, name: poiName, brandWikidata, website });
     } else {
       result.push({ label: 'Shop', category: 'shop', name: poiName, brandWikidata, website });
     }
