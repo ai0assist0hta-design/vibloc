@@ -229,8 +229,7 @@ export function BuildingPlaylist({
           aria-label={onOpenDetail ? `Open my playlist (${trackCount} tracks)` : undefined}
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
-            padding: '8px 10px', borderRadius: 12,
-            border: `1px solid ${divider}`,
+            padding: '6px 6px', borderRadius: 6,
             background: 'transparent',
             cursor: onOpenDetail ? 'pointer' : 'default',
             transition: 'background 150ms ease',

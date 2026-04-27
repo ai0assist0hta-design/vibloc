@@ -129,11 +129,10 @@ function PopularRow({
       aria-label={`Rank ${rank}: ${t.trackName} by ${t.artistName}`}
       style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '6px 10px',
-        border: `1px solid ${hover ? rankColor + '66' : divider}`,
-        borderRadius: 12,
+        padding: '6px 6px',
+        borderRadius: 6,
         background: isCurrent || hover ? 'rgba(26,26,46,0.05)' : 'transparent',
-        transition: 'background 120ms ease, border-color 150ms ease',
+        transition: 'background 120ms ease',
         cursor: t.previewUrl ? 'pointer' : 'default',
         outline: 'none',
       }}

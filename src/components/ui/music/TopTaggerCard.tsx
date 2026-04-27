@@ -100,23 +100,20 @@ export function TopTaggerCard({
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              padding: '8px 10px',
-              borderRadius: 12,
-              border: `1px solid ${divider}`,
+              padding: '6px 6px',
+              borderRadius: 6,
               background: 'transparent',
               cursor: 'pointer',
               textAlign: 'left',
               fontFamily: 'inherit',
-              transition: 'background 150ms ease, border-color 150ms ease',
+              transition: 'background 150ms ease',
               outline: 'none',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(0,0,0,0.03)';
-              e.currentTarget.style.borderColor = rankColor + '66';
+              e.currentTarget.style.background = 'rgba(26,26,46,0.05)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = divider;
             }}
           >
             {/* Rank badge */}
