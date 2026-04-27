@@ -60,6 +60,10 @@ export function TrackRow({
         : 'Add to playlist';
   const rightActive = rightAction === 'pinned';
 
+  // Hover tint matches the left-panel tenant row tone — same dark/
+  // light alpha so both panels feel like the same family.
+  const HOVER_BG = 'rgba(26,26,46,0.05)';
+
   return (
     <div
       style={{
@@ -68,10 +72,16 @@ export function TrackRow({
         gap: 10,
         // Subtle highlight while playing — genre color removed per
         // 2026-04-20 simplification.
-        background: isCurrent ? 'rgba(26,26,46,0.05)' : 'transparent',
+        background: isCurrent ? HOVER_BG : 'transparent',
         borderRadius: 6,
         padding: '4px 6px',
         transition: 'background 120ms ease',
+      }}
+      onMouseEnter={(e) => {
+        if (!isCurrent) e.currentTarget.style.background = HOVER_BG;
+      }}
+      onMouseLeave={(e) => {
+        if (!isCurrent) e.currentTarget.style.background = 'transparent';
       }}
     >
       <img

@@ -73,14 +73,22 @@ export function PopularTrackCard({
         const c = (GENRE_COLORS[t.genre] ?? GENRE_COLORS.pop).color;
         const isCurrent = player.currentId === t.id && player.isPlaying;
         return (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '8px 10px',
-            border: `1px solid ${divider}`,
-            borderRadius: 12,
-            background: isCurrent ? 'rgba(26,26,46,0.05)' : 'transparent',
-            transition: 'background 120ms ease',
-          }}>
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 10px',
+              border: `1px solid ${divider}`,
+              borderRadius: 12,
+              background: isCurrent ? 'rgba(26,26,46,0.05)' : 'transparent',
+              transition: 'background 120ms ease',
+            }}
+            onMouseEnter={(e) => {
+              if (!isCurrent) e.currentTarget.style.background = 'rgba(26,26,46,0.05)';
+            }}
+            onMouseLeave={(e) => {
+              if (!isCurrent) e.currentTarget.style.background = 'transparent';
+            }}
+          >
             <img
               src={t.artworkUrl}
               alt=""
