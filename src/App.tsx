@@ -2009,6 +2009,7 @@ function App() {
               <CityVibeBlock
                 vibe={getCityVibe(area)}
                 text={text}
+                text2={text2}
                 text3={text3}
                 divider={divider}
                 darkMode={darkMode}

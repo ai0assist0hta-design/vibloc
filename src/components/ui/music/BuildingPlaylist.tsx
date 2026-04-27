@@ -29,6 +29,7 @@ import {
   getTaggerPlaylistName,
 } from '../../../lib/music/buildingPlaylist';
 import type { CityVibe } from '../../../lib/music/trackTypes';
+import type { GenreKey } from '../../../types';
 import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
 import { useT } from '../../../lib/app/i18n';
@@ -87,14 +88,15 @@ export function BuildingPlaylist({
   let topGenreLabel = '';
   let topGenreColor = '';
   if (trackCount > 0) {
-    const counts = new Map<string, number>();
+    const counts = new Map<GenreKey, number>();
     for (const tr of playlist.tracks) {
       counts.set(tr.genre, (counts.get(tr.genre) ?? 0) + 1);
     }
     const [top] = [...counts.entries()].sort((a, b) => b[1] - a[1]);
     if (top) {
-      const fam = getFamily(top[0]);
-      topGenreLabel = (GENRE_COLORS[top[0]]?.label ?? '').split('/')[0].trim()
+      const key = top[0];
+      const fam = getFamily(key);
+      topGenreLabel = (GENRE_COLORS[key]?.label ?? '').split('/')[0].trim()
         || fam.label;
       topGenreColor = contrastColor(fam.color, mode);
     }

@@ -23,8 +23,11 @@ const WHITE_MATERIAL = new MeshStandardMaterial({
 export function PlateauCity({ ward = 'shinjuku' }: { ward?: string }) {
   const url = TOKYO_WARDS[ward] || TOKYO_WARDS.shinjuku;
 
-  const handleLoadModel = useCallback((scene: Object3D) => {
-    scene.traverse((child) => {
+  // 3d-tiles-renderer EventHandler signature changed to take an event
+  // object `{ scene, tile, url }` rather than the bare scene root —
+  // adapt by destructuring.
+  const handleLoadModel = useCallback((evt: { scene: Object3D }) => {
+    evt.scene.traverse((child) => {
       if (child instanceof Mesh) {
         child.material = WHITE_MATERIAL;
         child.castShadow = true;

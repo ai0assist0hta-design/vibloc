@@ -22,15 +22,22 @@ type Props = {
   vibe: CityVibe;
   /** Foreground text color from the parent panel's design tokens. */
   text: string;
-  /** Secondary (label) text color from the parent. */
+  /** Secondary text color (used for the section eyebrow). */
+  text2?: string;
+  /** Tertiary (label) text color from the parent. */
   text3: string;
   /** 1px divider color from the parent. */
   divider: string;
   darkMode?: boolean;
 };
 
-export function CityVibeBlock({ vibe, text, text3, divider, darkMode = false }: Props) {
+export function CityVibeBlock({
+  vibe, text, text2, text3, divider, darkMode = false,
+}: Props) {
   const mode = darkMode ? 'dark' : 'light';
+  // Section eyebrow color — prefer text2 (better contrast than the
+  // tertiary text3), fall back to text3 when caller hasn't passed it.
+  const eyebrow = text2 ?? text3;
   const t = useT();
   return (
     <div
@@ -49,7 +56,7 @@ export function CityVibeBlock({ vibe, text, text3, divider, darkMode = false }: 
           fontWeight: 800,
           letterSpacing: 1.0,
           textTransform: 'uppercase',
-          color: text2,
+          color: eyebrow,
           fontFamily: "'IBM Plex Mono', monospace",
           marginBottom: 4,
         }}

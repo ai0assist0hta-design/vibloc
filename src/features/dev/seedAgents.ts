@@ -76,9 +76,9 @@ const TRACK_POOL: RecommendedTrack[] = [
   mk('1535215577', 'Subtitle',                'Official髭男dism',    'jpop',   'J-Pop'),
   mk('1440857784', 'As It Was',               'Harry Styles',       'pop',    'Pop'),
   mk('1500401823', 'Glimpse of Us',           'Joji',               'pop',    'Pop'),
-  mk('1500401824', 'Heat Waves',              'Glass Animals',      'alt',    'Alternative'),
-  mk('1440831207', 'Take a Walk',             'Passion Pit',        'alt',    'Alternative'),
-  mk('1500401825', 'Coffee',                  'beabadoobee',        'alt',    'Alternative'),
+  mk('1500401824', 'Heat Waves',              'Glass Animals',      'alternative', 'Alternative'),
+  mk('1440831207', 'Take a Walk',             'Passion Pit',        'alternative', 'Alternative'),
+  mk('1500401825', 'Coffee',                  'beabadoobee',        'alternative', 'Alternative'),
   mk('1440857785', 'Lo-fi Beats',             'Idealism',           'electronic', 'Electronic'),
   mk('1500401826', 'Snowman',                 'Sia',                'pop',    'Pop'),
 ];
