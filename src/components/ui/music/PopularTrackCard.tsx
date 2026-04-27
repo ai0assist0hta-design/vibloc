@@ -194,14 +194,15 @@ function PopularRow({
           }}>
             {t.artistName}
           </span>
-          {popular.totalLikes > 0 && (
-            <>
-              <span style={{ color: text3, opacity: 0.6 }}>·</span>
-              <span style={{ color: '#ff375f', whiteSpace: 'nowrap' }}>
-                ♥ {popular.totalLikes}
-              </span>
-            </>
-          )}
+          {/* Inclusion count — "how many playlists pinned this track".
+              For 'building' scope this is distinct curators in this
+              building; for 'nearby' fallback it's distinct buildings
+              this track appears in. Either way: the bigger the number,
+              the more it's been "수록". */}
+          <span style={{ color: text3, opacity: 0.6 }}>·</span>
+          <span style={{ color: text3, whiteSpace: 'nowrap', fontWeight: 700 }}>
+            수록 {popular.pinCount}회
+          </span>
         </div>
       </div>
 

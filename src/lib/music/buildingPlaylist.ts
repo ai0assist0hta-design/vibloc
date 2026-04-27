@@ -392,20 +392,54 @@ export type PopularTrack = {
 };
 
 /** Top N popular tracks for a building.
- *  Within the building → ranked by likes (each track appears once).
- *  When the building has no pins → falls back to global pin count. */
+ *
+ * Ranking metric is the number of TIMES a track is "수록" — included
+ * across the relevant playlist scope. Likes only break ties.
+ *
+ *  - 'building' scope: count distinct TAGGERS in this building who
+ *    pinned the track. (Same track pinned by 3 curators in one
+ *    building → pinCount = 3, "수록 3회".)
+ *  - 'nearby' fallback (this building has zero pins): count distinct
+ *    BUILDINGS where the track appears.
+ */
 export function getTopTracks(buildingId: string, n = 3): PopularTrack[] {
-  // 1) Per-building — sort by likes desc, then most recent.
+  // 1) Per-building — group by trackId, count distinct taggers.
   const local = store[buildingId]?.tracks ?? [];
   if (local.length > 0) {
-    return [...local]
-      .sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0) || b.pinnedAt - a.pinnedAt)
+    type Agg = {
+      track: PinnedTrack;
+      taggers: Set<string>;
+      totalLikes: number;
+      latestPinnedAt: number;
+    };
+    const counts = new Map<string, Agg>();
+    for (const t of local) {
+      const ex = counts.get(t.id);
+      if (ex) {
+        if (t.taggerId) ex.taggers.add(t.taggerId);
+        ex.totalLikes += t.likes ?? 0;
+        if (t.pinnedAt > ex.latestPinnedAt) ex.latestPinnedAt = t.pinnedAt;
+      } else {
+        counts.set(t.id, {
+          track: t,
+          taggers: new Set(t.taggerId ? [t.taggerId] : []),
+          totalLikes: t.likes ?? 0,
+          latestPinnedAt: t.pinnedAt,
+        });
+      }
+    }
+    return [...counts.values()]
+      .sort((a, b) =>
+        b.taggers.size - a.taggers.size ||
+        b.totalLikes - a.totalLikes ||
+        b.latestPinnedAt - a.latestPinnedAt,
+      )
       .slice(0, n)
-      .map((t) => ({
-        track: t,
+      .map((c) => ({
+        track: c.track,
         scope: 'building' as const,
-        pinCount: 1,
-        totalLikes: t.likes ?? 0,
+        pinCount: Math.max(1, c.taggers.size),
+        totalLikes: c.totalLikes,
         buildingCount: 1,
       }));
   }
