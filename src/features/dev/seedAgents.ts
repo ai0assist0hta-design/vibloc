@@ -26,28 +26,113 @@ import type { RecommendedTrack } from '../../lib/music/trackTypes';
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
-const SEED_VERSION = 'v3-min-3-tracks';
+const SEED_VERSION = 'v5-personas-expanded';
 const MAX_SEED_BUILDINGS = 40;
 
 type Agent = {
   id: string;
   name: string;
   avatarUrl: string;
-  /** Free-text comment shown on their playlist detail view. */
+  /** Custom playlist NAME — appears as the headline on TopTaggerCard
+   *  rows and PlaylistDetailView. Persona-flavored. */
+  playlistName: string;
+  /** Genre lean — used to pick tracks from the pool that match this
+   *  curator's taste. Filters TRACK_POOL by `genre`. */
+  taste: RecommendedTrack['genre'][];
+  /** (Legacy) free-text note. UI no longer renders this — left for
+   *  back-compat with older demo data shape. */
   note: string;
 };
 
-/** Demo curators. Avatars use DiceBear (free, no API key, deterministic
- *  by seed string) so each agent has a distinct circular profile pic. */
+/** Demo curators — each one is a small persona with a distinct city,
+ *  time-of-day, and taste profile. Names mix Korean, Japanese, and
+ *  Western to mirror the cities VIBLOC ships (Shinjuku, Itaewon,
+ *  Manhattan, LA). Avatars via DiceBear (deterministic by seed). */
 const AGENTS: Agent[] = [
-  { id: 'agent-luna',  name: 'Luna Park',   avatarUrl: dicebear('luna-park'),  note: '늦은 밤 여기 앞에서 걷다가 머릿속에 박혔던 곡들. 비 오는 날 추천.' },
-  { id: 'agent-jiro',  name: 'Jiro Tanaka', avatarUrl: dicebear('jiro-tanaka'),note: 'shinjuku 5am loop. coffee + ambient bass + neon reflections.' },
-  { id: 'agent-min',   name: 'Min Seo',     avatarUrl: dicebear('min-seo'),    note: 'k-r&b heavy. 골목길 산책용 셀렉.' },
-  { id: 'agent-hugo',  name: 'Hugo Vrai',   avatarUrl: dicebear('hugo-vrai'),  note: 'french touch + city pop crossover. windows down only.' },
-  { id: 'agent-ava',   name: 'Ava Chen',    avatarUrl: dicebear('ava-chen'),   note: 'rooftop sunset playlist · indie + dream pop' },
-  { id: 'agent-noa',   name: 'Noa Kim',     avatarUrl: dicebear('noa-kim'),    note: '카페에서 아메리카노 한 잔. lo-fi + jazz + 따뜻한 보컬.' },
-  { id: 'agent-rio',   name: 'Rio Suzuki',  avatarUrl: dicebear('rio-suzuki'), note: 'morning commute · lofi hiphop · 매일 듣는 셋' },
-  { id: 'agent-ezra',  name: 'Ezra Maeda',  avatarUrl: dicebear('ezra-maeda'), note: 'late night drives. synthwave heavy.' },
+  {
+    id: 'agent-luna', name: 'Luna Park', avatarUrl: dicebear('luna-park'),
+    playlistName: '비 오는 새벽 4시 골목',
+    taste: ['rnb', 'jazz', 'singer'],
+    note: '늦은 밤 여기 앞에서 걷다가 머릿속에 박혔던 곡들.',
+  },
+  {
+    id: 'agent-jiro', name: 'Jiro Tanaka', avatarUrl: dicebear('jiro-tanaka'),
+    playlistName: 'Shinjuku 5AM Loop',
+    taste: ['electronic', 'jpop', 'soundtrack'],
+    note: 'coffee + ambient bass + neon reflections.',
+  },
+  {
+    id: 'agent-min', name: 'Min Seo', avatarUrl: dicebear('min-seo'),
+    playlistName: '이태원 골목길 R&B',
+    taste: ['rnb', 'kpop', 'singer'],
+    note: 'k-r&b heavy. 골목길 산책용 셀렉.',
+  },
+  {
+    id: 'agent-hugo', name: 'Hugo Vrai', avatarUrl: dicebear('hugo-vrai'),
+    playlistName: 'french touch / city pop',
+    taste: ['electronic', 'jpop', 'pop'],
+    note: 'french touch + city pop crossover. windows down only.',
+  },
+  {
+    id: 'agent-ava', name: 'Ava Chen', avatarUrl: dicebear('ava-chen'),
+    playlistName: 'rooftop sunset, indie + dream pop',
+    taste: ['alternative', 'pop', 'singer'],
+    note: 'rooftop sunset playlist · indie + dream pop',
+  },
+  {
+    id: 'agent-noa', name: 'Noa Kim', avatarUrl: dicebear('noa-kim'),
+    playlistName: '카페에서 아메리카노 한 잔',
+    taste: ['jazz', 'singer', 'rnb'],
+    note: 'lo-fi + jazz + 따뜻한 보컬.',
+  },
+  {
+    id: 'agent-rio', name: 'Rio Suzuki', avatarUrl: dicebear('rio-suzuki'),
+    playlistName: 'morning commute · lofi hiphop',
+    taste: ['hiphop', 'electronic', 'jpop'],
+    note: '매일 출근길 듣는 셋.',
+  },
+  {
+    id: 'agent-ezra', name: 'Ezra Maeda', avatarUrl: dicebear('ezra-maeda'),
+    playlistName: 'late night drives',
+    taste: ['electronic', 'pop', 'rock'],
+    note: 'synthwave heavy.',
+  },
+  {
+    id: 'agent-sora', name: 'Sora Hinata', avatarUrl: dicebear('sora-hinata'),
+    playlistName: '渋谷 일요일 오후',
+    taste: ['jpop', 'pop', 'singer'],
+    note: '시부야 brunch 카페 음악.',
+  },
+  {
+    id: 'agent-kai',  name: 'Kai Roberts', avatarUrl: dicebear('kai-roberts'),
+    playlistName: 'Brooklyn rooftop @ golden hour',
+    taste: ['hiphop', 'rnb', 'pop'],
+    note: 'BK summer set.',
+  },
+  {
+    id: 'agent-yuna', name: 'Yuna Choi',   avatarUrl: dicebear('yuna-choi'),
+    playlistName: '강남역 새벽 택시',
+    taste: ['kpop', 'rnb', 'pop'],
+    note: '플리 1시간 짜리 — 1차 끝나고 2차 가는 길.',
+  },
+  {
+    id: 'agent-leo',  name: 'Leo Vasquez', avatarUrl: dicebear('leo-vasquez'),
+    playlistName: 'echo park / silver lake drive',
+    taste: ['alternative', 'latin', 'pop'],
+    note: 'LA eastside windows down.',
+  },
+  {
+    id: 'agent-mei',  name: 'Mei Watanabe', avatarUrl: dicebear('mei-watanabe'),
+    playlistName: '신주쿠 비 오는 일요일',
+    taste: ['jpop', 'jazz', 'singer'],
+    note: 'rainy sunday at the listening bar.',
+  },
+  {
+    id: 'agent-omar', name: 'Omar Hassan', avatarUrl: dicebear('omar-hassan'),
+    playlistName: 'Manhattan 4 AM cab ride',
+    taste: ['hiphop', 'rnb', 'electronic'],
+    note: 'after-hours uptown taxi loop.',
+  },
 ];
 
 function dicebear(seed: string): string {
@@ -59,28 +144,72 @@ function dicebear(seed: string): string {
  *  button shows but stays disabled — keeps the UI honest. Artwork
  *  uses iTunes' public CDN (still hot-linkable). */
 const TRACK_POOL: RecommendedTrack[] = [
+  // ── Pop ──
   mk('1440857781', 'Blinding Lights',         'The Weeknd',         'pop',    'Pop'),
   mk('1440831203', 'Sunflower',               'Post Malone',        'pop',    'Pop'),
+  mk('1440857784', 'As It Was',               'Harry Styles',       'pop',    'Pop'),
+  mk('1500401823', 'Glimpse of Us',           'Joji',               'pop',    'Pop'),
+  mk('1500401826', 'Snowman',                 'Sia',                'pop',    'Pop'),
+  mk('p-flowers',  'Flowers',                 'Miley Cyrus',        'pop',    'Pop'),
+  mk('p-vampire',  'vampire',                 'Olivia Rodrigo',     'pop',    'Pop'),
+  // ── K-Pop ──
   mk('1500401818', 'Dynamite',                'BTS',                'kpop',   'K-Pop'),
   mk('1664031596', 'Cupid',                   'FIFTY FIFTY',        'kpop',   'K-Pop'),
   mk('1592163497', 'Kitsch',                  'IVE',                'kpop',   'K-Pop'),
+  mk('1664031597', 'After LIKE',              'IVE',                'kpop',   'K-Pop'),
+  mk('k-haewa',    'Haegeum',                 'Agust D',            'kpop',   'K-Pop'),
+  mk('k-supershy', 'Super Shy',               'NewJeans',           'kpop',   'K-Pop'),
+  mk('k-ditto',    'Ditto',                   'NewJeans',           'kpop',   'K-Pop'),
+  // ── J-Pop ──
   mk('1535215575', 'Plastic Love',            'Mariya Takeuchi',    'jpop',   'J-Pop'),
-  mk('1440857782', 'Late Night Tales',        'Yebba',              'rnb',    'R&B/Soul'),
   mk('1535215576', 'Stay With Me',            'Miki Matsubara',     'jpop',   'J-Pop'),
   mk('1500401820', 'Lemon',                   'Kenshi Yonezu',      'jpop',   'J-Pop'),
-  mk('1440831205', 'Industry Baby',           'Lil Nas X',          'hiphop', 'Hip-Hop/Rap'),
-  mk('1440857783', 'God\'s Plan',             'Drake',              'hiphop', 'Hip-Hop/Rap'),
+  mk('1535215577', 'Subtitle',                'Official髭男dism',    'jpop',   'J-Pop'),
+  mk('j-mixed',    'Mixed Nuts',              'Official髭男dism',    'jpop',   'J-Pop'),
+  mk('j-idol',     'アイドル',                 'YOASOBI',            'jpop',   'J-Pop'),
+  mk('j-kaiju',    '怪獣の花唄',                'Vaundy',             'jpop',   'J-Pop'),
+  // ── R&B / Soul ──
+  mk('1440857782', 'Late Night Tales',        'Yebba',              'rnb',    'R&B/Soul'),
   mk('1500401821', 'Get You',                 'Daniel Caesar',      'rnb',    'R&B/Soul'),
   mk('1500401822', 'Pink + White',            'Frank Ocean',        'rnb',    'R&B/Soul'),
-  mk('1664031597', 'After LIKE',              'IVE',                'kpop',   'K-Pop'),
-  mk('1535215577', 'Subtitle',                'Official髭男dism',    'jpop',   'J-Pop'),
-  mk('1440857784', 'As It Was',               'Harry Styles',       'pop',    'Pop'),
-  mk('1500401823', 'Glimpse of Us',           'Joji',               'pop',    'Pop'),
+  mk('r-snooze',   'Snooze',                  'SZA',                'rnb',    'R&B/Soul'),
+  mk('r-passion',  'Passionfruit',            'Drake',              'rnb',    'R&B/Soul'),
+  mk('r-essence',  'Essence',                 'WizKid',             'rnb',    'R&B/Soul'),
+  // ── Hip-Hop / Rap ──
+  mk('1440831205', 'Industry Baby',           'Lil Nas X',          'hiphop', 'Hip-Hop/Rap'),
+  mk('1440857783', 'God\'s Plan',             'Drake',              'hiphop', 'Hip-Hop/Rap'),
+  mk('h-hotline',  'Hotline Bling',           'Drake',              'hiphop', 'Hip-Hop/Rap'),
+  mk('h-flowers',  'No Idea',                 'Don Toliver',        'hiphop', 'Hip-Hop/Rap'),
+  mk('h-rich',     'Rich Flex',               'Drake & 21 Savage',  'hiphop', 'Hip-Hop/Rap'),
+  // ── Alternative ──
   mk('1500401824', 'Heat Waves',              'Glass Animals',      'alternative', 'Alternative'),
   mk('1440831207', 'Take a Walk',             'Passion Pit',        'alternative', 'Alternative'),
   mk('1500401825', 'Coffee',                  'beabadoobee',        'alternative', 'Alternative'),
+  mk('a-mitski',   'My Love Mine All Mine',   'Mitski',             'alternative', 'Alternative'),
+  mk('a-feast',    'Sofia',                   'Clairo',             'alternative', 'Alternative'),
+  // ── Electronic ──
   mk('1440857785', 'Lo-fi Beats',             'Idealism',           'electronic', 'Electronic'),
-  mk('1500401826', 'Snowman',                 'Sia',                'pop',    'Pop'),
+  mk('e-strobe',   'Strobe',                  'Deadmau5',           'electronic', 'Electronic'),
+  mk('e-around',   'Around the World',        'Daft Punk',          'electronic', 'Electronic'),
+  mk('e-onemore',  'One More Time',           'Daft Punk',          'electronic', 'Electronic'),
+  mk('e-instant',  'Instant Crush',           'Daft Punk',          'electronic', 'Electronic'),
+  // ── Jazz ──
+  mk('jz-soblue',  'So What',                 'Miles Davis',        'jazz',   'Jazz'),
+  mk('jz-kindof',  'All Blues',               'Miles Davis',        'jazz',   'Jazz'),
+  mk('jz-takefive','Take Five',               'Dave Brubeck',       'jazz',   'Jazz'),
+  // ── Singer / Songwriter ──
+  mk('s-anti',     'Anti-Hero',               'Taylor Swift',       'singer', 'Singer/Songwriter'),
+  mk('s-lover',    'lovely',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),
+  mk('s-skinny',   'Skinny',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),
+  // ── Latin ──
+  mk('l-tusa',     'Tusa',                    'Karol G & Nicki Minaj', 'latin', 'Latin'),
+  mk('l-despac',   'Despacito',               'Luis Fonsi',         'latin',  'Latin'),
+  // ── Soundtrack / Cinema ──
+  mk('o-mononoke', 'もののけ姫',                '久石譲',              'soundtrack', 'Soundtrack'),
+  mk('o-rain',     'Comptine d\'un autre été','Yann Tiersen',        'soundtrack', 'Soundtrack'),
+  // ── Rock ──
+  mk('rk-bohemian','Bohemian Rhapsody',       'Queen',              'rock',   'Rock'),
+  mk('rk-radiohd', 'Creep',                   'Radiohead',          'rock',   'Rock'),
 ];
 
 function mk(
@@ -110,28 +239,39 @@ function hash(s: string, salt = 0): number {
 }
 
 function buildEntryFor(buildingId: string): BuildingPlaylistEntry {
-  // 1–3 agents per building, deterministically picked.
-  const agentCount = 1 + (hash(buildingId, 1) % 3);
+  // 2–5 agents per building so TOP PLAYLISTS has a real ranked list
+  // to show / scroll instead of one or two lonely rows.
+  const agentCount = 2 + (hash(buildingId, 1) % 4);
   const startAgent = hash(buildingId, 2) % AGENTS.length;
   const chosen = Array.from({ length: agentCount }, (_, i) =>
-    AGENTS[(startAgent + i) % AGENTS.length]
+    AGENTS[(startAgent + i * 3) % AGENTS.length]
   );
 
   const tracks: PinnedTrack[] = [];
   const taggerNotes: Record<string, string> = {};
+  const taggerPlaylistNames: Record<string, string> = {};
   const playlistLikedBy: Record<string, string[]> = {};
-  const baseTime = Date.now() - hash(buildingId, 3) % (1000 * 60 * 60 * 24 * 14); // within last 14d
+  const baseTime = Date.now() - hash(buildingId, 3) % (1000 * 60 * 60 * 24 * 14);
   const usedIds = new Set<string>();
 
   chosen.forEach((agent, ai) => {
+    // Filter the pool by this agent's taste. Drives the per-row
+    // "수록 N회" overlap to be meaningful — agents with shared taste
+    // (e.g. two R&B curators) end up pinning the same track.
+    const taste = new Set(agent.taste);
+    const tastePool = TRACK_POOL.filter((t) => taste.has(t.genre));
+    const pool = tastePool.length > 0 ? tastePool : TRACK_POOL;
+
     // 3–6 tracks each so every seeded curator clears MIN_PLAYLIST_TRACKS.
-    const trackCount = 3 + (hash(buildingId, 10 + ai) % 4); // 3–6 tracks each
-    const startTrack = hash(buildingId, 20 + ai) % TRACK_POOL.length;
+    const trackCount = 3 + (hash(buildingId, 10 + ai) % 4);
+    const startTrack = hash(buildingId, 20 + ai) % pool.length;
     for (let i = 0; i < trackCount; i++) {
-      const track = TRACK_POOL[(startTrack + i * 3) % TRACK_POOL.length];
-      if (usedIds.has(track.id)) continue; // dedupe at building level
-      usedIds.add(track.id);
-      const likes = hash(buildingId, 100 + ai * 10 + i) % 18; // 0–17 likes
+      const track = pool[(startTrack + i * 2) % pool.length];
+      if (usedIds.has(`${agent.id}|${track.id}`)) continue;
+      usedIds.add(`${agent.id}|${track.id}`);
+      // Cross-tagger overlap is fine (drives "수록 N회"), but a single
+      // tagger shouldn't pin the same track twice.
+      const likes = hash(buildingId, 100 + ai * 10 + i) % 24; // 0–23
       tracks.push({
         ...track,
         pinnedAt: baseTime - i * 1000 * 60 * 30 - ai * 1000 * 60 * 60 * 6,
@@ -143,13 +283,20 @@ function buildEntryFor(buildingId: string): BuildingPlaylistEntry {
       });
     }
     taggerNotes[agent.id] = agent.note;
-    // Seed 0–9 playlist-level likes per agent so the heart pill on the
-    // ranking row already has a number to display.
-    const plLikes = hash(buildingId, 200 + ai) % 10;
+    taggerPlaylistNames[agent.id] = agent.playlistName;
+    // 0–24 playlist-level likes per agent so the rank-by-likes order
+    // is meaningful and the heart counts span a real range.
+    const plLikes = hash(buildingId, 200 + ai) % 25;
     playlistLikedBy[agent.id] = Array.from({ length: plLikes }, (_, k) => `seed-pl-liker-${k}`);
   });
 
-  return { tracks, description: '', taggerNotes, playlistLikedBy };
+  return {
+    tracks,
+    description: '',
+    taggerNotes,
+    taggerPlaylistNames,
+    playlistLikedBy,
+  };
 }
 
 /** Public entry point — call with the list of building IDs currently
