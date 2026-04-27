@@ -1427,10 +1427,10 @@ function App() {
                               <span data-tenant-icon style={{
                                 display: logoUrl ? 'none' : 'flex',
                                 alignItems: 'center', justifyContent: 'center',
-                                color: '#fff',
+                                color: s.icon,
                                 position: logoUrl ? 'absolute' : 'static',
                               }}>
-                                <Icon size={16} strokeWidth={2} />
+                                <Icon size={16} strokeWidth={2.2} />
                               </span>
                             );
                           })()}
@@ -2139,10 +2139,10 @@ function App() {
                                 <span data-tenant-icon style={{
                                   display: logoUrl ? 'none' : 'flex',
                                   alignItems: 'center', justifyContent: 'center',
-                                  color: '#fff',
+                                  color: s.icon,
                                   position: logoUrl ? 'absolute' : 'static',
                                 }}>
-                                  <Icon size={20} strokeWidth={2} />
+                                  <Icon size={20} strokeWidth={2.2} />
                                 </span>
                               );
                             })()}
