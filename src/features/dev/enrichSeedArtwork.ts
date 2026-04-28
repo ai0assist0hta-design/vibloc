@@ -27,11 +27,15 @@
  *   re-renders in a single pass instead of flashing per track.
  */
 
-import { searchTrack, type CountryCode } from '../../lib/music/itunes';
+import { type CountryCode } from '../../lib/music/itunes';
+import { resolveCover } from '../../lib/music/coverArt';
 import { reloadFromStorage } from '../../lib/music/buildingPlaylist';
 
 const STORAGE_KEY = 'vibloc.playlists.v2';
-const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v1';
+// v2 = stricter scoring (MIN_SCORE 80 + variant penalties). Bumping
+// the cache key forces a one-time re-resolve so any wrong covers
+// from the old loose match get replaced with the right Apple ones.
+const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v2';
 const PLACEHOLDER_HOST = 'picsum.photos';
 
 type EnrichedFields = {
@@ -40,7 +44,9 @@ type EnrichedFields = {
   trackViewUrl?: string;
 };
 
-type AppleCache = Record<string, EnrichedFields>; // key = lowercased "artist|track"
+// `null` cache entry = "we tried and Apple has no confident match" —
+// stops us re-hitting iTunes every boot for impossible-to-match seeds.
+type AppleCache = Record<string, EnrichedFields | null>; // key = lowercased "artist|track"
 
 /** Read the persistent cache of resolved iTunes results. */
 function readCache(): AppleCache {
@@ -62,30 +68,20 @@ function cacheKey(artistName: string, trackName: string): string {
   return `${artistName.trim().toLowerCase()}|${trackName.trim().toLowerCase()}`;
 }
 
-/** Hit iTunes Search and return the first matching track's enrichable
- *  fields, or null if nothing came back. */
+/** Resolve via the strict scorer in `coverArt.ts`. Returns null when
+ *  Apple has no high-confidence match — better to keep the
+ *  placeholder than to swap in the wrong cover. */
 async function lookupOne(
   artistName: string,
   trackName: string,
   country: CountryCode,
 ): Promise<EnrichedFields | null> {
-  // Quote the title so iTunes treats multi-word names as a phrase.
-  const term = `${trackName} ${artistName}`.trim();
-  if (!term) return null;
-  const results = await searchTrack(term, country, 3);
-  if (!results.length) return null;
-  // Prefer a result whose artist matches loosely (lower-case
-  // substring), then fall back to the top hit. Apple sometimes
-  // returns covers / remixes first.
-  const wantArtist = artistName.trim().toLowerCase();
-  const best = results.find(
-    (r) => r.artistName.trim().toLowerCase().includes(wantArtist)
-        || wantArtist.includes(r.artistName.trim().toLowerCase()),
-  ) ?? results[0];
+  const hit = await resolveCover(artistName, trackName, country);
+  if (!hit) return null;
   return {
-    artworkUrl: best.artworkUrl,
-    previewUrl: best.previewUrl || undefined,
-    trackViewUrl: best.trackViewUrl || undefined,
+    artworkUrl: hit.artworkUrl,
+    previewUrl: hit.previewUrl,
+    trackViewUrl: hit.trackViewUrl,
   };
 }
 
@@ -147,12 +143,14 @@ async function runEnricher(country: CountryCode): Promise<void> {
   }
 
   // Already cached from a previous session? Apply immediately, no
-  // network. Otherwise spin up the throttled lookups.
+  // network. Otherwise spin up the throttled lookups. Negative
+  // results are recorded as `null` so we don't keep retrying
+  // unmatchable seeds every boot.
   let mutated = false;
   if (need.size > 0) {
     const tasks = Array.from(need.entries()).map(([key, { artist, track }]) => async () => {
       const hit = await lookupOne(artist, track, country);
-      if (hit) cache[key] = hit;
+      cache[key] = hit; // hit OR null — both worth caching
     });
     await runWithConcurrency(tasks, 4);
     writeCache(cache);
@@ -160,7 +158,8 @@ async function runEnricher(country: CountryCode): Promise<void> {
 
   // Walk the store again and mutate any tracks that we now have data
   // for. This is the *single* write back to localStorage so the UI
-  // re-renders once.
+  // re-renders once. Tracks whose lookup returned null keep their
+  // placeholder — better than showing the wrong song's cover.
   for (const entry of Object.values(store)) {
     const tracks = entry?.tracks;
     if (!Array.isArray(tracks)) continue;
