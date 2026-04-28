@@ -15,6 +15,7 @@ import {
   getTaggerPlaylistName,
   getTracksByTagger,
 } from '../../../lib/music/buildingPlaylist';
+import { PlaylistCover } from './PlaylistCover';
 
 // Modal pulls in lz-string + its own UI. Defer until the user clicks
 // share so it never loads on the city map's initial paint.
@@ -63,7 +64,6 @@ export function FeaturedPlaylistHero({
 
   const customName = getTaggerPlaylistName(buildingId, top.taggerId);
   const headline = customName || top.taggerName;
-  const cover = top.coverArtworkUrl;
   const totalSec = tracks.length * AVG_TRACK_SECONDS;
 
   const interactive = !!onSelect;
@@ -134,43 +134,18 @@ export function FeaturedPlaylistHero({
         </button>
       </div>
 
-      {/* Circular cover — sized to read at a glance, framed with a
-          thin ring so it visually separates from the panel halo. */}
-      <div
-        style={{
-          position: 'relative',
-          width: 160, height: 160, borderRadius: 14,
-          overflow: 'hidden',
-          border: `1px solid ${divider}`,
-          boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
-          background: divider,
-        }}
-      >
-        {cover ? (
-          <img
-            src={cover}
-            alt={headline}
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            style={{
-              width: '100%', height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-            }}
-          />
-        ) : (
-          <div style={{
-            width: '100%', height: '100%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: text2,
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 32, fontWeight: 700,
-          }}>
-            {(headline.trim().charAt(0) || '?').toUpperCase()}
-          </div>
-        )}
-      </div>
+      {/* Square cover — custom image when set, else 2×2 mosaic of
+          the playlist's top track artworks (Apple Music / Spotify
+          "smart cover" pattern), else single artwork, else monogram. */}
+      <PlaylistCover
+        customUrl={top.customCoverUrl}
+        artworkUrls={top.coverGridUrls}
+        fallbackText={headline}
+        size={160}
+        radius={14}
+        divider={divider}
+        text2={text2}
+      />
 
       {/* Title */}
       <div style={{

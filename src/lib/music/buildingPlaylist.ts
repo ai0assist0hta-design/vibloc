@@ -45,6 +45,11 @@ export type PinnedTrack = RecommendedTrack & {
   taggerId?: string;
   /** Tagger's profile picture URL (Instagram-style circular avatar). */
   taggerAvatarUrl?: string | null;
+  /** Optional tagger-supplied custom playlist cover (full image
+   *  override, used by the seeded "stock cover" personas). Stored on
+   *  every pinned track from this tagger so getTopTaggers can lift
+   *  it onto the TaggerGroup without an extra lookup table. */
+  taggerCustomCoverUrl?: string | null;
   /** Like count for this pinned track. */
   likes?: number;
   /** Set of user IDs who liked this track (for toggle). */
@@ -253,6 +258,14 @@ export type TaggerGroup = {
    *  by the song" cover) when the curator hasn't uploaded their own
    *  avatar. Null only if every pinned track lacks artwork. */
   coverArtworkUrl: string | null;
+  /** Top-4 track artworks for the 2×2 mosaic cover. Empty when no
+   *  tracks have artwork. The PlaylistCover component picks the
+   *  mosaic when there are 4+ entries, single image when 1–3, and
+   *  monogram when 0. */
+  coverGridUrls: string[];
+  /** Curator-supplied custom playlist cover (path or URL). Takes
+   *  priority over the mosaic / single-track artwork when set. */
+  customCoverUrl: string | null;
   /** Combined ranking score = playlistLikes + sum(trackLikes). */
   totalLikes: number;
   /** Hearts the playlist itself received (independent of track likes). */
@@ -293,12 +306,13 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
   if (!entry || entry.tracks.length === 0) return [];
 
   const groups = new Map<string, TaggerGroup>();
-  // Track the best-cover candidate per tagger separately — pick the
-  // most-liked track's artwork (then most-recent on ties) so the
-  // thumbnail represents the strongest song of the playlist.
-  const coverCandidates = new Map<
+  // Per-tagger artwork accumulator: every distinct artwork URL with
+  // its (likes, pinnedAt) tuple. We later sort and pick the top 4
+  // for the mosaic, and the strongest one for the single-image
+  // fallback (coverArtworkUrl).
+  const artworkBuckets = new Map<
     string,
-    { artworkUrl: string | null; likes: number; pinnedAt: number }
+    Map<string, { likes: number; pinnedAt: number }>
   >();
   for (const t of entry.tracks) {
     const id = t.taggerId ?? 'anonymous';
@@ -308,12 +322,19 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
       existing.totalLikes += t.likes ?? 0;
       existing.trackCount += 1;
       existing.latestAt = Math.max(existing.latestAt, t.pinnedAt);
+      // First non-empty custom cover URL wins — they should be
+      // identical across a tagger's tracks anyway, but be defensive.
+      if (!existing.customCoverUrl && t.taggerCustomCoverUrl) {
+        existing.customCoverUrl = t.taggerCustomCoverUrl;
+      }
     } else {
       groups.set(id, {
         taggerId: id,
         taggerName: name,
         taggerAvatarUrl: t.taggerAvatarUrl ?? null,
         coverArtworkUrl: null, // filled below
+        coverGridUrls: [],     // filled below
+        customCoverUrl: t.taggerCustomCoverUrl ?? null,
         totalLikes: t.likes ?? 0,
         playlistLikes: 0,
         trackCount: 1,
@@ -323,21 +344,27 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
     }
     const tArt = t.artworkUrl || null;
     if (tArt) {
-      const cur = coverCandidates.get(id);
+      let bucket = artworkBuckets.get(id);
+      if (!bucket) { bucket = new Map(); artworkBuckets.set(id, bucket); }
+      const cur = bucket.get(tArt);
       const tLikes = t.likes ?? 0;
-      if (!cur ||
-          tLikes > cur.likes ||
-          (tLikes === cur.likes && t.pinnedAt > cur.pinnedAt)) {
-        coverCandidates.set(id, {
-          artworkUrl: tArt,
-          likes: tLikes,
-          pinnedAt: t.pinnedAt,
-        });
+      if (!cur || tLikes > cur.likes
+              || (tLikes === cur.likes && t.pinnedAt > cur.pinnedAt)) {
+        bucket.set(tArt, { likes: tLikes, pinnedAt: t.pinnedAt });
       }
     }
   }
   for (const g of groups.values()) {
-    g.coverArtworkUrl = coverCandidates.get(g.taggerId)?.artworkUrl ?? null;
+    const bucket = artworkBuckets.get(g.taggerId);
+    if (!bucket) continue;
+    const ranked = Array.from(bucket.entries())
+      .sort((a, b) => {
+        if (b[1].likes !== a[1].likes) return b[1].likes - a[1].likes;
+        return b[1].pinnedAt - a[1].pinnedAt;
+      })
+      .map(([url]) => url);
+    g.coverArtworkUrl = ranked[0] ?? null;
+    g.coverGridUrls = ranked.slice(0, 4);
   }
 
   // Fold playlist-level likes into the ranking score.

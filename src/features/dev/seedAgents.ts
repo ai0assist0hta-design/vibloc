@@ -58,10 +58,12 @@ const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
 // deep links are guaranteed identical to what music.apple.com
 // shows. The remaining text-id seeds resolve at runtime via the
 // storefront-aware scorer + MusicBrainz fallback.
-// v16 = personal playlist names ("{First}'s playlist") replacing
-// the editorial blurb headlines. Bumping forces re-seed so existing
-// buildings pick up the new name on next visit.
-const SEED_VERSION = 'v16-personal-names';
+// v17 = mosaic / custom playlist covers. Default = 2×2 mosaic of
+// the playlist's top track artworks (Apple/Spotify "smart cover"
+// style); five personas carry a custom photo override via
+// customCoverUrl. Bumping forces re-seed so existing buildings
+// re-attach taggerCustomCoverUrl on each pinned track.
+const SEED_VERSION = 'v17-mosaic-covers';
 const MAX_SEED_BUILDINGS = 40;
 
 type Country = 'JP' | 'KR' | 'US';
@@ -84,6 +86,11 @@ type Agent = {
    *  toward matching building shapes (`office` → "lo-fi commute"
    *  curators, `late-night` → club / drive curators, etc.) */
   vibe: 'office' | 'cafe' | 'late-night' | 'sunset' | 'hangout';
+  /** Optional custom playlist cover override — full-bleed photo
+   *  shown in place of the default 2×2 mosaic of track artworks.
+   *  Drop the file in `public/playlist-covers/` and reference it
+   *  with the relative path (e.g. `/playlist-covers/omar.jpg`). */
+  customCoverUrl?: string;
   /** Legacy free-text note (UI no longer renders it). */
   note: string;
 };
@@ -137,11 +144,13 @@ const AGENTS: Agent[] = [
     homeCountry: 'JP', vibe: 'cafe',
     playlistName: "Sora's playlist",
     taste: ['jpop', 'pop', 'singer'],
+    customCoverUrl: '/playlist-covers/penguin-selfie.jpg',
     note: 'brunch-cafe playlist.' },
   { id: 'agent-mei', name: 'Mei Watanabe', avatarUrl: null,
     homeCountry: 'JP', vibe: 'cafe',
     playlistName: "Mei's playlist",
     taste: ['jpop', 'jazz', 'singer'],
+    customCoverUrl: '/playlist-covers/jiji-cat.jpg',
     note: 'rainy sunday at the listening bar.' },
   { id: 'agent-haru', name: 'Haru Mori', avatarUrl: null,
     homeCountry: 'JP', vibe: 'sunset',
@@ -154,11 +163,13 @@ const AGENTS: Agent[] = [
     homeCountry: 'US', vibe: 'sunset',
     playlistName: "Kai's playlist",
     taste: ['hiphop', 'rnb', 'pop'],
+    customCoverUrl: '/playlist-covers/horse-motion.jpg',
     note: 'BK summer set.' },
   { id: 'agent-omar', name: 'Omar Hassan', avatarUrl: null,
     homeCountry: 'US', vibe: 'late-night',
     playlistName: "Omar's playlist",
     taste: ['hiphop', 'rnb', 'electronic'],
+    customCoverUrl: '/playlist-covers/teddy-cool.jpg',
     note: 'after-hours uptown taxi loop.' },
   { id: 'agent-leo', name: 'Leo Vasquez', avatarUrl: null,
     homeCountry: 'US', vibe: 'hangout',
@@ -174,6 +185,7 @@ const AGENTS: Agent[] = [
     homeCountry: 'US', vibe: 'late-night',
     playlistName: "Ezra's playlist",
     taste: ['electronic', 'pop', 'rock'],
+    customCoverUrl: '/playlist-covers/unknown-silhouette.jpg',
     note: 'synthwave heavy.' },
   { id: 'agent-noa', name: 'Noa Kim', avatarUrl: null,
     homeCountry: 'US', vibe: 'cafe',
@@ -421,6 +433,7 @@ function buildEntryFor(
         taggerId: agent.id,
         taggerName: agent.name,
         taggerAvatarUrl: agent.avatarUrl,
+        taggerCustomCoverUrl: agent.customCoverUrl ?? null,
         likes,
         likedBy: Array.from({ length: likes }, (_, k) => `seed-liker-${k}`),
       });
