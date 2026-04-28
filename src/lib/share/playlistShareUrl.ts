@@ -27,14 +27,26 @@ import LZString from 'lz-string';
 import type { PinnedTrack } from '../music/buildingPlaylist';
 
 /** Trimmed track shape — single-letter keys cut ~40% off the payload. */
-type SharedTrack = {
-  i: string; // id
+export type SharedTrack = {
+  i: string; // id (= iTunes trackId)
   n: string; // trackName
   a: string; // artistName
   art?: string; // artworkUrl
   p?: string; // previewUrl
+  u?: string; // trackViewUrl (canonical Apple Music link from iTunes Search API)
   g: string; // genre key
 };
+
+/** Best-effort canonical Apple Music URL for a shared track.
+ *
+ *  Prefers the iTunes-API-supplied `trackViewUrl` (correct slug,
+ *  storefront, album-anchored), falls back to the universal short
+ *  form `music.apple.com/song/{trackId}` which Apple has supported
+ *  since 2022 and resolves to the right region automatically. */
+export function appleMusicUrl(t: { i: string; u?: string }): string {
+  if (t.u) return t.u;
+  return `https://music.apple.com/song/${encodeURIComponent(t.i)}`;
+}
 
 export type SharedPlaylist = {
   v: 1;        // schema version
@@ -96,6 +108,7 @@ export function toSharedTracks(tracks: PinnedTrack[]): SharedTrack[] {
     a: t.artistName,
     art: t.artworkUrl || undefined,
     p: t.previewUrl || undefined,
+    u: t.trackViewUrl || undefined,
     g: t.genre,
   }));
 }

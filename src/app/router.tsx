@@ -14,6 +14,16 @@ const MapAppPage = lazy(() =>
   import('@/pages/map/MapAppPage').then((m) => ({ default: m.MapAppPage })),
 );
 
+// `/p` decodes a self-contained share URL and renders a read-only
+// playlist preview with per-track Apple Music deep links. Pulled in
+// lazily so the marketing entry stays small even though most
+// recipients land here cold from a copied link.
+const PlaylistPreviewPage = lazy(() =>
+  import('@/pages/share/PlaylistPreviewPage').then(
+    (m) => ({ default: m.PlaylistPreviewPage }),
+  ),
+);
+
 /** Tiny fallback so the user sees *something* while the 3D bundle
  *  streams in. Pure CSS, no extra deps, no layout shift. */
 function MapBootSplash() {
@@ -46,6 +56,14 @@ export function AppRoutes() {
         element={
           <Suspense fallback={<MapBootSplash />}>
             <MapAppPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/p"
+        element={
+          <Suspense fallback={null}>
+            <PlaylistPreviewPage />
           </Suspense>
         }
       />
