@@ -21,6 +21,7 @@ import { RecommendedList } from './components/ui/music/RecommendedList';
 import { BuildingPlaylist } from './components/ui/music/BuildingPlaylist';
 import { AddTrackComposer } from './components/ui/music/AddTrackComposer';
 import { TopTaggerCard } from './components/ui/music/TopTaggerCard';
+import { FeaturedPlaylistHero } from './components/ui/music/FeaturedPlaylistHero';
 import { PopularTrackCard } from './components/ui/music/PopularTrackCard';
 import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
@@ -1634,8 +1635,20 @@ function App() {
               );
             })()}
 
-            {/* Content — TOP PLAYLISTS top-3 with medals */}
-            <div style={{ position: 'relative', padding: '14px 18px' }}>
+            {/* Content — #1 hero on top, then top-3 list with medals */}
+            <div style={{
+              position: 'relative',
+              padding: '14px 18px 18px',
+              display: 'flex', flexDirection: 'column', gap: 14,
+            }}>
+              <FeaturedPlaylistHero
+                buildingId={selectedBuilding.id}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                onSelect={(id) => setDetailTaggerId(id)}
+              />
               <TopTaggerCard
                 buildingId={selectedBuilding.id}
                 text={text}
