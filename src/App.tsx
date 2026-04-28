@@ -241,13 +241,6 @@ function App() {
   const bldgAnchorRef = useRef<BuildingScreenAnchor | null>(null);
   const panelCurrentRef = useRef<{ left: number; top: number; scale: number } | null>(null);
   const panelCurrentRightRef = useRef<{ left: number; top: number; scale: number } | null>(null);
-  // Side-lock — once a panel picks a side (LEFT/RIGHT/ABOVE/BELOW)
-  // for the current selection, stay there. Without this the panel
-  // keeps jumping sides as the user orbits the camera and the
-  // placement preference re-evaluates each frame.
-  type PanelSide = 'LEFT' | 'RIGHT' | 'ABOVE' | 'BELOW' | 'CORNER';
-  const panelSideLeftRef = useRef<PanelSide | null>(null);
-  const panelSideRightRef = useRef<PanelSide | null>(null);
   // Latest tenant-list length, updated from inside the panel render.
   const tenantCountRef = useRef(0);
 
@@ -260,8 +253,6 @@ function App() {
     }
     panelCurrentRef.current = null;
     panelCurrentRightRef.current = null;
-    panelSideLeftRef.current = null;
-    panelSideRightRef.current = null;
   }, [selectedBuilding]);
 
   // Single rAF loop owns the entire panel motion: computeTarget per
@@ -292,6 +283,44 @@ function App() {
       return clamp(vw / 1280, 0.55, 1.0);
     }
 
+    /** Pure scale + Y position derived from the building anchor.
+     *  Shared by leftPanel and rightPanel so they always sit at
+     *  exactly the same height with the same shrink ratio — true
+     *  mirror image across the building. */
+    function panelMetrics(anchor: BuildingScreenAnchor): {
+      scale: number; gapX: number; gapY: number;
+      topY: number; safeRightLimit: number;
+    } {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const bbW = Math.max(0, anchor.right - anchor.left);
+      const bbH = Math.max(0, anchor.bottom - anchor.top);
+      const bbMax = Math.max(bbW, bbH);
+      const REFERENCE_BBMAX = 700;
+      const HEAD_ROOM = 0.65;
+      const MIN_SCALE = 0.28;
+      const ratio = clamp(bbMax / REFERENCE_BBMAX, 0, 1);
+      let scale: number;
+      if (ratio >= HEAD_ROOM) scale = 1.0;
+      else {
+        const t = ratio / HEAD_ROOM;
+        const s = t * t * (3 - 2 * t);
+        scale = MIN_SCALE + (1 - MIN_SCALE) * s;
+      }
+      scale = scale * viewportScale();
+      const gapX = 180 * scale;
+      const gapY = 96 * scale;
+      const safeRightLimit = vw - RIGHT_MUSIC_W - gapX;
+      const tenantCount = tenantCountRef.current;
+      const tenantLift = tenantCount >= 5
+        ? Math.min(180, (tenantCount - 4) * 28)
+        : 0;
+      const minY = PANEL_HEADER_INSET;
+      const maxY = vh - PANEL_BOTTOM_INSET - PANEL_H_ESTIMATE;
+      const topY = Math.max(minY, Math.min(maxY, anchor.top - gapY - tenantLift));
+      return { scale, gapX, gapY, topY, safeRightLimit };
+    }
+
     function computeTarget(
       anchor: BuildingScreenAnchor | null,
     ): { left: number; top: number; scale: number } {
@@ -314,76 +343,18 @@ function App() {
       const REFERENCE_BBMAX = 700; // ≈ post-fly-to dominant size on 1080p
       const HEAD_ROOM = 0.65;     // shrink starts a touch earlier
       const MIN_SCALE = 0.28;     // shrink further when fully zoomed out
-      const ratio = clamp(bbMax / REFERENCE_BBMAX, 0, 1);
-      let scale: number;
-      if (ratio >= HEAD_ROOM) {
-        scale = 1.0;
-      } else {
-        const t = ratio / HEAD_ROOM;
-        const s = t * t * (3 - 2 * t);
-        scale = MIN_SCALE + (1 - MIN_SCALE) * s;
-      }
-      // Compose with viewport scale so narrow windows shrink the
-      // panel further (no overlap with the music side rail).
-      const vScale = viewportScale();
-      scale = scale * vScale;
-      const gapX = 180 * scale;
-      const gapY = 96 * scale;
-      const safeRightLimit = vw - RIGHT_MUSIC_W - gapX;
-      const tenantCount = tenantCountRef.current;
-      const tenantLift = tenantCount >= 5
-        ? Math.min(180, (tenantCount - 4) * 28)
-        : 0;
-      const clampY = (y: number) => {
-        const minY = PANEL_HEADER_INSET;
-        const maxY = vh - PANEL_BOTTOM_INSET - PANEL_H_ESTIMATE;
-        return Math.max(minY, Math.min(maxY, y));
-      };
-      // Compute every candidate placement once.
-      const leftLx = anchor.left - gapX - PANEL_W;
-      const rightLx = anchor.right + gapX;
-      const aboveTy = anchor.top - gapY - PANEL_H_ESTIMATE;
-      const belowTy = anchor.bottom + gapY;
-      const centerX = () => {
-        const ideal = (anchor.left + anchor.right) / 2 - PANEL_W / 2;
-        const minX = PANEL_VIEWPORT_INSET;
-        const maxX = Math.min(
-          safeRightLimit - PANEL_W,
-          vw - PANEL_W - PANEL_VIEWPORT_INSET,
-        );
-        return Math.max(minX, Math.min(maxX, ideal));
-      };
-      const fits: Record<PanelSide, boolean> = {
-        LEFT:   leftLx >= PANEL_VIEWPORT_INSET,
-        RIGHT:  rightLx + PANEL_W <= safeRightLimit,
-        ABOVE:  aboveTy >= PANEL_HEADER_INSET,
-        BELOW:  belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET,
-        CORNER: true,
-      };
-      // SIDE LOCK: pick a side only on the first valid frame after
-      // selection (or when the locked side completely runs out of
-      // room), then stick with it for the rest of this orbit. Without
-      // this the panel re-evaluates every frame as the camera
-      // rotates and visually jumps L→R→ABOVE.
-      const PREFERENCE: PanelSide[] = ['LEFT', 'RIGHT', 'ABOVE', 'BELOW', 'CORNER'];
-      const cached = panelSideLeftRef.current;
-      if (!cached || !fits[cached]) {
-        panelSideLeftRef.current =
-          PREFERENCE.find((s) => fits[s]) ?? 'CORNER';
-      }
-      const side = panelSideLeftRef.current!;
-      switch (side) {
-        case 'LEFT':
-          return { left: leftLx, top: clampY(anchor.top - gapY - tenantLift), scale };
-        case 'RIGHT':
-          return { left: rightLx, top: clampY(anchor.top - gapY - tenantLift), scale };
-        case 'ABOVE':
-          return { left: centerX(), top: aboveTy, scale };
-        case 'BELOW':
-          return { left: centerX(), top: belowTy, scale };
-        default:
-          return { left: PANEL_VIEWPORT_INSET, top: PANEL_HEADER_INSET, scale };
-      }
+      const m = panelMetrics(anchor);
+      // ALWAYS sit on the LEFT side of the building. If LEFT clips
+      // off-screen, slide right toward the viewport edge but never
+      // jump to RIGHT/ABOVE — the right panel is mirrored from this
+      // one, and any side-flip would let them overlap.
+      const idealLx = anchor.left - m.gapX - PANEL_W;
+      const minX = PANEL_VIEWPORT_INSET;
+      // Cap left edge so leftPanel can't cross past building's centre
+      // — keeps it visually "to the left".
+      const maxX = (anchor.left + anchor.right) / 2 - PANEL_W - m.gapX * 0.5;
+      const left = Math.max(minX, Math.min(maxX, idealLx));
+      return { left, top: m.topY, scale: m.scale };
     }
 
     /** Mirror of `computeTarget` for the right-side TOP PLAYLISTS
@@ -398,96 +369,17 @@ function App() {
       if (!anchor || !anchor.inFront) {
         return { left: vw - 360 - PANEL_W, top: vh * 0.30, scale: viewportScale() };
       }
-      const bbW = Math.max(0, anchor.right - anchor.left);
-      const bbH = Math.max(0, anchor.bottom - anchor.top);
-      const bbMax = Math.max(bbW, bbH);
-      const REFERENCE_BBMAX = 700;
-      const HEAD_ROOM = 0.65;
-      const MIN_SCALE = 0.28;
-      const ratio = clamp(bbMax / REFERENCE_BBMAX, 0, 1);
-      let scale: number;
-      if (ratio >= HEAD_ROOM) {
-        scale = 1.0;
-      } else {
-        const t = ratio / HEAD_ROOM;
-        const s = t * t * (3 - 2 * t);
-        scale = MIN_SCALE + (1 - MIN_SCALE) * s;
-      }
-      scale = scale * viewportScale();
-      const gapX = 180 * scale;
-      const gapY = 96 * scale;
-      const safeRightLimit = vw - RIGHT_MUSIC_W - gapX;
-      const tenantCount = tenantCountRef.current;
-      const tenantLift = tenantCount >= 5
-        ? Math.min(180, (tenantCount - 4) * 28)
-        : 0;
-      const clampY = (y: number) => {
-        const minY = PANEL_HEADER_INSET;
-        const maxY = vh - PANEL_BOTTOM_INSET - PANEL_H_ESTIMATE;
-        return Math.max(minY, Math.min(maxY, y));
-      };
-      const rightLx = anchor.right + gapX;
-      const leftLx = anchor.left - gapX - PANEL_W;
-      const aboveTy = anchor.top - gapY - PANEL_H_ESTIMATE;
-      const belowTy = anchor.bottom + gapY;
-      const centerX = () => {
-        const ideal = (anchor.left + anchor.right) / 2 - PANEL_W / 2;
-        const minX = PANEL_VIEWPORT_INSET;
-        const maxX = Math.min(
-          safeRightLimit - PANEL_W,
-          vw - PANEL_W - PANEL_VIEWPORT_INSET,
-        );
-        return Math.max(minX, Math.min(maxX, ideal));
-      };
-      // Whatever side leftPanel claimed, rightPanel must not pick the
-      // same one — otherwise they overlap as the camera orbits.
-      const leftSide = panelSideLeftRef.current;
-      const fits: Record<PanelSide, boolean> = {
-        RIGHT:  rightLx + PANEL_W <= safeRightLimit,
-        // LEFT explicitly disabled for the right panel — that's the
-        // leftPanel's territory; falling back there collides every
-        // time the camera rotates the building toward the right edge.
-        LEFT:   false,
-        ABOVE:  aboveTy >= PANEL_HEADER_INSET     && leftSide !== 'ABOVE',
-        BELOW:  belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET
-                                                  && leftSide !== 'BELOW',
-        CORNER: true,
-      };
-      // SIDE LOCK with REVERSED preference (RIGHT first). LEFT removed
-      // so the right panel never wanders into the left panel's lane.
-      const PREFERENCE: PanelSide[] = ['RIGHT', 'BELOW', 'ABOVE', 'CORNER'];
-      const cached = panelSideRightRef.current;
-      if (!cached || !fits[cached]) {
-        panelSideRightRef.current =
-          PREFERENCE.find((s) => fits[s]) ?? 'CORNER';
-      }
-      const side = panelSideRightRef.current!;
-      // Right-edge clamp helper — when the building drifts toward the
-      // right side of the screen, keep the panel pinned to the
-      // viewport's right edge (still inside `safeRightLimit`) instead
-      // of letting it slide off behind the music side rail.
-      const rightAnchored = (left: number) => Math.min(
-        left,
-        Math.max(PANEL_VIEWPORT_INSET, safeRightLimit - PANEL_W),
-      );
-      switch (side) {
-        case 'RIGHT':
-          return {
-            left: rightAnchored(rightLx),
-            top: clampY(anchor.top - gapY - tenantLift),
-            scale,
-          };
-        case 'ABOVE':
-          return { left: centerX(), top: aboveTy, scale };
-        case 'BELOW':
-          return { left: centerX(), top: belowTy, scale };
-        default:
-          return {
-            left: Math.max(PANEL_VIEWPORT_INSET, safeRightLimit - PANEL_W),
-            top: PANEL_HEADER_INSET,
-            scale,
-          };
-      }
+      const m = panelMetrics(anchor);
+      // PURE MIRROR of leftPanel: same Y, same scale, opposite side.
+      // Sit on the RIGHT of the building. Clamp to safeRightLimit so
+      // the panel never slides under the music side rail.
+      const idealLx = anchor.right + m.gapX;
+      // Min: must stay past building's centre so the two panels never
+      // overlap horizontally.
+      const minX = (anchor.left + anchor.right) / 2 + m.gapX * 0.5;
+      const maxX = Math.max(minX, m.safeRightLimit - PANEL_W);
+      const left = Math.max(minX, Math.min(maxX, idealLx));
+      return { left, top: m.topY, scale: m.scale };
     }
 
     let raf = 0;
