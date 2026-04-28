@@ -1498,10 +1498,25 @@ function App() {
                   {allTenantsList.map((tenant, i) => {
                     const s = swatch(tenant.category);
                     const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
+                    // One-click Google Maps search for the tenant — uses
+                    // the building's lat/lon as context so we land on the
+                    // right pin among multiple branches of the same chain.
+                    const gQuery = encodeURIComponent(
+                      `${tenant.name} ${tenant.label}`.trim(),
+                    );
+                    const gURL = `https://www.google.com/maps/search/?api=1`
+                      + `&query=${gQuery}`
+                      + (Number.isFinite(buildingLat) && Number.isFinite(buildingLon)
+                          ? `&query_place_id=&query=${gQuery}@${buildingLat},${buildingLon}`
+                          : '');
                     return (
-                      <div
+                      <a
                         key={`${tenant.category}-${tenant.name}-${i}`}
                         role="listitem"
+                        href={gURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${tenant.name} in Google Maps`}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1510,8 +1525,10 @@ function App() {
                           borderRadius: 8,
                           background: 'transparent',
                           border: 'none',
+                          textDecoration: 'none',
+                          color: 'inherit',
                           transition: reducedMotion ? 'none' : 'background 150ms ease',
-                          cursor: 'default',
+                          cursor: 'pointer',
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = darkMode
@@ -1522,23 +1539,31 @@ function App() {
                       >
                         <div
                           style={{
-                            width: 28, height: 28, borderRadius: 8,
-                            background: logoUrl ? 'transparent' : s.fill,
+                            width: 36, height: 36, borderRadius: 8,
+                            // Always paint the swatch fill — even when a
+                            // logo loads on top — so transparent / partial
+                            // PNGs don't reveal the panel halo behind.
+                            background: s.fill,
                             border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             flexShrink: 0, overflow: 'hidden',
+                            position: 'relative',
                           }}
                         >
                           {logoUrl ? (
-                            <img src={logoUrl} alt="" width={20} height={20}
-                              style={{ objectFit: 'contain', borderRadius: 3 }}
+                            <img src={logoUrl} alt="" width={36} height={36}
+                              style={{
+                                position: 'absolute', inset: 0,
+                                width: '100%', height: '100%',
+                                objectFit: 'cover',
+                                background: '#fff',
+                              }}
                               onError={(e) => {
                                 // Hide the broken img + reveal the icon
                                 // sibling rendered below it.
                                 e.currentTarget.style.display = 'none';
                                 const parent = e.currentTarget.parentElement;
                                 if (parent) {
-                                  parent.style.background = s.fill;
                                   const fallback = parent.querySelector(
                                     '[data-tenant-icon]'
                                   ) as HTMLElement | null;
@@ -1587,7 +1612,7 @@ function App() {
                             );
                           })()}
                         </div>
-                      </div>
+                      </a>
                     );
                   })}
                 </div>
@@ -2353,34 +2378,46 @@ function App() {
                     {allTenantsList.map((tenant, i) => {
                       const s = swatch(tenant.category);
                       const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
+                      const gQuery = encodeURIComponent(`${tenant.name} ${tenant.label}`.trim());
+                      const gURL = `https://www.google.com/maps/search/?api=1&query=${gQuery}`;
                       return (
-                        <div
+                        <a
                           key={`m-${tenant.category}-${tenant.name}-${i}`}
                           role="listitem"
+                          href={gURL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Open ${tenant.name} in Google Maps`}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 12,
                             padding: '8px 12px', borderRadius: 12,
                             background: card, border: `1px solid ${divider}`,
+                            textDecoration: 'none', color: 'inherit',
                             transition: reducedMotion ? 'none' : 'background 150ms ease',
                           }}
                           onMouseEnter={(e) => { e.currentTarget.style.background = cardSub; }}
                           onMouseLeave={(e) => { e.currentTarget.style.background = card; }}
                         >
                           <div style={{
-                            width: 36, height: 36, borderRadius: 10,
-                            background: logoUrl ? 'transparent' : s.fill,
+                            width: 44, height: 44, borderRadius: 10,
+                            background: s.fill,
                             border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             flexShrink: 0, overflow: 'hidden',
+                            position: 'relative',
                           }}>
                             {logoUrl ? (
-                              <img src={logoUrl} alt="" width={28} height={28}
-                                style={{ objectFit: 'contain', borderRadius: 4 }}
+                              <img src={logoUrl} alt="" width={44} height={44}
+                                style={{
+                                  position: 'absolute', inset: 0,
+                                  width: '100%', height: '100%',
+                                  objectFit: 'cover',
+                                  background: '#fff',
+                                }}
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
                                   const parent = e.currentTarget.parentElement;
                                   if (parent) {
-                                    parent.style.background = s.fill;
                                     const fallback = parent.querySelector(
                                       '[data-tenant-icon]'
                                     ) as HTMLElement | null;
@@ -2423,7 +2460,7 @@ function App() {
                               );
                             })()}
                           </div>
-                        </div>
+                        </a>
                       );
                     })}
                   </div>
