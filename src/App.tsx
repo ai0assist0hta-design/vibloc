@@ -318,7 +318,24 @@ function App() {
         : 0;
       const minY = PANEL_HEADER_INSET;
       const maxY = vh - PANEL_BOTTOM_INSET - PANEL_H_ESTIMATE;
-      const topY = Math.max(minY, Math.min(maxY, anchor.top - gapY - tenantLift));
+      // ── Vertical placement ──
+      // Old: anchor at the building's TOP edge. That worked for short
+      // buildings but slammed the panel into the screen ceiling for
+      // skyscrapers (anchor.top → ~50 px → topY clamped to header
+      // inset, way above the eye line).
+      // New: blend toward the building's CENTER as the on-screen
+      // vertical extent grows. Short building → behaves like before;
+      // tall building → panel sits beside the centre of the silhouette.
+      const bbScreenH = Math.max(0, anchor.bottom - anchor.top);
+      // Tall blend kicks in once the silhouette occupies > ~38% of
+      // viewport height. Below that, the original top-anchored math
+      // wins (no jump for normal mid-rise blocks).
+      const tallness = clamp((bbScreenH / vh - 0.38) / 0.42, 0, 1);
+      const topAnchored = anchor.top - gapY;
+      const centerAnchored = (anchor.top + anchor.bottom) / 2 - PANEL_H_ESTIMATE / 2;
+      const ideal = topAnchored * (1 - tallness) + centerAnchored * tallness
+                    - tenantLift * (1 - tallness * 0.5);
+      const topY = Math.max(minY, Math.min(maxY, ideal));
       return { scale, gapX, gapY, topY, safeRightLimit };
     }
 
