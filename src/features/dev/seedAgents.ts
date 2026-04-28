@@ -26,13 +26,20 @@ import type { RecommendedTrack } from '../../lib/music/trackTypes';
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
-const SEED_VERSION = 'v5-personas-expanded';
+const SEED_VERSION = 'v6-mixed-avatars';
 const MAX_SEED_BUILDINGS = 40;
 
 type Agent = {
   id: string;
   name: string;
-  avatarUrl: string;
+  /** Three flavors per agent (deterministic via taggerId hash):
+   *  - null            → TaggerThumb falls back to initial monogram
+   *  - DiceBear URL    → cartoon avatar
+   *  - Picsum URL      → real photo
+   *  Mixed across the seed so the curator list reads like a real
+   *  social feed (some users uploaded photos, some chose avatars,
+   *  some never set one). */
+  avatarUrl: string | null;
   /** Custom playlist NAME — appears as the headline on TopTaggerCard
    *  rows and PlaylistDetailView. Persona-flavored. */
   playlistName: string;
@@ -50,85 +57,85 @@ type Agent = {
  *  Manhattan, LA). Avatars via DiceBear (deterministic by seed). */
 const AGENTS: Agent[] = [
   {
-    id: 'agent-luna', name: 'Luna Park', avatarUrl: dicebear('luna-park'),
+    id: 'agent-luna', name: 'Luna Park', avatarUrl: avatarFor('luna-park'),
     playlistName: '비 오는 새벽 4시 골목',
     taste: ['rnb', 'jazz', 'singer'],
     note: '늦은 밤 여기 앞에서 걷다가 머릿속에 박혔던 곡들.',
   },
   {
-    id: 'agent-jiro', name: 'Jiro Tanaka', avatarUrl: dicebear('jiro-tanaka'),
+    id: 'agent-jiro', name: 'Jiro Tanaka', avatarUrl: avatarFor('jiro-tanaka'),
     playlistName: 'Shinjuku 5AM Loop',
     taste: ['electronic', 'jpop', 'soundtrack'],
     note: 'coffee + ambient bass + neon reflections.',
   },
   {
-    id: 'agent-min', name: 'Min Seo', avatarUrl: dicebear('min-seo'),
+    id: 'agent-min', name: 'Min Seo', avatarUrl: avatarFor('min-seo'),
     playlistName: '이태원 골목길 R&B',
     taste: ['rnb', 'kpop', 'singer'],
     note: 'k-r&b heavy. 골목길 산책용 셀렉.',
   },
   {
-    id: 'agent-hugo', name: 'Hugo Vrai', avatarUrl: dicebear('hugo-vrai'),
+    id: 'agent-hugo', name: 'Hugo Vrai', avatarUrl: avatarFor('hugo-vrai'),
     playlistName: 'french touch / city pop',
     taste: ['electronic', 'jpop', 'pop'],
     note: 'french touch + city pop crossover. windows down only.',
   },
   {
-    id: 'agent-ava', name: 'Ava Chen', avatarUrl: dicebear('ava-chen'),
+    id: 'agent-ava', name: 'Ava Chen', avatarUrl: avatarFor('ava-chen'),
     playlistName: 'rooftop sunset, indie + dream pop',
     taste: ['alternative', 'pop', 'singer'],
     note: 'rooftop sunset playlist · indie + dream pop',
   },
   {
-    id: 'agent-noa', name: 'Noa Kim', avatarUrl: dicebear('noa-kim'),
+    id: 'agent-noa', name: 'Noa Kim', avatarUrl: avatarFor('noa-kim'),
     playlistName: '카페에서 아메리카노 한 잔',
     taste: ['jazz', 'singer', 'rnb'],
     note: 'lo-fi + jazz + 따뜻한 보컬.',
   },
   {
-    id: 'agent-rio', name: 'Rio Suzuki', avatarUrl: dicebear('rio-suzuki'),
+    id: 'agent-rio', name: 'Rio Suzuki', avatarUrl: avatarFor('rio-suzuki'),
     playlistName: 'morning commute · lofi hiphop',
     taste: ['hiphop', 'electronic', 'jpop'],
     note: '매일 출근길 듣는 셋.',
   },
   {
-    id: 'agent-ezra', name: 'Ezra Maeda', avatarUrl: dicebear('ezra-maeda'),
+    id: 'agent-ezra', name: 'Ezra Maeda', avatarUrl: avatarFor('ezra-maeda'),
     playlistName: 'late night drives',
     taste: ['electronic', 'pop', 'rock'],
     note: 'synthwave heavy.',
   },
   {
-    id: 'agent-sora', name: 'Sora Hinata', avatarUrl: dicebear('sora-hinata'),
+    id: 'agent-sora', name: 'Sora Hinata', avatarUrl: avatarFor('sora-hinata'),
     playlistName: '渋谷 일요일 오후',
     taste: ['jpop', 'pop', 'singer'],
     note: '시부야 brunch 카페 음악.',
   },
   {
-    id: 'agent-kai',  name: 'Kai Roberts', avatarUrl: dicebear('kai-roberts'),
+    id: 'agent-kai',  name: 'Kai Roberts', avatarUrl: avatarFor('kai-roberts'),
     playlistName: 'Brooklyn rooftop @ golden hour',
     taste: ['hiphop', 'rnb', 'pop'],
     note: 'BK summer set.',
   },
   {
-    id: 'agent-yuna', name: 'Yuna Choi',   avatarUrl: dicebear('yuna-choi'),
+    id: 'agent-yuna', name: 'Yuna Choi',   avatarUrl: avatarFor('yuna-choi'),
     playlistName: '강남역 새벽 택시',
     taste: ['kpop', 'rnb', 'pop'],
     note: '플리 1시간 짜리 — 1차 끝나고 2차 가는 길.',
   },
   {
-    id: 'agent-leo',  name: 'Leo Vasquez', avatarUrl: dicebear('leo-vasquez'),
+    id: 'agent-leo',  name: 'Leo Vasquez', avatarUrl: avatarFor('leo-vasquez'),
     playlistName: 'echo park / silver lake drive',
     taste: ['alternative', 'latin', 'pop'],
     note: 'LA eastside windows down.',
   },
   {
-    id: 'agent-mei',  name: 'Mei Watanabe', avatarUrl: dicebear('mei-watanabe'),
+    id: 'agent-mei',  name: 'Mei Watanabe', avatarUrl: avatarFor('mei-watanabe'),
     playlistName: '신주쿠 비 오는 일요일',
     taste: ['jpop', 'jazz', 'singer'],
     note: 'rainy sunday at the listening bar.',
   },
   {
-    id: 'agent-omar', name: 'Omar Hassan', avatarUrl: dicebear('omar-hassan'),
+    id: 'agent-omar', name: 'Omar Hassan', avatarUrl: avatarFor('omar-hassan'),
     playlistName: 'Manhattan 4 AM cab ride',
     taste: ['hiphop', 'rnb', 'electronic'],
     note: 'after-hours uptown taxi loop.',
@@ -138,6 +145,23 @@ const AGENTS: Agent[] = [
 function dicebear(seed: string): string {
   // DiceBear v8 'avataaars' style — colorful, free, no API key, no CORS.
   return `https://api.dicebear.com/8.x/avataaars/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+}
+
+/** Deterministic 3-way pick: monogram (null) / cartoon / photo.
+ *  The TaggerThumb component already coin-flips between photo and
+ *  monogram on its own — but feeding it `null` for one third of the
+ *  agents forces that third into monogram even when the bit lands
+ *  on "photo", giving the panel a real social-feed mix. */
+function avatarFor(seed: string): string | null {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const bucket = (h >>> 0) % 3;
+  if (bucket === 0) return null;                                      // monogram
+  if (bucket === 1) return dicebear(seed);                             // cartoon
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/64/64`; // photo
 }
 
 /** Real-ish iTunes track stubs. previewUrl left empty so the play

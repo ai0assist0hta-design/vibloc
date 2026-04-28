@@ -11,6 +11,7 @@
  * adds a like without navigating.
  */
 
+import { useState } from 'react';
 import {
   useTopTaggers,
   togglePlaylistLike,
@@ -141,7 +142,12 @@ export function TopTaggerCard({
             }}
           >
             {medalColor && <Medal rank={idx + 1} color={medalColor} />}
-            <TaggerThumb taggerId={g.taggerId} divider={divider} alt={g.taggerName} />
+            <TaggerThumb
+              taggerId={g.taggerId}
+              avatarUrl={g.taggerAvatarUrl ?? null}
+              divider={divider}
+              alt={g.taggerName}
+            />
 
             {/* Playlist name (custom) — bigger headline, curator name
                 relegated to the secondary line. */}
@@ -212,18 +218,54 @@ export function TopTaggerCard({
   );
 }
 
-/** Initial-letter monogram circle — Slack/Discord style placeholder
- *  for a tagger's avatar. Background hue is derived from the
- *  taggerId so the same user always gets the same color. */
+/** Tagger avatar thumb. Two render modes, picked deterministically
+ *  per `taggerId` so the same user always gets the same look:
+ *
+ *   1. PHOTO   — when `avatarUrl` is supplied (DiceBear cartoon for
+ *                seed agents, real upload for actual users) AND the
+ *                hash bit lands on "photo".
+ *   2. MONOGRAM — Slack/Discord style initial-on-tinted-circle.
+ *
+ *  Photo falls back to monogram on <img> error, so a broken avatar
+ *  URL never leaves a blank circle. */
 function TaggerThumb({
-  taggerId, divider, alt,
+  taggerId, avatarUrl, divider, alt,
 }: {
-  taggerId: string; divider: string; alt: string;
+  taggerId: string;
+  avatarUrl: string | null;
+  divider: string;
+  alt: string;
 }) {
-  const initial = (alt || taggerId).trim().charAt(0).toUpperCase() || '?';
+  // Stable hash. Bit 0 → photo vs monogram coin flip; the rest of
+  // the bits drive the monogram hue.
   let h = 0;
   for (let i = 0; i < taggerId.length; i++) h = (h * 31 + taggerId.charCodeAt(i)) >>> 0;
+  const showPhoto = !!avatarUrl && (h & 1) === 0;
+  const initial = (alt || taggerId).trim().charAt(0).toUpperCase() || '?';
   const hue = h % 360;
+  const [photoBroken, setPhotoBroken] = useState(false);
+
+  if (showPhoto && !photoBroken) {
+    return (
+      <img
+        src={avatarUrl!}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onError={() => setPhotoBroken(true)}
+        style={{
+          width: 28, height: 28, borderRadius: '50%',
+          objectFit: 'cover',
+          background: `hsl(${hue}, 55%, 88%)`,
+          border: `2px solid ${divider}`,
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
+          flexShrink: 0,
+          display: 'block',
+        }}
+      />
+    );
+  }
   return (
     <span
       aria-label={alt}
