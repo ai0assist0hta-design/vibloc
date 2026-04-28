@@ -80,10 +80,11 @@ type ItunesRawResult = {
 
 function toRecommendedTrack(r: ItunesRawResult): RecommendedTrack | null {
   if (!r.trackName || !r.artistName) return null;
-  // Apple's default artwork URL is 100 px. The 600 px variant is just
-  // a string substitution and the CDN serves it for free — sharper on
-  // retina without an extra request.
-  const art = (r.artworkUrl100 || '').replace('100x100bb', '600x600bb');
+  // Apple's default artwork URL is 100 px. The CDN serves any
+  // {N}x{N}bb variant for free via plain string substitution.
+  // 1200 px keeps the 160 px hero / detail covers sharp on @3x
+  // mobile retina + macOS @2x without an extra request.
+  const art = (r.artworkUrl100 || '').replace('100x100bb', '1200x1200bb');
   return {
     id: String(r.trackId),
     trackName: r.trackName,
@@ -203,7 +204,7 @@ export async function topSongsByCountry(
       id: it.id,
       name: it.name,
       artistName: it.artistName,
-      artworkUrl: (it.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
+      artworkUrl: (it.artworkUrl100 || '').replace('100x100bb', '1200x1200bb'),
       primaryGenreName: it.genres?.[0]?.name || '',
     }));
     cacheSet(cacheKey, items);
