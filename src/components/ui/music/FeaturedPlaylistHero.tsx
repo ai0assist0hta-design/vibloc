@@ -8,12 +8,14 @@
  * Renders nothing when the building has zero playlists yet.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { QrCode } from 'lucide-react';
 import {
   useTopTaggers,
   getTaggerPlaylistName,
   getTracksByTagger,
 } from '../../../lib/music/buildingPlaylist';
+import { PlaylistQRModal } from './PlaylistQRModal';
 
 type Props = {
   buildingId: string;
@@ -49,6 +51,9 @@ export function FeaturedPlaylistHero({
     [buildingId, top?.taggerId, top?.trackCount],
   );
 
+  // ⚠ all hooks must be declared before any early-return.
+  const [qrOpen, setQrOpen] = useState(false);
+
   if (!top) return null;
 
   const customName = getTaggerPlaylistName(buildingId, top.taggerId);
@@ -72,6 +77,7 @@ export function FeaturedPlaylistHero({
       }}
       aria-label={interactive ? `Open ${headline}` : undefined}
       style={{
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -83,17 +89,44 @@ export function FeaturedPlaylistHero({
     >
       {/* Tiny eyebrow — subtle "FEATURED" marker so the user reads
           this as the headline pick, not just decoration. */}
-      <div
-        style={{
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: 9.5, fontWeight: 800, letterSpacing: 1.4,
-          textTransform: 'uppercase',
-          color: text3,
-          alignSelf: 'flex-start',
-          marginBottom: 2,
-        }}
-      >
-        Featured · #1
+      <div style={{
+        display: 'flex', alignItems: 'center',
+        alignSelf: 'stretch', marginBottom: 2,
+      }}>
+        <div
+          style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 9.5, fontWeight: 800, letterSpacing: 1.4,
+            textTransform: 'uppercase',
+            color: text3,
+          }}
+        >
+          Featured · #1
+        </div>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setQrOpen(true); }}
+          aria-label="Share playlist via QR code"
+          title="Share via QR"
+          style={{
+            marginLeft: 'auto',
+            padding: 6, borderRadius: 8,
+            border: 'none', background: 'transparent',
+            color: text2, cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 120ms ease, color 120ms ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(26,26,46,0.06)';
+            e.currentTarget.style.color = text;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = text2;
+          }}
+        >
+          <QrCode size={16} strokeWidth={2} />
+        </button>
       </div>
 
       {/* Circular cover — sized to read at a glance, framed with a
@@ -166,6 +199,12 @@ export function FeaturedPlaylistHero({
           </>
         )}
       </div>
+      <PlaylistQRModal
+        buildingId={buildingId}
+        taggerId={top.taggerId}
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+      />
     </div>
   );
 }
