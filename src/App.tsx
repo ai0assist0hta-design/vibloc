@@ -439,33 +439,51 @@ function App() {
         );
         return Math.max(minX, Math.min(maxX, ideal));
       };
+      // Whatever side leftPanel claimed, rightPanel must not pick the
+      // same one — otherwise they overlap as the camera orbits.
+      const leftSide = panelSideLeftRef.current;
       const fits: Record<PanelSide, boolean> = {
         RIGHT:  rightLx + PANEL_W <= safeRightLimit,
-        LEFT:   leftLx >= PANEL_VIEWPORT_INSET,
-        ABOVE:  aboveTy >= PANEL_HEADER_INSET,
-        BELOW:  belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET,
+        // LEFT explicitly disabled for the right panel — that's the
+        // leftPanel's territory; falling back there collides every
+        // time the camera rotates the building toward the right edge.
+        LEFT:   false,
+        ABOVE:  aboveTy >= PANEL_HEADER_INSET     && leftSide !== 'ABOVE',
+        BELOW:  belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET
+                                                  && leftSide !== 'BELOW',
         CORNER: true,
       };
-      // SIDE LOCK with REVERSED preference (RIGHT first).
-      const PREFERENCE: PanelSide[] = ['RIGHT', 'LEFT', 'BELOW', 'ABOVE', 'CORNER'];
+      // SIDE LOCK with REVERSED preference (RIGHT first). LEFT removed
+      // so the right panel never wanders into the left panel's lane.
+      const PREFERENCE: PanelSide[] = ['RIGHT', 'BELOW', 'ABOVE', 'CORNER'];
       const cached = panelSideRightRef.current;
       if (!cached || !fits[cached]) {
         panelSideRightRef.current =
           PREFERENCE.find((s) => fits[s]) ?? 'CORNER';
       }
       const side = panelSideRightRef.current!;
+      // Right-edge clamp helper — when the building drifts toward the
+      // right side of the screen, keep the panel pinned to the
+      // viewport's right edge (still inside `safeRightLimit`) instead
+      // of letting it slide off behind the music side rail.
+      const rightAnchored = (left: number) => Math.min(
+        left,
+        Math.max(PANEL_VIEWPORT_INSET, safeRightLimit - PANEL_W),
+      );
       switch (side) {
         case 'RIGHT':
-          return { left: rightLx, top: clampY(anchor.top - gapY - tenantLift), scale };
-        case 'LEFT':
-          return { left: leftLx, top: clampY(anchor.top - gapY - tenantLift), scale };
+          return {
+            left: rightAnchored(rightLx),
+            top: clampY(anchor.top - gapY - tenantLift),
+            scale,
+          };
         case 'ABOVE':
           return { left: centerX(), top: aboveTy, scale };
         case 'BELOW':
           return { left: centerX(), top: belowTy, scale };
         default:
           return {
-            left: vw - PANEL_W - PANEL_VIEWPORT_INSET,
+            left: Math.max(PANEL_VIEWPORT_INSET, safeRightLimit - PANEL_W),
             top: PANEL_HEADER_INSET,
             scale,
           };
