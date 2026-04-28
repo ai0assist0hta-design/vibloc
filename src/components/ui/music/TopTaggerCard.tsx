@@ -276,19 +276,19 @@ function TaggerThumb({
       />
     );
   }
-  // Tier 3 — initial monogram fallback.
+  // Tier 3 — initial monogram fallback. Square (rounded-corner)
+  // tile for visual consistency with album artwork.
   return (
     <span
       aria-label={alt}
       style={{
-        width: 28, height: 28, borderRadius: '50%',
+        width: 28, height: 28, borderRadius: 6,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         background: `hsl(${hue}, 55%, 70%)`,
         color: '#1a1a2e',
         fontFamily: "'IBM Plex Mono', monospace",
         fontSize: 12, fontWeight: 700,
-        border: `2px solid ${divider}`,
-        boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
+        border: `1px solid ${divider}`,
         flexShrink: 0,
       }}
     >{initial}</span>
@@ -297,11 +297,10 @@ function TaggerThumb({
 
 function thumbImgStyle(hue: number, divider: string): React.CSSProperties {
   return {
-    width: 28, height: 28, borderRadius: '50%',
+    width: 28, height: 28, borderRadius: 6,
     objectFit: 'cover',
     background: `hsl(${hue}, 55%, 88%)`,
-    border: `2px solid ${divider}`,
-    boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
+    border: `1px solid ${divider}`,
     flexShrink: 0,
     display: 'block',
   };

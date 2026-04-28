@@ -190,7 +190,7 @@ export function PlaylistDetailView({
               width={20}
               height={20}
               style={{
-                width: 20, height: 20, borderRadius: '50%',
+                width: 20, height: 20, borderRadius: 4,
                 objectFit: 'cover',
                 border: `1px solid ${divider}`,
                 flexShrink: 0, background: divider,

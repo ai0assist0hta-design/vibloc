@@ -230,18 +230,18 @@ export function BuildingPlaylist({
             if (onOpenDetail) e.currentTarget.style.background = 'transparent';
           }}
         >
-          {/* Initial-letter monogram circle — same style as TopTaggerCard */}
+          {/* Initial-letter monogram tile — square (rounded-corner) for
+              consistency with album-art thumbnails throughout the panel. */}
           <span
             aria-hidden="true"
             style={{
-              width: 28, height: 28, borderRadius: '50%',
+              width: 28, height: 28, borderRadius: 6,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               background: `hsl(${avatarHue}, 55%, 70%)`,
               color: '#1a1a2e',
               fontFamily: "'IBM Plex Mono', monospace",
               fontSize: 12, fontWeight: 700,
-              border: `2px solid ${divider}`,
-              boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
+              border: `1px solid ${divider}`,
               flexShrink: 0,
             }}
           >{initial}</span>

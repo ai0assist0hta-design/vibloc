@@ -138,7 +138,7 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
           Shared Playlist · Read-only Preview
         </div>
         <div style={{
-          width: 200, height: 200, borderRadius: '50%',
+          width: 200, height: 200, borderRadius: 18,
           overflow: 'hidden',
           border: `1px solid ${DIVIDER}`,
           boxShadow: '0 18px 48px rgba(0,0,0,0.18)',
