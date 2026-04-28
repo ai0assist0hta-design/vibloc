@@ -1687,6 +1687,22 @@ function App() {
                 limit={3}
                 medals
               />
+              {/* MY PLAYLIST — compact summary card directly under
+                  TOP PLAYLISTS in the right floating panel so the
+                  user's own pins are always visible at a glance,
+                  without needing to scroll the main details panel.
+                  Shares the same `onOpenDetail` handler so clicking
+                  it opens the same PlaylistDetailView. */}
+              <BuildingPlaylist
+                buildingId={selectedBuilding.id}
+                cityVibe={getCityVibe(area)}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                darkMode={darkMode}
+                onOpenDetail={(id) => setDetailTaggerId(id)}
+              />
             </div>
           </div>
         ) : null;
