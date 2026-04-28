@@ -24,10 +24,10 @@
  */
 
 import { useState } from 'react';
-import { Play, Pause, Plus, Check, X, MoreHorizontal, Music2 } from 'lucide-react';
+import { Play, Pause, Plus, Check, X, MoreHorizontal } from 'lucide-react';
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
-import { openAppleMusic } from '../../../lib/share/openAppleMusic';
-import { APPLE_RED, FONT } from '../../../lib/ui/tokens';
+import { FONT } from '../../../lib/ui/tokens';
+import { AppleMusicIcon } from './AppleMusicIcon';
 import { playPreview, usePlayerState } from './PreviewPlayer';
 
 export type RightAction = 'add' | 'pinned' | 'remove';
@@ -194,33 +194,13 @@ export function TrackRow({
         </div>
       </div>
 
-      {/* Right action — Apple Music pill when the track is pinned and
-          a deep link is available, otherwise the quiet ⋯ / + / × icon
-          button (only revealed on hover so the row stays clean). */}
+      {/* Right action — small square Apple Music app-icon when the
+          track is pinned and a deep link is available, otherwise
+          the quiet ⋯ / + / × icon button (only revealed on hover so
+          the row stays clean). Shared AppleMusicIcon keeps every
+          Apple CTA visually identical across the panel surfaces. */}
       {showAppleButton ? (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); openAppleMusic(appleMusicHref!); }}
-          aria-label="Open in Apple Music"
-          title="Open in Apple Music"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            padding: '5px 9px', borderRadius: 999,
-            border: 'none',
-            background: APPLE_RED, color: '#fff',
-            fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3,
-            fontFamily: FONT.mono,
-            cursor: 'pointer',
-            flexShrink: 0,
-            opacity: 0.92,
-            transition: 'opacity 120ms ease, transform 120ms ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.92'; }}
-        >
-          <Music2 size={11} strokeWidth={2.4} />
-          Apple
-        </button>
+        <AppleMusicIcon href={appleMusicHref!} size={22} />
       ) : (
         <button
           type="button"

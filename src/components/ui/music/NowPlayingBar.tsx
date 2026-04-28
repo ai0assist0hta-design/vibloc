@@ -19,10 +19,11 @@
  * (same logic as the in-row Apple pill, so iOS jumps into the app).
  */
 
-import { Pause, Play, Music2, X } from 'lucide-react';
+import { Pause, Play, X } from 'lucide-react';
 import { useT } from '../../../lib/app/i18n';
 import { openAppleMusic } from '../../../lib/share/openAppleMusic';
-import { APPLE_RED, FONT, INK, PAPER } from '../../../lib/ui/tokens';
+import { FONT, INK, PAPER } from '../../../lib/ui/tokens';
+import { AppleMusicIcon } from './AppleMusicIcon';
 import {
   pausePreview,
   resumePreview,
@@ -135,28 +136,9 @@ export function NowPlayingBar() {
             : <Play  size={14} fill="currentColor" strokeWidth={0} style={{ marginLeft: 1 }} />}
         </button>
 
-        {/* Open in Apple Music */}
-        <button
-          type="button"
-          onClick={() => player.meta?.appleUrl && openAppleMusic(player.meta.appleUrl)}
-          disabled={!player.meta?.appleUrl}
-          aria-label={t('player.openAppleMusic')}
-          title={t('player.openAppleMusic')}
-          style={{
-            flexShrink: 0,
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            padding: '6px 9px', borderRadius: 999,
-            border: 'none',
-            background: APPLE_RED, color: '#fff',
-            fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3,
-            fontFamily: FONT.mono,
-            cursor: player.meta?.appleUrl ? 'pointer' : 'not-allowed',
-            opacity: player.meta?.appleUrl ? 0.95 : 0.4,
-          }}
-        >
-          <Music2 size={11} strokeWidth={2.4} />
-          {t('player.appleMusic')}
-        </button>
+        {/* Open in Apple Music — small square app-icon button.
+            Shared component matches the same visual on track rows. */}
+        <AppleMusicIcon href={player.meta?.appleUrl} size={26} />
 
         {/* Close — stops playback + hides the bar */}
         <button

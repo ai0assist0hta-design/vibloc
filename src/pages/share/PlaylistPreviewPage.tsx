@@ -18,7 +18,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, ExternalLink, Music2, Share2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Music2, Share2 } from 'lucide-react';
 import {
   appleMusicUrl,
   decodePlaylistFromHash,
@@ -297,20 +297,21 @@ function TrackRow({ t, idx, ios }: { t: SharedTrack; idx: number; ios: boolean }
         }} title={t.a}>{t.a}</div>
       </div>
 
+      {/* Same compact app-icon as TrackRow / NowPlayingBar — visual
+          consistency across every Apple Music entry point. The
+          parent <a> handles navigation; this is purely the affordance. */}
       <span
         aria-label="Open in Apple Music"
         style={{
           flexShrink: 0,
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '6px 10px', borderRadius: 999,
+          width: 24, height: 24,
+          borderRadius: 6,
           background: APPLE_RED, color: '#fff',
-          fontSize: 11, fontWeight: 800, letterSpacing: 0.3,
-          fontFamily: "'IBM Plex Mono', monospace",
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.20)',
         }}
       >
-        <Music2 size={12} strokeWidth={2.4} />
-        Apple Music
-        <ExternalLink size={10} strokeWidth={2.4} style={{ opacity: 0.85 }} />
+        <Music2 size={13} strokeWidth={2.4} fill="currentColor" />
       </span>
     </a>
   );
