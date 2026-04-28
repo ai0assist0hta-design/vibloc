@@ -13,13 +13,16 @@
  * left on a playlist.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Play, Shuffle, ChevronLeft } from 'lucide-react';
 import { useTaggerPlaylist, usePlaylist } from '../../../lib/music/buildingPlaylist';
 import { resolveAvatarUrl } from '../../../features/auth/avatar';
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
+import { playPreview } from './PreviewPlayer';
 import { TrackRow } from './TrackRow';
 
 const NAME_MAX_LEN = 60;
+const APPLE_RED = '#FA243C';
 
 /** Best-effort Apple Music deep link for a pinned track. Prefers the
  *  iTunes Search API's `trackViewUrl` (storefront-correct, opens the
@@ -50,6 +53,26 @@ export function PlaylistDetailView({
   const [draft, setDraft] = useState(name);
   useEffect(() => { setDraft(name); }, [name, taggerId]);
 
+  // Cover = top track's artwork, falling back to a gradient monogram.
+  // Mirrors the rest of VIBLOC's cover-art pattern.
+  const coverUrl = useMemo(
+    () => group?.coverArtworkUrl || tracks.find((t) => t.artworkUrl)?.artworkUrl || null,
+    [group, tracks],
+  );
+
+  const headline = name || group?.taggerName || 'Playlist';
+
+  function handlePlayAll() {
+    const first = tracks.find((t) => t.previewUrl);
+    if (first) playPreview(first.id, first.previewUrl);
+  }
+  function handleShuffle() {
+    const playable = tracks.filter((t) => t.previewUrl);
+    if (!playable.length) return;
+    const pick = playable[Math.floor(Math.random() * playable.length)];
+    playPreview(pick.id, pick.previewUrl);
+  }
+
   if (!group) {
     return (
       <div style={{
@@ -70,31 +93,38 @@ export function PlaylistDetailView({
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', gap: 12,
+      display: 'flex', flexDirection: 'column', gap: 14,
       fontFamily: "'IBM Plex Mono', monospace",
     }}>
-      {/* Top bar — back + counts */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+      {/* Slim back bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 8, marginBottom: -2,
+      }}>
         <button
           type="button"
           onClick={onBack}
           aria-label="Back to building panel"
-          style={backBtnStyle(text, divider)}
+          style={{
+            ...backBtnStyle(text, divider),
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
         >
-          ← BACK
+          <ChevronLeft size={12} strokeWidth={2.4} />
+          BACK
         </button>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          fontSize: 10, fontWeight: 700, color: text2, letterSpacing: 0.3,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
         }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
             color: group.totalLikes > 0 ? '#ff375f' : text3,
             fontSize: 11, fontWeight: 700,
           }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style={{ display: 'block' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" style={{ display: 'block' }}>
               <path
                 d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3 5 6.5 5c1.9 0 3.7 1 5 2.7C12.8 6 14.6 5 16.5 5 20 5 21.8 8.6 20.5 11.8 18.5 16.4 12 21 12 21z"
                 fill={group.totalLikes > 0 ? '#ff375f' : 'none'}
@@ -109,94 +139,124 @@ export function PlaylistDetailView({
         </div>
       </div>
 
-      {/* Profile header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <img
-          src={resolveAvatarUrl(group.taggerAvatarUrl)}
-          alt={group.taggerName}
-          width={48}
-          height={48}
-          style={{
-            width: 48, height: 48, borderRadius: '50%',
-            objectFit: 'cover',
-            border: `2px solid ${divider}`,
-            boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
-            flexShrink: 0, background: divider,
-          }}
-        />
-        <div style={{ minWidth: 0, flex: 1 }}>
+      {/* Hero — Apple Music style. Big square cover on the left, big
+          headline + curator + counts on the right. Cover dominates the
+          panel so the playlist reads as "art object" first. */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', gap: 14,
+      }}>
+        <CoverArt url={coverUrl} fallback={headline} divider={divider} text2={text2} />
+        <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {isMine ? (
+            <input
+              type="text"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value.slice(0, NAME_MAX_LEN))}
+              onBlur={() => { if (draft !== name) setName(draft); }}
+              placeholder="플레이리스트 이름"
+              aria-label="Playlist name"
+              maxLength={NAME_MAX_LEN}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                fontSize: 18, fontWeight: 800, color: text,
+                letterSpacing: -0.2, lineHeight: 1.15,
+                fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif",
+                outline: 'none',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                fontSize: 18, fontWeight: 800, color: text,
+                letterSpacing: -0.2, lineHeight: 1.15,
+                fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif",
+                wordBreak: 'break-word',
+              }}
+              title={headline}
+            >
+              {headline}
+            </div>
+          )}
           <div style={{
-            fontSize: 14, fontWeight: 700, color: text, letterSpacing: 0.1,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }} title={group.taggerName}>
-            {group.taggerName}
+            display: 'flex', alignItems: 'center', gap: 6,
+            marginTop: 2,
+          }}>
+            <img
+              src={resolveAvatarUrl(group.taggerAvatarUrl)}
+              alt=""
+              width={20}
+              height={20}
+              style={{
+                width: 20, height: 20, borderRadius: '50%',
+                objectFit: 'cover',
+                border: `1px solid ${divider}`,
+                flexShrink: 0, background: divider,
+              }}
+            />
+            <span style={{
+              fontSize: 11, fontWeight: 700, color: text,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }} title={group.taggerName}>{group.taggerName}</span>
+            <span style={{ fontSize: 10.5, color: text3 }}>@{group.alias}</span>
           </div>
           <div style={{
-            fontSize: 10, fontWeight: 600, color: text2, letterSpacing: 0.3, marginTop: 2,
+            fontSize: 10, color: text3, letterSpacing: 0.4, marginTop: 2,
           }}>
-            <span style={{ color: text3 }}>@</span>{group.alias}
+            {tracks.length} song{tracks.length === 1 ? '' : 's'}
           </div>
         </div>
       </div>
 
-      {/* Playlist NAME — only editable string on a playlist. */}
-      {isMine ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{
-            fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
-            textTransform: 'uppercase', color: text3,
-          }}>
-            플레이리스트 이름
-          </label>
-          <input
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value.slice(0, NAME_MAX_LEN))}
-            onBlur={() => { if (draft !== name) setName(draft); }}
-            placeholder="이름을 적어주세요… (예: '시부야 오후 산책')"
-            aria-label="Playlist name"
-            maxLength={NAME_MAX_LEN}
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              background: 'transparent',
-              border: `1px solid ${divider}`,
-              borderRadius: 10, padding: '10px 12px',
-              fontSize: 13, fontWeight: 600, color: text,
-              fontFamily: "'IBM Plex Mono', monospace",
-              outline: 'none',
-            }}
-          />
-          <div style={{
-            fontSize: 9, color: text3, textAlign: 'right', letterSpacing: 0.4,
+      {/* Action buttons — Apple Music style pills. Play (filled red)
+          and Shuffle (outline). Drive the existing 30 s preview
+          player; no Apple-account dependency. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button
+          type="button"
+          onClick={handlePlayAll}
+          disabled={!tracks.some((t) => t.previewUrl)}
+          aria-label="Play first track preview"
+          style={pillBtnStyle({ filled: true, divider, text, text2 })}
+        >
+          <Play size={13} fill="currentColor" strokeWidth={0} />
+          Play
+        </button>
+        <button
+          type="button"
+          onClick={handleShuffle}
+          disabled={!tracks.some((t) => t.previewUrl)}
+          aria-label="Play a random track preview"
+          style={pillBtnStyle({ filled: false, divider, text, text2 })}
+        >
+          <Shuffle size={13} strokeWidth={2.4} />
+          Shuffle
+        </button>
+        {isMine && (
+          <span style={{
+            marginLeft: 'auto',
+            fontSize: 9, color: text3, letterSpacing: 0.4,
           }}>
             {draft.length}/{NAME_MAX_LEN}
-          </div>
-        </div>
-      ) : name ? (
-        <div style={{
-          padding: '10px 12px',
-          borderRadius: 10,
-          border: `1px solid ${divider}`,
-          background: 'rgba(0,0,0,0.02)',
-          fontSize: 13, fontWeight: 700, color: text,
-          letterSpacing: 0.2,
-        }}>
-          {name}
-        </div>
-      ) : null}
+          </span>
+        )}
+      </div>
 
-      {/* Track list */}
+      {/* Track list header — "Song" left, optional column right. Mirrors
+          the Apple Music desktop layout. */}
       <div style={{
-        marginTop: 4, paddingTop: 10,
+        marginTop: 2, paddingTop: 10,
         borderTop: `1px solid ${divider}`,
-        display: 'flex', flexDirection: 'column', gap: 6,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
+        textTransform: 'uppercase', color: text3,
       }}>
-        <div style={{
-          fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
-          textTransform: 'uppercase', color: text3,
-        }}>
-          TRACKS ({tracks.length})
-        </div>
+        <span>Song</span>
+        <span>{isMine ? 'Edit' : 'Open'}</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {tracks.length === 0 ? (
           <div style={{
             fontSize: 10.5, color: text2, padding: '12px 0',
@@ -239,4 +299,71 @@ function backBtnStyle(text: string, divider: string): React.CSSProperties {
     color: text, cursor: 'pointer',
     transition: 'background 150ms ease',
   };
+}
+
+/** Apple Music style action pill — filled red Play, outline Shuffle. */
+function pillBtnStyle({
+  filled, divider, text, text2,
+}: { filled: boolean; divider: string; text: string; text2: string }): React.CSSProperties {
+  return {
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '8px 16px', borderRadius: 999,
+    border: filled ? 'none' : `1px solid ${divider}`,
+    background: filled ? APPLE_RED : 'transparent',
+    color: filled ? '#fff' : text,
+    fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
+    fontFamily: "'IBM Plex Mono', monospace",
+    cursor: 'pointer',
+    transition: 'transform 120ms ease, opacity 120ms ease, background 120ms ease',
+  };
+  // Disabled state inherits from `disabled` attribute — UA dims it.
+  void text2;
+}
+
+/** Square album cover. The URL comes from the iTunes Search API
+ *  (Apple's own CDN) at 1200×1200 — see `lib/music/itunes.ts`. We
+ *  pick the most-liked pinned track's artwork as the playlist face;
+ *  no separate upload, no manual selection. */
+function CoverArt({
+  url, fallback, divider, text2,
+}: { url: string | null; fallback: string; divider: string; text2: string }) {
+  return (
+    <div style={{
+      position: 'relative',
+      width: 132, height: 132,
+      flexShrink: 0,
+      borderRadius: 12,
+      overflow: 'hidden',
+      border: `1px solid ${divider}`,
+      boxShadow: '0 12px 28px rgba(0,0,0,0.16)',
+      background: divider,
+    }}>
+      {url ? (
+        <img
+          src={url}
+          alt={fallback}
+          width={132}
+          height={132}
+          loading="eager"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          style={{
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
+      ) : (
+        <div style={{
+          width: '100%', height: '100%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: text2,
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: 40, fontWeight: 800,
+        }}>
+          {(fallback.trim().charAt(0) || '?').toUpperCase()}
+        </div>
+      )}
+    </div>
+  );
 }

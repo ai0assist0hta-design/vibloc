@@ -529,6 +529,13 @@ function App() {
         })),
         AREA_COUNTRY[area],
       );
+      // Kick off the iTunes enrichment pass so the picsum placeholder
+      // covers get progressively replaced with real Apple album art
+      // (and previewUrl + trackViewUrl) within a few seconds. Cached
+      // in localStorage so it's a one-time cost per device.
+      void import('./features/dev/enrichSeedArtwork').then(({ enrichSeedArtworkInBackground }) => {
+        enrichSeedArtworkInBackground(AREA_COUNTRY[area]);
+      });
     });
   }, [buildings, area]);
   // Roads for the current area — loaded once per area and reused to snap
