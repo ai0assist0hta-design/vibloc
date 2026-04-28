@@ -20,6 +20,7 @@
  */
 
 import { Pause, Play, Music2, X } from 'lucide-react';
+import { useT } from '../../../lib/app/i18n';
 import { openAppleMusic } from '../../../lib/share/openAppleMusic';
 import { APPLE_RED, FONT, INK, PAPER } from '../../../lib/ui/tokens';
 import {
@@ -32,6 +33,7 @@ import {
 
 export function NowPlayingBar() {
   const player = usePlayerState();
+  const t = useT();
   const visible = !!player.currentId && !!player.meta;
 
   // Always render the chrome so the fade transition has something
@@ -40,7 +42,7 @@ export function NowPlayingBar() {
   return (
     <div
       role="region"
-      aria-label="Now playing"
+      aria-label={t('player.nowPlaying')}
       style={{
         position: 'fixed',
         left: '50%',
@@ -68,7 +70,7 @@ export function NowPlayingBar() {
         <button
           type="button"
           onClick={() => player.meta?.appleUrl && openAppleMusic(player.meta.appleUrl)}
-          aria-label="Open in Apple Music"
+          aria-label={t('player.openAppleMusic')}
           disabled={!player.meta?.appleUrl}
           style={{
             flexShrink: 0,
@@ -117,7 +119,7 @@ export function NowPlayingBar() {
         <button
           type="button"
           onClick={() => (player.isPlaying ? pausePreview() : resumePreview())}
-          aria-label={player.isPlaying ? 'Pause' : 'Play'}
+          aria-label={player.isPlaying ? t('player.pause') : t('player.play')}
           style={{
             flexShrink: 0,
             width: 32, height: 32, borderRadius: 999,
@@ -138,8 +140,8 @@ export function NowPlayingBar() {
           type="button"
           onClick={() => player.meta?.appleUrl && openAppleMusic(player.meta.appleUrl)}
           disabled={!player.meta?.appleUrl}
-          aria-label="Open in Apple Music"
-          title="Open in Apple Music"
+          aria-label={t('player.openAppleMusic')}
+          title={t('player.openAppleMusic')}
           style={{
             flexShrink: 0,
             display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -153,14 +155,14 @@ export function NowPlayingBar() {
           }}
         >
           <Music2 size={11} strokeWidth={2.4} />
-          Apple
+          {t('player.appleMusic')}
         </button>
 
         {/* Close — stops playback + hides the bar */}
         <button
           type="button"
           onClick={stopPreview}
-          aria-label="Close player"
+          aria-label={t('player.close')}
           style={{
             flexShrink: 0,
             width: 26, height: 26, borderRadius: 999,

@@ -669,12 +669,12 @@ function App() {
       const config = CITY_AREAS[area];
       const { lat, lon } = metersToLatLon(b.center[0], b.center[1], config.refLat, config.refLon);
       setGeocoding(true);
-      reverseGeocode(lat, lon).then((info) => {
+      reverseGeocode(lat, lon, lang).then((info) => {
         setGeocodedInfo(info);
         setGeocoding(false);
       });
     }
-  }, [area, handleNavigate]);
+  }, [area, handleNavigate, lang]);
 
   const handleSearchSelect = useCallback((b: OSMBuilding) => {
     handleBuildingSelect(b);

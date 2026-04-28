@@ -102,25 +102,78 @@ export function metersToLatLon(
   return { lat, lon };
 }
 
-/** Reverse geocode via Nominatim (OSM free API) */
-export async function reverseGeocode(lat: number, lon: number): Promise<{ name: string; address: string } | null> {
+/**
+ * Reverse-geocode via Nominatim (OSM free API). Returns the address
+ * formatted in Google's locale-aware order:
+ *
+ *   - en  →  "{road} {house_number}, {neighbourhood}, {suburb}"
+ *   - ko  →  "{suburb} {neighbourhood} {road} {house_number}"
+ *   - ja  →  "{prefecture}{city}{ward}{neighbourhood}{road}"
+ *
+ * Pass the user's UI language so the tile keeps that language even
+ * when Nominatim's primary metadata for the tile is in another
+ * script (a Korean address rendered in English for an English user
+ * and vice versa).
+ */
+export async function reverseGeocode(
+  lat: number,
+  lon: number,
+  lang: 'en' | 'ko' | 'ja' = 'en',
+): Promise<{ name: string; address: string } | null> {
   try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=en,ja,ko`;
+    // Nominatim respects `accept-language` and returns localized
+    // names when the OSM tags carry them. We send the user's lang
+    // first, then fall through to the others as a graceful fallback
+    // when the tile is missing that language's tags.
+    const langChain = ({
+      en: 'en,ja,ko',
+      ja: 'ja,en,ko',
+      ko: 'ko,en,ja',
+    } as const)[lang];
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=${langChain}`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'VIBLOC/1.0' },
     });
     if (!res.ok) return null;
     const data = await res.json();
     const name = data.name || '';
-    const addr = data.address || {};
-    // Build readable address
-    const parts: string[] = [];
-    if (addr.road) parts.push(addr.road);
-    if (addr.house_number) parts.push(addr.house_number);
-    if (!addr.road && addr.neighbourhood) parts.push(addr.neighbourhood);
-    if (addr.suburb) parts.push(addr.suburb);
-    if (addr.quarter) parts.push(addr.quarter);
-    const address = parts.join(', ') || data.display_name?.split(',').slice(0, 3).join(', ') || '';
+    const a = data.address || {};
+
+    // Locale-aware ordering. Google's formatted_address uses different
+    // conventions per country; we mirror the most common conventions
+    // for each of VIBLOC's 3 supported locales.
+    let address = '';
+    if (lang === 'ko') {
+      // 큰 단위 → 작은 단위, 공백 구분 (한국 주소 표기 규칙)
+      const parts = [
+        a.suburb || a.city_district,
+        a.neighbourhood || a.quarter,
+        a.road,
+        a.house_number,
+      ].filter(Boolean);
+      address = parts.join(' ');
+    } else if (lang === 'ja') {
+      // 都道府県市区町村丁目 — no separator (日本語住所)
+      const parts = [
+        a.suburb || a.city_district,
+        a.quarter || a.neighbourhood,
+        a.road,
+        a.house_number,
+      ].filter(Boolean);
+      address = parts.join('');
+    } else {
+      // English / fallback — Western "street, area" order with commas.
+      const parts: string[] = [];
+      if (a.road) parts.push(a.road);
+      if (a.house_number) parts.push(a.house_number);
+      if (!a.road && a.neighbourhood) parts.push(a.neighbourhood);
+      if (a.suburb) parts.push(a.suburb);
+      if (a.quarter) parts.push(a.quarter);
+      address = parts.join(', ');
+    }
+    if (!address) {
+      address = data.display_name?.split(',').slice(0, 3).join(', ') || '';
+    }
     return { name, address };
   } catch {
     return null;

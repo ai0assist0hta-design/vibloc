@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Play, Shuffle, ChevronLeft } from 'lucide-react';
 import { useTaggerPlaylist, usePlaylist } from '../../../lib/music/buildingPlaylist';
 import { resolveAvatarUrl } from '../../../features/auth/avatar';
+import { useT } from '../../../lib/app/i18n';
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
 import { APPLE_RED, FONT } from '../../../lib/ui/tokens';
 import { playPreview } from './PreviewPlayer';
@@ -48,6 +49,7 @@ type Props = {
 export function PlaylistDetailView({
   buildingId, taggerId, text, text2, text3, divider, onBack,
 }: Props) {
+  const t = useT();
   const { group, tracks, name, setName, isMine } = useTaggerPlaylist(buildingId, taggerId);
   const playlist = usePlaylist(buildingId);
   const [draft, setDraft] = useState(name);
@@ -115,7 +117,7 @@ export function PlaylistDetailView({
         <button
           type="button"
           onClick={onBack}
-          aria-label="Back to building panel"
+          aria-label={t('detail.back')}
           style={{
             ...backBtnStyle(text, divider),
             display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -124,7 +126,7 @@ export function PlaylistDetailView({
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
         >
           <ChevronLeft size={12} strokeWidth={2.4} />
-          BACK
+          {t('detail.back')}
         </button>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -164,8 +166,8 @@ export function PlaylistDetailView({
               value={draft}
               onChange={(e) => setDraft(e.target.value.slice(0, NAME_MAX_LEN))}
               onBlur={() => { if (draft !== name) setName(draft); }}
-              placeholder="플레이리스트 이름"
-              aria-label="Playlist name"
+              placeholder={t('detail.namePlaceholder')}
+              aria-label={t('detail.playlistName')}
               maxLength={NAME_MAX_LEN}
               style={{
                 width: '100%', boxSizing: 'border-box',
@@ -216,7 +218,10 @@ export function PlaylistDetailView({
           <div style={{
             fontSize: 10, color: text3, letterSpacing: 0.4, marginTop: 2,
           }}>
-            {tracks.length} song{tracks.length === 1 ? '' : 's'}
+            {(tracks.length === 1
+              ? t('detail.songCount_one')
+              : t('detail.songCount')
+            ).replace('{n}', String(tracks.length))}
           </div>
         </div>
       </div>
@@ -229,21 +234,21 @@ export function PlaylistDetailView({
           type="button"
           onClick={handlePlayAll}
           disabled={!tracks.some((t) => t.previewUrl)}
-          aria-label="Play first track preview"
+          aria-label={t('player.play')}
           style={pillBtnStyle({ filled: true, divider, text, text2 })}
         >
           <Play size={13} fill="currentColor" strokeWidth={0} />
-          Play
+          {t('player.play')}
         </button>
         <button
           type="button"
           onClick={handleShuffle}
           disabled={!tracks.some((t) => t.previewUrl)}
-          aria-label="Play a random track preview"
+          aria-label={t('player.shuffle')}
           style={pillBtnStyle({ filled: false, divider, text, text2 })}
         >
           <Shuffle size={13} strokeWidth={2.4} />
-          Shuffle
+          {t('player.shuffle')}
         </button>
         {isMine && (
           <span style={{
@@ -264,8 +269,8 @@ export function PlaylistDetailView({
         fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
         textTransform: 'uppercase', color: text3,
       }}>
-        <span>Song</span>
-        <span>{isMine ? 'Edit' : 'Open'}</span>
+        <span>{t('detail.song')}</span>
+        <span>{isMine ? t('detail.edit') : t('detail.open')}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {tracks.length === 0 ? (
@@ -273,7 +278,7 @@ export function PlaylistDetailView({
             fontSize: 10.5, color: text2, padding: '12px 0',
             textAlign: 'center',
           }}>
-            No tracks remain in this playlist.
+            {t('detail.noTracks')}
           </div>
         ) : (
           tracks.map((tr) => (

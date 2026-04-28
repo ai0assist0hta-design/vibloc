@@ -17,6 +17,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Copy, Check, Share2, Link2 } from 'lucide-react';
+import { useT } from '../../../lib/app/i18n';
 import {
   encodePlaylistUrl,
   toSharedTracks,
@@ -35,6 +36,7 @@ type Props = {
 };
 
 export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Props) {
+  const t = useT();
   const { group, tracks } = useTaggerPlaylist(buildingId, taggerId);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +161,7 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
           fontSize: 10, fontWeight: 800, letterSpacing: 1.4,
           textTransform: 'uppercase', color: '#6e6e73',
         }}>
-          Share Playlist
+          {t('share.title')}
         </div>
         <div style={{
           fontSize: 18, fontWeight: 800, color: '#1a1a2e',
@@ -214,8 +216,9 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
               fontSize: 10.5, color: '#6e6e73',
               lineHeight: 1.5,
             }}>
-              {tracks.length} track{tracks.length === 1 ? '' : 's'} · self-contained link.
-              Paste anywhere — recipient opens a read-only preview.
+              {t('share.tracksLink').replace('{n}', String(tracks.length))}
+              <br />
+              {t('share.pasteAnywhere')}
             </div>
           </>
         )}
@@ -243,7 +246,7 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
               }}
             >
               <Share2 size={14} strokeWidth={2.2} />
-              Share…
+              {t('share.share')}
             </button>
           )}
           <button
@@ -265,8 +268,8 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
             }}
           >
             {copied
-              ? (<><Check size={14} strokeWidth={2.4} /> Copied</>)
-              : (<><Copy size={14} strokeWidth={2.2} /> Copy link</>)}
+              ? (<><Check size={14} strokeWidth={2.4} /> {t('share.copied')}</>)
+              : (<><Copy size={14} strokeWidth={2.2} /> {t('share.copyLink')}</>)}
           </button>
           <button
             type="button"
@@ -283,7 +286,7 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
               letterSpacing: 0.2,
             }}
           >
-            Done
+            {t('share.done')}
           </button>
         </div>
       </div>

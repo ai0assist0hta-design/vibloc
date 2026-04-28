@@ -339,6 +339,42 @@ const DICT: Record<string, Record<Lang, string>> = {
   // ─── Map links ───
   'map.googleMaps':  { en: 'Google Maps ↗',  ko: 'Google 지도 ↗',  ja: 'Google マップ ↗' },
   'map.appleMaps':   { en: 'Apple Maps ↗',   ko: 'Apple 지도 ↗',   ja: 'Apple マップ ↗' },
+
+  // ─── Player / Detail / Share (added 2026-04-28) ───
+  'player.play':           { en: 'Play',                  ko: '재생',          ja: '再生' },
+  'player.pause':          { en: 'Pause',                 ko: '일시정지',      ja: '一時停止' },
+  'player.shuffle':        { en: 'Shuffle',               ko: '랜덤재생',      ja: 'シャッフル' },
+  'player.close':          { en: 'Close player',          ko: '플레이어 닫기', ja: 'プレーヤーを閉じる' },
+  'player.appleMusic':     { en: 'Apple Music',           ko: 'Apple Music',   ja: 'Apple Music' },
+  'player.openAppleMusic': { en: 'Open in Apple Music',   ko: 'Apple Music에서 열기', ja: 'Apple Musicで開く' },
+  'player.nowPlaying':     { en: 'Now playing',           ko: '재생 중',       ja: '再生中' },
+
+  'detail.back':           { en: 'BACK',                  ko: '뒤로',          ja: '戻る' },
+  'detail.song':           { en: 'Song',                  ko: '곡',            ja: '曲' },
+  'detail.open':           { en: 'Open',                  ko: '열기',          ja: '開く' },
+  'detail.edit':           { en: 'Edit',                  ko: '편집',          ja: '編集' },
+  'detail.playlistName':   { en: 'Playlist name',         ko: '플레이리스트 이름', ja: 'プレイリスト名' },
+  'detail.namePlaceholder':{ en: 'Playlist name',         ko: '플레이리스트 이름', ja: 'プレイリスト名' },
+  'detail.songCount':      { en: '{n} songs',             ko: '곡 {n}개',      ja: '{n}曲' },
+  'detail.songCount_one':  { en: '{n} song',              ko: '곡 {n}개',      ja: '{n}曲' },
+  'detail.noTracks':       { en: 'No tracks remain in this playlist.', ko: '플레이리스트에 트랙이 없습니다.', ja: 'プレイリストに曲がありません。' },
+
+  'share.title':           { en: 'Share Playlist',        ko: '플레이리스트 공유', ja: 'プレイリストを共有' },
+  'share.share':           { en: 'Share…',                ko: '공유…',         ja: '共有…' },
+  'share.copyLink':        { en: 'Copy link',             ko: '링크 복사',     ja: 'リンクをコピー' },
+  'share.copied':          { en: 'Copied',                ko: '복사됨',        ja: 'コピーしました' },
+  'share.done':            { en: 'Done',                  ko: '완료',          ja: '完了' },
+  'share.tracksLink':      { en: '{n} tracks · self-contained link.', ko: '{n}곡 · 모든 데이터를 포함한 링크입니다.', ja: '{n}曲 · 全データ入りリンク。' },
+  'share.pasteAnywhere':   { en: 'Paste anywhere — recipient opens a read-only preview.', ko: '어디든 붙여넣으면 — 받는 사람이 읽기 전용 미리보기를 봅니다.', ja: 'どこにでも貼り付け — 受信者は読み取り専用プレビューを開きます。' },
+
+  'preview.shared':        { en: 'Shared Playlist · Read-only Preview', ko: '공유 플레이리스트 · 읽기 전용', ja: '共有プレイリスト · 読み取り専用' },
+  'preview.invalidTitle':  { en: 'Invalid or expired link', ko: '잘못되었거나 만료된 링크', ja: '無効または期限切れリンク' },
+  'preview.invalidBody':   { en: 'This share link doesn\'t contain a readable playlist. It may have been edited, truncated, or copied incompletely.', ko: '이 공유 링크에 읽을 수 있는 플레이리스트가 없습니다. 편집되었거나, 잘렸거나, 일부만 복사되었을 수 있습니다.', ja: 'この共有リンクには読み取れるプレイリストがありません。編集・切り詰め・一部コピーされた可能性があります。' },
+  'preview.openExplore':   { en: 'Explore VIBLOC →',      ko: 'VIBLOC 둘러보기 →', ja: 'VIBLOCを見る →' },
+  'preview.tapHint':       { en: 'Tap any track to open it in Apple Music.', ko: '트랙을 탭하면 Apple Music에서 열립니다.', ja: 'トラックをタップするとApple Musicで開きます。' },
+  'preview.inAppHint':     { en: 'In-app browser detected. Top-right ⋯ → "Open in Safari/Chrome".', ko: '인앱 브라우저로 열렸습니다. 우상단 ⋯ → "Safari/Chrome으로 열기"', ja: 'アプリ内ブラウザで開かれました。右上 ⋯ → "Safari/Chromeで開く"' },
+  'preview.decoding':      { en: 'Decoding playlist…',    ko: '플레이리스트 디코딩 중…', ja: 'プレイリストをデコード中…' },
+  'preview.goVibloc':      { en: 'Go to VIBLOC',          ko: 'VIBLOC으로 이동', ja: 'VIBLOCへ' },
 };
 
 /**
