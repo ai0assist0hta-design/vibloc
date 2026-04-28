@@ -235,8 +235,12 @@ function App() {
   // and writes the result straight to the DOM via leftPanelRef.
   // Result: ZERO React re-renders for camera motion → no stutter.
   const leftPanelRef = useRef<HTMLDivElement | null>(null);
+  // Mirror panel on the OPPOSITE side of the building from leftPanel
+  // (TOP PLAYLISTS callout with 1/2/3 medals). Same chase/scale rules.
+  const rightPanelRef = useRef<HTMLDivElement | null>(null);
   const bldgAnchorRef = useRef<BuildingScreenAnchor | null>(null);
   const panelCurrentRef = useRef<{ left: number; top: number; scale: number } | null>(null);
+  const panelCurrentRightRef = useRef<{ left: number; top: number; scale: number } | null>(null);
   // Latest tenant-list length, updated from inside the panel render.
   const tenantCountRef = useRef(0);
 
@@ -248,6 +252,7 @@ function App() {
       bldgAnchorRef.current = null;
     }
     panelCurrentRef.current = null;
+    panelCurrentRightRef.current = null;
   }, [selectedBuilding]);
 
   // Single rAF loop owns the entire panel motion: computeTarget per
@@ -343,6 +348,77 @@ function App() {
       return { left: PANEL_VIEWPORT_INSET, top: PANEL_HEADER_INSET, scale };
     }
 
+    /** Mirror of `computeTarget` for the right-side TOP PLAYLISTS
+     *  callout. Same scale + tenant-lift logic; placement preference
+     *  is REVERSED (RIGHT first, LEFT fallback) and the music panel
+     *  collision check still applies on the right side. */
+    function computeTargetRight(
+      anchor: BuildingScreenAnchor | null,
+    ): { left: number; top: number; scale: number } {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (!anchor || !anchor.inFront) {
+        return { left: vw - 360 - PANEL_W, top: vh * 0.30, scale: 1 };
+      }
+      const bbW = Math.max(0, anchor.right - anchor.left);
+      const bbH = Math.max(0, anchor.bottom - anchor.top);
+      const bbMax = Math.max(bbW, bbH);
+      const REFERENCE_BBMAX = 700;
+      const HEAD_ROOM = 0.65;
+      const MIN_SCALE = 0.28;
+      const ratio = clamp(bbMax / REFERENCE_BBMAX, 0, 1);
+      let scale: number;
+      if (ratio >= HEAD_ROOM) {
+        scale = 1.0;
+      } else {
+        const t = ratio / HEAD_ROOM;
+        const s = t * t * (3 - 2 * t);
+        scale = MIN_SCALE + (1 - MIN_SCALE) * s;
+      }
+      const gapX = 180 * scale;
+      const gapY = 96 * scale;
+      const safeRightLimit = vw - RIGHT_MUSIC_W - gapX;
+      const tenantCount = tenantCountRef.current;
+      const tenantLift = tenantCount >= 5
+        ? Math.min(180, (tenantCount - 4) * 28)
+        : 0;
+      const clampY = (y: number) => {
+        const minY = PANEL_HEADER_INSET;
+        const maxY = vh - PANEL_BOTTOM_INSET - PANEL_H_ESTIMATE;
+        return Math.max(minY, Math.min(maxY, y));
+      };
+      // 1) RIGHT of building (preferred for this panel)
+      const rightLx = anchor.right + gapX;
+      if (rightLx + PANEL_W <= safeRightLimit) {
+        return { left: rightLx, top: clampY(anchor.top - gapY - tenantLift), scale };
+      }
+      // 2) LEFT of building (fallback)
+      const leftLx = anchor.left - gapX - PANEL_W;
+      if (leftLx >= PANEL_VIEWPORT_INSET) {
+        return { left: leftLx, top: clampY(anchor.top - gapY - tenantLift), scale };
+      }
+      // 3) BELOW (avoid colliding with leftPanel above)
+      const belowTy = anchor.bottom + gapY;
+      const centerX = () => {
+        const ideal = (anchor.left + anchor.right) / 2 - PANEL_W / 2;
+        const minX = PANEL_VIEWPORT_INSET;
+        const maxX = Math.min(
+          safeRightLimit - PANEL_W,
+          vw - PANEL_W - PANEL_VIEWPORT_INSET,
+        );
+        return Math.max(minX, Math.min(maxX, ideal));
+      };
+      if (belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET) {
+        return { left: centerX(), top: belowTy, scale };
+      }
+      // 4) Safe corner — opposite side from leftPanel's safe corner
+      return {
+        left: vw - PANEL_W - PANEL_VIEWPORT_INSET,
+        top: PANEL_HEADER_INSET,
+        scale,
+      };
+    }
+
     let raf = 0;
     let prev = performance.now();
     function step(now: number) {
@@ -396,6 +472,35 @@ function App() {
           el.style.filter = `saturate(${saturate}) blur(${blurPx}px)`;
         } else {
           el.style.filter = 'none';
+        }
+      }
+
+      // ── Mirror chase for the right-side TOP PLAYLISTS callout ──
+      const elR = rightPanelRef.current;
+      if (elR) {
+        const targetR = computeTargetRight(bldgAnchorRef.current);
+        let cR = panelCurrentRightRef.current;
+        if (!cR) {
+          cR = { ...targetR };
+          panelCurrentRightRef.current = cR;
+        } else {
+          const alpha = 1 - Math.pow(0.5, dt / HALF_LIFE_MS);
+          cR.left  += (targetR.left  - cR.left)  * alpha;
+          cR.top   += (targetR.top   - cR.top)   * alpha;
+          cR.scale += (targetR.scale - cR.scale) * alpha;
+          if (Math.abs(targetR.left  - cR.left)  < 0.25)  cR.left  = targetR.left;
+          if (Math.abs(targetR.top   - cR.top)   < 0.25)  cR.top   = targetR.top;
+          if (Math.abs(targetR.scale - cR.scale) < 0.005) cR.scale = targetR.scale;
+        }
+        elR.style.left = `${cR.left}px`;
+        elR.style.top = `${cR.top}px`;
+        elR.style.transform = `scale(${cR.scale})`;
+        const fogTR = Math.max(0, Math.min(1, (1 - cR.scale) / 0.72));
+        elR.style.opacity = `${1 - fogTR * 0.65}`;
+        if (fogTR > 0.001) {
+          elR.style.filter = `saturate(${1 - fogTR * 0.45}) blur(${fogTR * 1.6}px)`;
+        } else {
+          elR.style.filter = 'none';
         }
       }
       raf = requestAnimationFrame(step);
@@ -1468,9 +1573,98 @@ function App() {
           </div>
         ) : null;
 
+        // ── RIGHT PLAYLISTS PANEL (desktop only) ──────────────────────
+        // Mirror callout floating on the OPPOSITE side of the building
+        // from leftPanel. Carries TOP PLAYLISTS only with 1/2/3 medal
+        // pips. Uses the same chase loop (panelCurrentRightRef) so
+        // motion stays in sync with leftPanel.
+        const rightPanel = !isMobile ? (
+          <div
+            ref={rightPanelRef}
+            style={{
+              position: 'fixed',
+              top: '38%',
+              left: 360,                   // overwritten by rAF tick
+              width: 320,
+              overflow: 'visible',
+              zIndex: 30,
+              transformOrigin: 'top left', // mirror of leftPanel's "top right"
+              willChange: 'transform, top, left',
+            }}
+          >
+            {/* Reuse the leftPanel's progressive-blur halo recipe */}
+            {(() => {
+              const FEATHER = 100;
+              const featherFor = (px: number) => `transparent 0,
+                black ${px}px,
+                black calc(100% - ${px}px),
+                transparent 100%`;
+              const softMask = (px: number) =>
+                `linear-gradient(to bottom, ${featherFor(px)}),
+                 linear-gradient(to right,  ${featherFor(px)})`;
+              const maskCommon = {
+                maskComposite: 'intersect' as const,
+                WebkitMaskComposite: 'source-in' as const,
+              };
+              return (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    inset: `-${FEATHER}px`,
+                    borderRadius: 28,
+                    pointerEvents: 'none',
+                    zIndex: -1,
+                    backdropFilter: 'blur(3px)',
+                    WebkitBackdropFilter: 'blur(3px)',
+                    maskImage: softMask(FEATHER),
+                    WebkitMaskImage: softMask(FEATHER),
+                    ...maskCommon,
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    inset: `${FEATHER * 0.3}px`,
+                    backdropFilter: 'blur(7px)',
+                    WebkitBackdropFilter: 'blur(7px)',
+                    maskImage: softMask(70),
+                    WebkitMaskImage: softMask(70),
+                    ...maskCommon,
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      inset: `${FEATHER * 0.5}px`,
+                      backdropFilter: 'blur(14px)',
+                      WebkitBackdropFilter: 'blur(14px)',
+                      maskImage: softMask(50),
+                      WebkitMaskImage: softMask(50),
+                      ...maskCommon,
+                    }} />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Content — TOP PLAYLISTS top-3 with medals */}
+            <div style={{ position: 'relative', padding: '14px 18px' }}>
+              <TopTaggerCard
+                buildingId={selectedBuilding.id}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                onSelect={(id) => setDetailTaggerId(id)}
+                limit={3}
+                medals
+              />
+            </div>
+          </div>
+        ) : null;
+
         return (
           <>
           {leftPanel}
+          {rightPanel}
           <div
             role="dialog"
             aria-modal="false"

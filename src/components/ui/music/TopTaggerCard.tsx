@@ -26,17 +26,28 @@ type Props = {
   text3: string;
   divider: string;
   onSelect: (taggerId: string) => void;
+  /** Hard cap on rendered rows. Defaults to no cap (full list with
+   *  scroll past 5). Used by the floating right-side callout to show
+   *  exactly the top 3. */
+  limit?: number;
+  /** When true, render gold/silver/bronze medal badges next to the
+   *  first three rows. Used by the floating right-side callout so
+   *  the ranking reads at a glance. The in-panel side rail stays
+   *  badgeless (the order itself is enough chrome there). */
+  medals?: boolean;
 };
 
 const VISIBLE_BEFORE_SCROLL = 5;
 const SCROLL_MAX_PX = 320;
+const MEDAL_COLORS = ['#f5b301', '#b6b6c1', '#c97a4a'] as const; // gold / silver / bronze
 
 export function TopTaggerCard({
-  buildingId, text, text2, text3, divider, onSelect,
+  buildingId, text, text2, text3, divider, onSelect, limit, medals = false,
 }: Props) {
   // Fetch a generous pool; the scroll pane handles the overflow.
-  const ranked = useTopTaggers(buildingId, 50);
-  const overflow = ranked.length > VISIBLE_BEFORE_SCROLL;
+  const all = useTopTaggers(buildingId, 50);
+  const ranked = limit ? all.slice(0, limit) : all;
+  const overflow = !limit && ranked.length > VISIBLE_BEFORE_SCROLL;
 
   return (
     <div
@@ -93,8 +104,9 @@ export function TopTaggerCard({
             ? 'linear-gradient(to bottom, black 92%, transparent)' : undefined,
         }}
       >
-      {ranked.map((g) => {
+      {ranked.map((g, idx) => {
         const liked = isPlaylistLikedByMe(buildingId, g.taggerId);
+        const medalColor = medals && idx < 3 ? MEDAL_COLORS[idx] : null;
         return (
           <div
             key={g.taggerId}
@@ -128,6 +140,7 @@ export function TopTaggerCard({
               e.currentTarget.style.background = 'transparent';
             }}
           >
+            {medalColor && <Medal rank={idx + 1} color={medalColor} />}
             <TaggerThumb taggerId={g.taggerId} divider={divider} alt={g.taggerName} />
 
             {/* Playlist name (custom) — bigger headline, curator name
@@ -226,6 +239,30 @@ function TaggerThumb({
         flexShrink: 0,
       }}
     >{initial}</span>
+  );
+}
+
+/** Olympic-style medal pip — gold/silver/bronze depending on rank.
+ *  Used by the floating right-side TOP PLAYLISTS callout to mark
+ *  rank 1/2/3 at a glance. The number sits inside the ribbon disk. */
+function Medal({ rank, color }: { rank: number; color: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 22, height: 22, borderRadius: '50%',
+        background: color,
+        color: '#fff',
+        fontSize: 11, fontWeight: 900,
+        boxShadow: `0 0 0 1.5px #fff, 0 0 0 2.5px ${color}, 0 1px 3px rgba(0,0,0,0.18)`,
+        flexShrink: 0,
+        fontFamily: "'IBM Plex Mono', monospace",
+        letterSpacing: 0,
+      }}
+    >
+      {rank}
+    </span>
   );
 }
 
