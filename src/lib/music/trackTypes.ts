@@ -30,6 +30,20 @@ export type RecommendedTrack = {
   /** Apple Music page — kept for the future "open in Apple Music" deep link.
    *  We do NOT render this as an external button (Walled Garden, CLAUDE.md §11). */
   trackViewUrl: string;
+
+  // ─── Optional collection metadata (iTunes Search/Lookup only) ──────
+  // These let the cover-art scorer disambiguate between the same song
+  // released across multiple collections (single, OST, studio album,
+  // deluxe, compilation). Apple's `artworkUrl100` is the COLLECTION
+  // cover, so picking the right collection IS picking the right
+  // cover. Optional because RSS Top Songs and pre-existing pinned
+  // tracks may not carry them.
+  collectionId?: number;
+  collectionName?: string;
+  /** Number of tracks in the collection — `1` flags a Single. */
+  trackCount?: number;
+  /** ISO release date of the collection. */
+  releaseDate?: string;
 };
 
 export type CityVibe = {

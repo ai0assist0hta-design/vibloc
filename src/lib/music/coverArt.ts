@@ -103,10 +103,19 @@ function normalize(s: string): string {
 }
 
 const VARIANT_RE =
-  /\b(remix|cover|karaoke|tribute|live|instrumental|acoustic|remaster(?:ed)?|edit|version|mix|sped\s*up|slowed)\b/i;
+  /\b(remix|cover|karaoke|tribute|live|instrumental|acoustic|remaster(?:ed)?|edit|version|mix|sped\s*up|slowed|deluxe edition)\b/i;
+
+const COMPILATION_RE =
+  /\b(compilation|various artists|now that's what|hits|greatest|the best of|deluxe|bonus track|anniversary|reissue|collection)\b/i;
 
 function score(
-  candidate: { trackName: string; artistName: string },
+  candidate: {
+    trackName: string;
+    artistName: string;
+    collectionName?: string;
+    trackCount?: number;
+    releaseDate?: string;
+  },
   want: { trackName: string; artistName: string },
 ): number {
   const ct = normalize(candidate.trackName);
@@ -124,9 +133,6 @@ function score(
   if (ca === wa) s += 50;
   else if (ca.includes(wa) || wa.includes(ca)) s += 38;
   else {
-    // Allow comma / & / "feat" / "and" / "x" splits — collaborator
-    // listings often differ between Apple's metadata and what was
-    // typed at seed time.
     const parts = ca
       .split(/[,&]| and | x | feat | featuring /)
       .map((p) => p.trim())
@@ -134,13 +140,41 @@ function score(
     if (parts.some((p) => p === wa || p.includes(wa) || wa.includes(p))) s += 32;
   }
 
-  // ── Variant penalty ──
-  // If the user asked for "Stay With Me" and Apple returned
-  // "Stay With Me (Karaoke Version)", drop 45 points so it falls
-  // out of the MIN_SCORE acceptance band.
+  // ── Variant penalty (raised −45 → −60) ──
+  // Karaoke / Live / Instrumental / Remaster / Acoustic / Edit are
+  // wrong covers ~always. Stronger penalty so they fall well below
+  // any "(Original)" alternative that scored equal on title+artist.
   const wantedVariant = VARIANT_RE.test(want.trackName);
   const gotVariant = VARIANT_RE.test(candidate.trackName);
-  if (gotVariant && !wantedVariant) s -= 45;
+  if (gotVariant && !wantedVariant) s -= 60;
+
+  // ── Collection-shape bonus (new) ──
+  // The same song exists across many collections (single, OST,
+  // studio album, deluxe, compilation, best-of). Apple's
+  // `artworkUrl100` is the collection cover, NOT a per-track
+  // image — so picking the right collection IS picking the right
+  // cover. Heuristics: a Single (trackCount === 1) is usually the
+  // canonical first release of the song, the earliest releaseDate
+  // wins ties, and any compilation / "best of" / "deluxe" gets
+  // pushed down.
+  if (candidate.trackCount === 1) s += 8; // single
+  if (candidate.collectionName) {
+    if (COMPILATION_RE.test(candidate.collectionName)) s -= 20;
+    // OST / Soundtrack collections are a legitimate canonical
+    // home for many songs (Spider-Verse, Lost in Translation),
+    // so we don't penalize them — but we don't bonus either.
+  }
+  if (candidate.releaseDate) {
+    // Earlier release = closer to the original, preferred when
+    // everything else is equal. ~5 points spread across two
+    // decades; keeps the signal mild so it can't override title /
+    // artist matching.
+    const yr = new Date(candidate.releaseDate).getFullYear();
+    if (!Number.isNaN(yr)) {
+      const ageYears = new Date().getFullYear() - yr;
+      s += Math.min(5, Math.max(0, ageYears / 5));
+    }
+  }
 
   return s;
 }

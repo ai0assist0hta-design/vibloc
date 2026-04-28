@@ -70,11 +70,14 @@ type ItunesRawResult = {
   trackId: number;
   trackName?: string;
   artistName?: string;
+  collectionId?: number;
   collectionName?: string;
   artworkUrl100?: string;
   previewUrl?: string;
   primaryGenreName?: string;
   trackViewUrl?: string;
+  trackCount?: number;
+  releaseDate?: string;
   wrapperType?: string;
   kind?: string;
 };
@@ -83,9 +86,12 @@ function toRecommendedTrack(r: ItunesRawResult): RecommendedTrack | null {
   if (!r.trackName || !r.artistName) return null;
   // Apple's default artwork URL is 100 px. The CDN serves any
   // {N}x{N}bb variant for free via plain string substitution.
-  // 1200 px keeps the 160 px hero / detail covers sharp on @3x
-  // mobile retina + macOS @2x without an extra request.
-  const art = (r.artworkUrl100 || '').replace('100x100bb', '1200x1200bb');
+  // 600 px is the safe / sharp tradeoff: covers @2x retina up to a
+  // 300-px display tile (every surface in VIBLOC except the hero,
+  // which the browser will upsample slightly), and ALWAYS exists
+  // — `1200x1200bb` and especially `3000x3000bb` 404 on a non-zero
+  // tail of older / compilation releases.
+  const art = (r.artworkUrl100 || '').replace('100x100bb', '600x600bb');
   return {
     id: String(r.trackId),
     trackName: r.trackName,
@@ -95,6 +101,10 @@ function toRecommendedTrack(r: ItunesRawResult): RecommendedTrack | null {
     primaryGenreName: r.primaryGenreName || '',
     genre: normalizeGenre(r.primaryGenreName || ''),
     trackViewUrl: r.trackViewUrl || '',
+    collectionId: r.collectionId,
+    collectionName: r.collectionName,
+    trackCount: r.trackCount,
+    releaseDate: r.releaseDate,
   };
 }
 

@@ -36,7 +36,11 @@ const STORAGE_KEY = 'vibloc.playlists.v2';
 // cache key forces a one-time re-resolve so any track that iTunes
 // couldn't match (and was sitting on a placeholder) gets a chance
 // at the open-source cover.
-const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v5';
+// v6 = collection-aware scorer (single + earliest releaseDate
+// preferred, compilation/deluxe penalized, variant penalty −60).
+// Bumping forces a one-time re-resolve so wrong-collection covers
+// from earlier passes get replaced.
+const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v6';
 const PLACEHOLDER_HOST = 'picsum.photos';
 
 type EnrichedFields = {
