@@ -2228,8 +2228,11 @@ function App() {
                     2. SEARCH        — composer between vibe and ranking
                     3. TOP PLAYLISTS — ranked curators 1~3 (heart-clickable)
                     4. TOP PICKS     — most-popular individual track
-                    5. AI 추천곡      — full list, no progressive disclosure
-                    6. MY PLAYLIST   — what's currently pinned here */}
+                    5. MY PLAYLIST   — user's curation surfaces right
+                                       under what's popular here, so they
+                                       can see their pins without scrolling
+                                       past the AI list (req: 2026-04-28)
+                    6. AI 추천곡      — full list, no progressive disclosure */}
               <CityVibeBlock
                 vibe={getCityVibe(area)}
                 text={text}
@@ -2269,6 +2272,20 @@ function App() {
                 divider={divider}
               />
 
+              {/* MY PLAYLIST — moved here (was below AI list) so the
+                  user's own pins appear right under what's popular,
+                  not buried at the bottom. */}
+              <BuildingPlaylist
+                buildingId={selectedBuilding.id}
+                cityVibe={getCityVibe(area)}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                darkMode={darkMode}
+                onOpenDetail={(id) => setDetailTaggerId(id)}
+              />
+
               <RecommendedList
                 area={area}
                 lat={buildingLat}
@@ -2280,17 +2297,6 @@ function App() {
                 text2={text2}
                 text3={text3}
                 divider={divider}
-              />
-
-              <BuildingPlaylist
-                buildingId={selectedBuilding.id}
-                cityVibe={getCityVibe(area)}
-                text={text}
-                text2={text2}
-                text3={text3}
-                divider={divider}
-                darkMode={darkMode}
-                onOpenDetail={(id) => setDetailTaggerId(id)}
               />
               </>)}
 
