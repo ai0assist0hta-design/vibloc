@@ -30,6 +30,7 @@ import type { RecommendedTrack } from './trackTypes';
 import { normalizeGenre } from './normalizeGenre';
 
 const SEARCH_ENDPOINT = 'https://itunes.apple.com/search';
+const LOOKUP_ENDPOINT = 'https://itunes.apple.com/lookup';
 const RSS_ENDPOINT = 'https://rss.applemarketingtools.com/api/v2';
 
 /** ISO 3166-1 alpha-2 — matches the existing AREA_COUNTRY map in App.tsx. */
@@ -140,6 +141,41 @@ export async function searchTrack(
     return tracks;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Resolve a single track by its iTunes trackId. This is the *only*
+ * 100 % deterministic path — no scoring, no ambiguity. The same id
+ * is what `music.apple.com/.../song/{id}` displays, so the artwork
+ * we get back is byte-for-byte the cover Apple shows for that song.
+ *
+ * Returns null on network failure or unknown id.
+ */
+export async function lookupTrackId(
+  trackId: string | number,
+  signal?: AbortSignal,
+): Promise<RecommendedTrack | null> {
+  const idStr = String(trackId).trim();
+  if (!idStr || !/^\d{6,12}$/.test(idStr)) return null;
+
+  const cacheKey = `lookup|${idStr}`;
+  const cached = cacheGet<RecommendedTrack | null>(cacheKey);
+  if (cached !== null && cached !== undefined) return cached;
+
+  try {
+    const res = await fetch(
+      `${LOOKUP_ENDPOINT}?id=${encodeURIComponent(idStr)}&entity=song`,
+      { signal, credentials: 'omit' },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { results?: ItunesRawResult[] };
+    const first = (data.results || []).map(toRecommendedTrack)
+      .find((t): t is RecommendedTrack => t !== null) || null;
+    cacheSet(cacheKey, first);
+    return first;
+  } catch {
+    return null;
   }
 }
 

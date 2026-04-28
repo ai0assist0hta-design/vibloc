@@ -26,12 +26,11 @@ import type { RecommendedTrack } from '../../lib/music/trackTypes';
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
-// v10 = strict cover-art matching pass. Bumping wipes any
-// agent-only buildings whose tracks were enriched with the loose v1
-// scorer (some covers ended up matching the wrong song). New seed
-// runs with placeholder covers, then the enricher resolves them via
-// the strict scorer in lib/music/coverArt.ts.
-const SEED_VERSION = 'v10-strict-cover-match';
+// v11 = tier-0 iTunes lookup pass. Bumping wipes seeded buildings
+// so the enricher can re-resolve every track via lookup?id=… (for
+// numeric iTunes trackIds) or storefront-aware scored search (for
+// text seed ids), producing the byte-exact Apple Music cover.
+const SEED_VERSION = 'v11-itunes-lookup';
 const MAX_SEED_BUILDINGS = 40;
 
 type Country = 'JP' | 'KR' | 'US';

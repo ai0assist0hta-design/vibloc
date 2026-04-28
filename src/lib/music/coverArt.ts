@@ -26,16 +26,57 @@
  * cover, same Apple page.
  */
 
-import { searchTrack, type CountryCode } from './itunes';
+import { lookupTrackId, searchTrack, type CountryCode } from './itunes';
 
 export type ResolvedCover = {
   artworkUrl: string;          // Apple CDN, already 1200×1200
   previewUrl?: string;
   trackViewUrl?: string;       // canonical music.apple.com link
-  matchScore: number;          // 0-100, debug / telemetry
+  matchScore: number;          // 0-100; 100 = deterministic id lookup
 };
 
 const MIN_SCORE = 80;
+
+// ─── Storefront auto-detection ───────────────────────────────────────
+//
+// iTunes Search results vary wildly by `country` storefront. A
+// Japanese-language song queried against the US store often surfaces
+// English-language remixes / covers / unrelated tracks first; the
+// JP store returns the canonical version on the first hit.
+//
+// We pick a storefront BY TRACK (not by user / building) because the
+// natural locale of the song dominates which Apple Music store has
+// the canonical metadata. Detection rules:
+//
+//   - any Hangul char           → KR
+//   - any Hiragana/Katakana     → JP
+//   - any CJK ideograph         → check artist for Hangul too;
+//                                 Hangul artist + kanji title still wins KR
+//   - genre keyword 'kpop'      → KR
+//   - genre keyword 'jpop'      → JP
+//   - else                      → fallback to caller-supplied country
+
+const HANGUL_RE = /[가-힯ᄀ-ᇿ]/;
+const KANA_RE   = /[぀-ヿ]/;
+const CJK_RE    = /[㐀-鿿]/;
+
+export function detectStorefront(
+  trackName: string,
+  artistName: string,
+  fallback: CountryCode = 'US',
+  genre?: string,
+): CountryCode {
+  const both = `${trackName} ${artistName}`;
+  if (HANGUL_RE.test(both)) return 'KR';
+  if (KANA_RE.test(both)) return 'JP';
+  if (genre === 'kpop') return 'KR';
+  if (genre === 'jpop') return 'JP';
+  // Pure CJK ideographs (no kana) → mostly Chinese / classical
+  // Japanese — bias toward JP since VIBLOC's J-pop seeds outnumber
+  // any zh-CN content in the pool.
+  if (CJK_RE.test(both)) return 'JP';
+  return fallback;
+}
 
 // ─── Text normalization ──────────────────────────────────────────────
 
@@ -105,28 +146,65 @@ function score(
 // ─── Public API ──────────────────────────────────────────────────────
 
 /** Resolve the *Apple Music* cover (and matching deep link) for an
- *  (artist, track) pair. Returns null when no storefront produced a
- *  match scoring at least MIN_SCORE — the caller should leave the
- *  existing artwork alone in that case rather than swapping in the
- *  wrong song. */
+ *  (artist, track) pair.
+ *
+ *  Two-tier strategy:
+ *
+ *   - Tier 0 (deterministic): if `opts.trackId` is supplied AND
+ *     looks like a real iTunes id (6–12 digits), call lookup?id=…
+ *     and return whatever Apple says. matchScore = 100, no scoring,
+ *     no ambiguity. This is the path Apple Music's own pages use,
+ *     so the cover and trackViewUrl are byte-identical to what the
+ *     user sees on music.apple.com.
+ *
+ *   - Tier 1 (scored search): if no id (or id lookup fails),
+ *     search across the auto-detected storefront + global
+ *     fallbacks, score every result with normalized title/artist
+ *     comparison + variant penalty, return only ≥ MIN_SCORE.
+ *
+ *  Returns null when neither tier produces a confident match — the
+ *  caller should leave the existing artwork alone in that case
+ *  rather than swapping in the wrong song. */
 export async function resolveCover(
   artistName: string,
   trackName: string,
   country: CountryCode = 'US',
+  opts?: { trackId?: string | number; genre?: string },
 ): Promise<ResolvedCover | null> {
   const a = artistName.trim();
   const t = trackName.trim();
   if (!a || !t) return null;
 
+  // ── Tier 0: deterministic id lookup ──
+  if (opts?.trackId !== undefined) {
+    const idStr = String(opts.trackId).trim();
+    if (/^\d{6,12}$/.test(idStr)) {
+      const hit = await lookupTrackId(idStr);
+      if (hit) {
+        return {
+          artworkUrl: hit.artworkUrl,
+          previewUrl: hit.previewUrl || undefined,
+          trackViewUrl: hit.trackViewUrl || undefined,
+          matchScore: 100,
+        };
+      }
+      // id was supplied but lookup returned nothing — fall through
+      // to scored search rather than failing outright.
+    }
+  }
+
+  // ── Tier 1: scored search ──
   const want = { artistName: a, trackName: t };
   const term = `${t} ${a}`.trim();
 
-  // Try the regional storefront first (better local matches for
-  // Japanese / Korean catalogs which differ from the US one), then
-  // a few global fallbacks. Each search is itself memoized by
-  // `searchTrack`, so duplicates across storefronts are cheap.
+  // Detect the canonical storefront for this track (script + genre)
+  // and try it first — that single change fixes most J-pop / K-pop
+  // mismatches that surfaced when an English-store search happened
+  // to put a different YOASOBI / NewJeans song first. Then fall
+  // through to other stores.
+  const primary = detectStorefront(t, a, country, opts?.genre);
   const STOREFRONTS: CountryCode[] = Array.from(new Set<CountryCode>(
-    [country, 'US', 'JP', 'KR'],
+    [primary, country, 'US', 'JP', 'KR'],
   ));
 
   let best: { score: number; track: Awaited<ReturnType<typeof searchTrack>>[number] } | null = null;

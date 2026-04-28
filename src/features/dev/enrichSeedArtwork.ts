@@ -32,10 +32,11 @@ import { resolveCover } from '../../lib/music/coverArt';
 import { reloadFromStorage } from '../../lib/music/buildingPlaylist';
 
 const STORAGE_KEY = 'vibloc.playlists.v2';
-// v2 = stricter scoring (MIN_SCORE 80 + variant penalties). Bumping
-// the cache key forces a one-time re-resolve so any wrong covers
-// from the old loose match get replaced with the right Apple ones.
-const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v2';
+// v3 = Tier-0 deterministic id lookup added. Bumping the cache key
+// forces a one-time re-resolve so any wrong covers from the previous
+// scored-search era get replaced with the byte-exact Apple ones for
+// every seed whose `id` is a numeric iTunes trackId.
+const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v3';
 const PLACEHOLDER_HOST = 'picsum.photos';
 
 type EnrichedFields = {
@@ -68,15 +69,16 @@ function cacheKey(artistName: string, trackName: string): string {
   return `${artistName.trim().toLowerCase()}|${trackName.trim().toLowerCase()}`;
 }
 
-/** Resolve via the strict scorer in `coverArt.ts`. Returns null when
- *  Apple has no high-confidence match — better to keep the
- *  placeholder than to swap in the wrong cover. */
+/** Resolve via `resolveCover` — uses iTunes lookup?id=… directly
+ *  when `trackId` is a real numeric id (deterministic, byte-perfect
+ *  match to Apple Music). Falls back to scored search otherwise. */
 async function lookupOne(
   artistName: string,
   trackName: string,
   country: CountryCode,
+  opts?: { trackId?: string; genre?: string },
 ): Promise<EnrichedFields | null> {
-  const hit = await resolveCover(artistName, trackName, country);
+  const hit = await resolveCover(artistName, trackName, country, opts);
   if (!hit) return null;
   return {
     artworkUrl: hit.artworkUrl,
@@ -126,7 +128,9 @@ async function runEnricher(country: CountryCode): Promise<void> {
 
   const cache = readCache();
   // Collect the unique (artist, track) pairs that still need work.
-  const need = new Map<string, { artist: string; track: string }>();
+  // We also remember the seed `id` (often an iTunes trackId) and
+  // `genre` so resolveCover can take the deterministic Tier-0 path.
+  const need = new Map<string, { artist: string; track: string; id?: string; genre?: string }>();
   for (const entry of Object.values(store)) {
     const tracks = entry?.tracks;
     if (!Array.isArray(tracks)) continue;
@@ -138,7 +142,13 @@ async function runEnricher(country: CountryCode): Promise<void> {
       if (!artist || !track) continue;
       const key = cacheKey(artist, track);
       if (cache[key]) continue; // already resolved last boot
-      if (!need.has(key)) need.set(key, { artist, track });
+      if (!need.has(key)) {
+        need.set(key, {
+          artist, track,
+          id: String(t.id ?? '').trim() || undefined,
+          genre: String(t.genre ?? '').trim() || undefined,
+        });
+      }
     }
   }
 
@@ -148,8 +158,8 @@ async function runEnricher(country: CountryCode): Promise<void> {
   // unmatchable seeds every boot.
   let mutated = false;
   if (need.size > 0) {
-    const tasks = Array.from(need.entries()).map(([key, { artist, track }]) => async () => {
-      const hit = await lookupOne(artist, track, country);
+    const tasks = Array.from(need.entries()).map(([key, { artist, track, id, genre }]) => async () => {
+      const hit = await lookupOne(artist, track, country, { trackId: id, genre });
       cache[key] = hit; // hit OR null — both worth caching
     });
     await runWithConcurrency(tasks, 4);
