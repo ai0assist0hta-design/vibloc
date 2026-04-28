@@ -26,26 +26,30 @@ import type { RecommendedTrack } from '../../lib/music/trackTypes';
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
-const SEED_VERSION = 'v8-cover-art-thumbs';
+const SEED_VERSION = 'v9-locale-aware';
 const MAX_SEED_BUILDINGS = 40;
+
+type Country = 'JP' | 'KR' | 'US';
 
 type Agent = {
   id: string;
   name: string;
-  /** Curator-chosen avatar URL. ALWAYS null for seed agents — they
-   *  have no real "user account" to upload from, so TaggerThumb
-   *  falls through to its tier-2 default: the playlist's top-track
-   *  album cover. (When real users sign up later, this is the field
-   *  they'd populate from a profile-edit screen.) */
+  /** Curator-chosen avatar URL. ALWAYS null for seed agents. */
   avatarUrl: string | null;
-  /** Custom playlist NAME — appears as the headline on TopTaggerCard
-   *  rows and PlaylistDetailView. Persona-flavored. */
+  /** Where this curator is "from" — drives which buildings they
+   *  show up on. JP agents on Tokyo buildings, KR agents on Seoul,
+   *  US agents on NYC/LA. We sprinkle a small fraction of off-locale
+   *  curators into each building so cities still feel cosmopolitan. */
+  homeCountry: Country;
+  /** Custom playlist NAME — appears as the headline. */
   playlistName: string;
-  /** Genre lean — used to pick tracks from the pool that match this
-   *  curator's taste. Filters TRACK_POOL by `genre`. */
+  /** Genre lean — filters TRACK_POOL by `genre`. */
   taste: RecommendedTrack['genre'][];
-  /** (Legacy) free-text note. UI no longer renders this — left for
-   *  back-compat with older demo data shape. */
+  /** Persona vibe tag. Used by buildVibeFor() to weight agents
+   *  toward matching building shapes (`office` → "lo-fi commute"
+   *  curators, `late-night` → club / drive curators, etc.) */
+  vibe: 'office' | 'cafe' | 'late-night' | 'sunset' | 'hangout';
+  /** Legacy free-text note (UI no longer renders it). */
   note: string;
 };
 
@@ -54,95 +58,112 @@ type Agent = {
  *  Western to mirror the cities VIBLOC ships (Shinjuku, Itaewon,
  *  Manhattan, LA). Avatars via DiceBear (deterministic by seed). */
 const AGENTS: Agent[] = [
-  {
-    id: 'agent-luna', name: 'Luna Park', avatarUrl: null,
+  // ── KR curators (Seoul: Itaewon, Gangnam, Hongdae) ──
+  { id: 'agent-luna', name: 'Luna Park', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'late-night',
     playlistName: 'rainy 4am alley walk',
     taste: ['rnb', 'jazz', 'singer'],
-    note: 'late-night songs that stuck in my head walking past this block.',
-  },
-  {
-    id: 'agent-jiro', name: 'Jiro Tanaka', avatarUrl: null,
-    playlistName: 'Shinjuku 5AM loop',
-    taste: ['electronic', 'jpop', 'soundtrack'],
-    note: 'coffee + ambient bass + neon reflections.',
-  },
-  {
-    id: 'agent-min', name: 'Min Seo', avatarUrl: null,
+    note: 'late-night songs from walking these blocks.' },
+  { id: 'agent-min', name: 'Min Seo', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'sunset',
     playlistName: 'Itaewon backstreet R&B',
     taste: ['rnb', 'kpop', 'singer'],
-    note: 'k-r&b heavy. for slow walks down side alleys.',
-  },
-  {
-    id: 'agent-hugo', name: 'Hugo Vrai', avatarUrl: null,
-    playlistName: 'french touch / city pop',
-    taste: ['electronic', 'jpop', 'pop'],
-    note: 'french touch + city pop crossover. windows down only.',
-  },
-  {
-    id: 'agent-ava', name: 'Ava Chen', avatarUrl: null,
-    playlistName: 'rooftop sunset, indie + dream pop',
-    taste: ['alternative', 'pop', 'singer'],
-    note: 'rooftop sunset playlist · indie + dream pop.',
-  },
-  {
-    id: 'agent-noa', name: 'Noa Kim', avatarUrl: null,
-    playlistName: 'cafe americano hour',
-    taste: ['jazz', 'singer', 'rnb'],
-    note: 'lo-fi + jazz + warm vocals.',
-  },
-  {
-    id: 'agent-rio', name: 'Rio Suzuki', avatarUrl: null,
-    playlistName: 'morning commute · lofi hiphop',
-    taste: ['hiphop', 'electronic', 'jpop'],
-    note: 'my daily train-ride set.',
-  },
-  {
-    id: 'agent-ezra', name: 'Ezra Maeda', avatarUrl: null,
-    playlistName: 'late night drives',
-    taste: ['electronic', 'pop', 'rock'],
-    note: 'synthwave heavy.',
-  },
-  {
-    id: 'agent-sora', name: 'Sora Hinata', avatarUrl: null,
-    playlistName: 'Shibuya sunday afternoon',
-    taste: ['jpop', 'pop', 'singer'],
-    note: 'brunch-cafe playlist.',
-  },
-  {
-    id: 'agent-kai',  name: 'Kai Roberts', avatarUrl: null,
-    playlistName: 'Brooklyn rooftop @ golden hour',
-    taste: ['hiphop', 'rnb', 'pop'],
-    note: 'BK summer set.',
-  },
-  {
-    id: 'agent-yuna', name: 'Yuna Choi',   avatarUrl: null,
+    note: 'k-r&b heavy. for slow walks down side alleys.' },
+  { id: 'agent-yuna', name: 'Yuna Choi', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'late-night',
     playlistName: 'Gangnam 3AM cab',
     taste: ['kpop', 'rnb', 'pop'],
-    note: 'one-hour set — leaving the first round, heading to the second.',
-  },
-  {
-    id: 'agent-leo',  name: 'Leo Vasquez', avatarUrl: null,
-    playlistName: 'echo park / silver lake drive',
-    taste: ['alternative', 'latin', 'pop'],
-    note: 'LA eastside, windows down.',
-  },
-  {
-    id: 'agent-mei',  name: 'Mei Watanabe', avatarUrl: null,
+    note: 'one-hour set — leaving the first round, heading to the second.' },
+  { id: 'agent-jaehyun', name: 'Jaehyun Park', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'office',
+    playlistName: 'Yeoksam tower lunch hour',
+    taste: ['kpop', 'pop', 'electronic'],
+    note: '회식 전 카페 셋.' },
+  { id: 'agent-haeun', name: 'Haeun Lee', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'cafe',
+    playlistName: 'Hongdae bookshop afternoon',
+    taste: ['singer', 'jazz', 'alternative'],
+    note: 'soft acoustic set.' },
+
+  // ── JP curators (Shinjuku, Shibuya) ──
+  { id: 'agent-jiro', name: 'Jiro Tanaka', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'late-night',
+    playlistName: 'Shinjuku 5AM loop',
+    taste: ['electronic', 'jpop', 'soundtrack'],
+    note: 'coffee + ambient bass + neon reflections.' },
+  { id: 'agent-rio', name: 'Rio Suzuki', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'office',
+    playlistName: 'morning commute · lofi hiphop',
+    taste: ['hiphop', 'electronic', 'jpop'],
+    note: 'my daily train-ride set.' },
+  { id: 'agent-sora', name: 'Sora Hinata', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'cafe',
+    playlistName: 'Shibuya sunday afternoon',
+    taste: ['jpop', 'pop', 'singer'],
+    note: 'brunch-cafe playlist.' },
+  { id: 'agent-mei', name: 'Mei Watanabe', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'cafe',
     playlistName: 'rainy sunday in Shinjuku',
     taste: ['jpop', 'jazz', 'singer'],
-    note: 'rainy sunday at the listening bar.',
-  },
-  {
-    id: 'agent-omar', name: 'Omar Hassan', avatarUrl: null,
+    note: 'rainy sunday at the listening bar.' },
+  { id: 'agent-haru', name: 'Haru Mori', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'sunset',
+    playlistName: 'Tokyo rooftop sundown',
+    taste: ['jpop', 'pop', 'electronic'],
+    note: 'city pop revival cuts.' },
+
+  // ── US curators (Manhattan, LA) ──
+  { id: 'agent-kai', name: 'Kai Roberts', avatarUrl: null,
+    homeCountry: 'US', vibe: 'sunset',
+    playlistName: 'Brooklyn rooftop @ golden hour',
+    taste: ['hiphop', 'rnb', 'pop'],
+    note: 'BK summer set.' },
+  { id: 'agent-omar', name: 'Omar Hassan', avatarUrl: null,
+    homeCountry: 'US', vibe: 'late-night',
     playlistName: 'Manhattan 4AM cab ride',
     taste: ['hiphop', 'rnb', 'electronic'],
-    note: 'after-hours uptown taxi loop.',
-  },
+    note: 'after-hours uptown taxi loop.' },
+  { id: 'agent-leo', name: 'Leo Vasquez', avatarUrl: null,
+    homeCountry: 'US', vibe: 'hangout',
+    playlistName: 'echo park / silver lake drive',
+    taste: ['alternative', 'latin', 'pop'],
+    note: 'LA eastside, windows down.' },
+  { id: 'agent-ava', name: 'Ava Chen', avatarUrl: null,
+    homeCountry: 'US', vibe: 'sunset',
+    playlistName: 'rooftop sunset, indie + dream pop',
+    taste: ['alternative', 'pop', 'singer'],
+    note: 'indie + dream pop.' },
+  { id: 'agent-ezra', name: 'Ezra Maeda', avatarUrl: null,
+    homeCountry: 'US', vibe: 'late-night',
+    playlistName: 'late night drives',
+    taste: ['electronic', 'pop', 'rock'],
+    note: 'synthwave heavy.' },
+  { id: 'agent-noa', name: 'Noa Kim', avatarUrl: null,
+    homeCountry: 'US', vibe: 'cafe',
+    playlistName: 'cafe americano hour',
+    taste: ['jazz', 'singer', 'rnb'],
+    note: 'lo-fi + jazz + warm vocals.' },
+  { id: 'agent-hugo', name: 'Hugo Vrai', avatarUrl: null,
+    homeCountry: 'US', vibe: 'hangout',
+    playlistName: 'french touch / city pop',
+    taste: ['electronic', 'jpop', 'pop'],
+    note: 'french touch + city pop crossover.' },
 ];
 
 // (Removed `dicebear()` and `avatarFor()` 2026-04-27. Seeded agents
 //  no longer carry an avatar URL — the playlist's top-track album
 //  cover is now the default thumbnail per user direction.)
+
+/** Country → preferred genre families for track selection. Used by
+ *  the seeder to bias each city's playlists toward locally relevant
+ *  music (Tokyo → J-Pop / Anime / Soundtrack, Seoul → K-Pop / R&B,
+ *  US → Hip-Hop / Pop / Latin). Other genres still appear via
+ *  cross-locale curators, just less dominantly. */
+const COUNTRY_TRACK_PREFERENCE: Record<Country, Set<RecommendedTrack['genre']>> = {
+  JP: new Set<RecommendedTrack['genre']>(['jpop', 'soundtrack', 'electronic', 'jazz', 'singer']),
+  KR: new Set<RecommendedTrack['genre']>(['kpop', 'rnb', 'hiphop', 'pop', 'singer']),
+  US: new Set<RecommendedTrack['genre']>(['pop', 'hiphop', 'rnb', 'alternative', 'latin', 'electronic']),
+};
 
 /** Real-ish iTunes track stubs. previewUrl left empty so the play
  *  button shows but stays disabled — keeps the UI honest. Artwork
@@ -242,40 +263,101 @@ function hash(s: string, salt = 0): number {
   return h >>> 0;
 }
 
-function buildEntryFor(buildingId: string): BuildingPlaylistEntry {
-  // 2–5 agents per building so TOP PLAYLISTS has a real ranked list
-  // to show / scroll instead of one or two lonely rows.
-  const agentCount = 2 + (hash(buildingId, 1) % 4);
-  const startAgent = hash(buildingId, 2) % AGENTS.length;
-  const chosen = Array.from({ length: agentCount }, (_, i) =>
-    AGENTS[(startAgent + i * 3) % AGENTS.length]
-  );
+type BuildingShape = {
+  id: string;
+  height: number;
+  tagCategories: string[];
+};
+
+/** Infer a vibe weight per agent for a given building. Skyscrapers
+ *  (>120m) skew to office / commute curators; low retail/restaurant
+ *  blocks skew to cafe / sunset / hangout; entertainment-heavy
+ *  buildings skew late-night. Returns a multiplier in roughly
+ *  [0.5, 2.0] applied during agent ranking. */
+function vibeWeightFor(agent: Agent, b: BuildingShape): number {
+  const tags = new Set(b.tagCategories);
+  const tall = b.height >= 120;
+  const mid = b.height >= 40 && b.height < 120;
+  const isFood = tags.has('food');
+  const isShop = tags.has('shop');
+  const isHotel = tags.has('hotel');
+  const isOffice = tags.has('office') || tall;
+  const isEnt = tags.has('entertainment');
+  switch (agent.vibe) {
+    case 'office':     return isOffice ? 1.8 : (mid ? 1.0 : 0.6);
+    case 'cafe':       return isFood ? 1.6 : (isShop || isHotel ? 1.1 : 0.7);
+    case 'late-night': return isEnt ? 1.8 : (isFood ? 1.2 : tall ? 0.9 : 0.7);
+    case 'sunset':     return isHotel ? 1.5 : (mid ? 1.1 : 0.9);
+    case 'hangout':    return isShop || isFood ? 1.3 : 0.9;
+    default:           return 1.0;
+  }
+}
+
+function buildEntryFor(
+  building: BuildingShape,
+  country: Country | undefined,
+): BuildingPlaylistEntry {
+  // Filter agents by locale: 70% of slots reserved for in-country
+  // curators, the rest sprinkled from off-locale agents so the
+  // panel still feels cosmopolitan. When country is unknown, use
+  // the full pool.
+  const local = country ? AGENTS.filter((a) => a.homeCountry === country) : AGENTS;
+  const foreign = country ? AGENTS.filter((a) => a.homeCountry !== country) : [];
+
+  // Score every candidate by vibe match × stable per-building hash
+  // so the same building always picks the same lineup.
+  const scored = (agents: Agent[]) => agents
+    .map((a) => ({
+      agent: a,
+      score: vibeWeightFor(a, building) +
+             // Per-building deterministic jitter so two same-vibe
+             // agents don't always rank in the same order across
+             // every building. Range ≈ 0..0.6.
+             ((hash(building.id + a.id, 7) % 60) / 100),
+    }))
+    .sort((x, y) => y.score - x.score);
+
+  const localRanked = scored(local).map((r) => r.agent);
+  const foreignRanked = scored(foreign).map((r) => r.agent);
+
+  // 2–5 agents per building. Take from local first, top-up with
+  // foreign so cosmopolitan buildings still get a sprinkle.
+  const agentCount = 2 + (hash(building.id, 1) % 4);
+  const localTake = Math.max(1, Math.ceil(agentCount * 0.7));
+  const chosen: Agent[] = [
+    ...localRanked.slice(0, localTake),
+    ...foreignRanked.slice(0, agentCount - localTake),
+  ].slice(0, agentCount);
 
   const tracks: PinnedTrack[] = [];
   const taggerNotes: Record<string, string> = {};
   const taggerPlaylistNames: Record<string, string> = {};
   const playlistLikedBy: Record<string, string[]> = {};
-  const baseTime = Date.now() - hash(buildingId, 3) % (1000 * 60 * 60 * 24 * 14);
+  const baseTime = Date.now() - hash(building.id, 3) % (1000 * 60 * 60 * 24 * 14);
   const usedIds = new Set<string>();
 
   chosen.forEach((agent, ai) => {
-    // Filter the pool by this agent's taste. Drives the per-row
-    // "수록 N회" overlap to be meaningful — agents with shared taste
-    // (e.g. two R&B curators) end up pinning the same track.
-    const taste = new Set(agent.taste);
-    const tastePool = TRACK_POOL.filter((t) => taste.has(t.genre));
-    const pool = tastePool.length > 0 ? tastePool : TRACK_POOL;
+    // Country-aware track pool: bias toward in-country genres so
+    // Tokyo buildings serve more J-Pop, Seoul → K-Pop, etc.
+    const countryGenres = COUNTRY_TRACK_PREFERENCE[country ?? 'US'] ?? new Set();
+    const tasteSet = new Set(agent.taste);
+    const tastePool = TRACK_POOL.filter((t) => tasteSet.has(t.genre));
+    const localBias = TRACK_POOL.filter((t) => countryGenres.has(t.genre));
+    // Composed pool: prefer (taste ∩ country) → taste → country → all
+    const tasteAndLocal = tastePool.filter((t) => countryGenres.has(t.genre));
+    const pool =
+      tasteAndLocal.length >= 4 ? tasteAndLocal :
+      tastePool.length >= 3     ? tastePool :
+      localBias.length >= 3     ? localBias :
+      TRACK_POOL;
 
-    // 3–6 tracks each so every seeded curator clears MIN_PLAYLIST_TRACKS.
-    const trackCount = 3 + (hash(buildingId, 10 + ai) % 4);
-    const startTrack = hash(buildingId, 20 + ai) % pool.length;
+    const trackCount = 3 + (hash(building.id, 10 + ai) % 4);
+    const startTrack = hash(building.id, 20 + ai) % pool.length;
     for (let i = 0; i < trackCount; i++) {
       const track = pool[(startTrack + i * 2) % pool.length];
       if (usedIds.has(`${agent.id}|${track.id}`)) continue;
       usedIds.add(`${agent.id}|${track.id}`);
-      // Cross-tagger overlap is fine (drives "수록 N회"), but a single
-      // tagger shouldn't pin the same track twice.
-      const likes = hash(buildingId, 100 + ai * 10 + i) % 24; // 0–23
+      const likes = hash(building.id, 100 + ai * 10 + i) % 24;
       tracks.push({
         ...track,
         pinnedAt: baseTime - i * 1000 * 60 * 30 - ai * 1000 * 60 * 60 * 6,
@@ -288,9 +370,7 @@ function buildEntryFor(buildingId: string): BuildingPlaylistEntry {
     }
     taggerNotes[agent.id] = agent.note;
     taggerPlaylistNames[agent.id] = agent.playlistName;
-    // 0–24 playlist-level likes per agent so the rank-by-likes order
-    // is meaningful and the heart counts span a real range.
-    const plLikes = hash(buildingId, 200 + ai) % 25;
+    const plLikes = hash(building.id, 200 + ai) % 25;
     playlistLikedBy[agent.id] = Array.from({ length: plLikes }, (_, k) => `seed-pl-liker-${k}`);
   });
 
@@ -303,11 +383,15 @@ function buildEntryFor(buildingId: string): BuildingPlaylistEntry {
   };
 }
 
-/** Public entry point — call with the list of building IDs currently
- *  loaded for the area. Idempotent and never overwrites existing data. */
-export function seedBuildingPlaylists(buildingIds: string[]): void {
+/** Public entry point — call with the list of building shapes
+ *  currently loaded for the area + the area's country code.
+ *  Idempotent and never overwrites existing data. */
+export function seedBuildingPlaylists(
+  buildings: BuildingShape[],
+  country?: Country,
+): void {
   if (typeof window === 'undefined') return;
-  if (buildingIds.length === 0) return;
+  if (buildings.length === 0) return;
 
   let raw: string | null = null;
   try { raw = localStorage.getItem(STORAGE_KEY); } catch { return; }
@@ -335,10 +419,10 @@ export function seedBuildingPlaylists(buildingIds: string[]): void {
   }
 
   let added = 0;
-  for (const bid of buildingIds) {
+  for (const b of buildings) {
     if (added >= MAX_SEED_BUILDINGS) break;
-    if (store[bid] && store[bid].tracks?.length > 0) continue; // skip real data
-    store[bid] = buildEntryFor(bid);
+    if (store[b.id] && store[b.id].tracks?.length > 0) continue; // skip real data
+    store[b.id] = buildEntryFor(b, country);
     added += 1;
   }
   if (added === 0) return;

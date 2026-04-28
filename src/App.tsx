@@ -500,9 +500,19 @@ function App() {
     if (!import.meta.env.DEV) return;
     if (buildings.length === 0) return;
     void import('./features/dev/seedAgents').then(({ seedBuildingPlaylists }) => {
-      seedBuildingPlaylists(buildings.map((b) => b.id));
+      seedBuildingPlaylists(
+        buildings.map((b) => ({
+          id: b.id,
+          // Building-aware seeding: pass shape so the seeder can vary
+          // tracks per building (a tall office tower gets office-vibe
+          // music, a low retail block gets cafe-friendly picks).
+          height: b.height,
+          tagCategories: b.tags?.map((t) => t.category) ?? [],
+        })),
+        AREA_COUNTRY[area],
+      );
     });
-  }, [buildings]);
+  }, [buildings, area]);
   // Roads for the current area — loaded once per area and reused to snap
   // the Street View viewpoint onto real drivable segments (Google SV panos
   // only exist where cars drove, so road-snapping is the most reliable way
