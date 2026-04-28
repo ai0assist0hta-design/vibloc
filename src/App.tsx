@@ -241,6 +241,13 @@ function App() {
   const bldgAnchorRef = useRef<BuildingScreenAnchor | null>(null);
   const panelCurrentRef = useRef<{ left: number; top: number; scale: number } | null>(null);
   const panelCurrentRightRef = useRef<{ left: number; top: number; scale: number } | null>(null);
+  // Side-lock — once a panel picks a side (LEFT/RIGHT/ABOVE/BELOW)
+  // for the current selection, stay there. Without this the panel
+  // keeps jumping sides as the user orbits the camera and the
+  // placement preference re-evaluates each frame.
+  type PanelSide = 'LEFT' | 'RIGHT' | 'ABOVE' | 'BELOW' | 'CORNER';
+  const panelSideLeftRef = useRef<PanelSide | null>(null);
+  const panelSideRightRef = useRef<PanelSide | null>(null);
   // Latest tenant-list length, updated from inside the panel render.
   const tenantCountRef = useRef(0);
 
@@ -253,6 +260,8 @@ function App() {
     }
     panelCurrentRef.current = null;
     panelCurrentRightRef.current = null;
+    panelSideLeftRef.current = null;
+    panelSideRightRef.current = null;
   }, [selectedBuilding]);
 
   // Single rAF loop owns the entire panel motion: computeTarget per
@@ -272,13 +281,24 @@ function App() {
       return Math.max(lo, Math.min(hi, v));
     }
 
+    /** Auto-shrink everything below this viewport width so the panels
+     *  + city UI stay legible on small screens. Above 1280px = 1.0
+     *  (no shrink). Down to ~800px = 0.7. Floor at 0.55 so things
+     *  never become unreadably tiny. */
+    function viewportScale(): number {
+      const vw = window.innerWidth;
+      if (vw >= 1280) return 1.0;
+      if (vw <= 700)  return 0.55;
+      return clamp(vw / 1280, 0.55, 1.0);
+    }
+
     function computeTarget(
       anchor: BuildingScreenAnchor | null,
     ): { left: number; top: number; scale: number } {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       if (!anchor || !anchor.inFront) {
-        return { left: 360, top: vh * 0.30, scale: 1 };
+        return { left: 360, top: vh * 0.30, scale: viewportScale() };
       }
       // Zoom-aware sizing — use the LARGER projected dimension as the
       // size driver. Wide low buildings dominate horizontally (large
@@ -303,6 +323,10 @@ function App() {
         const s = t * t * (3 - 2 * t);
         scale = MIN_SCALE + (1 - MIN_SCALE) * s;
       }
+      // Compose with viewport scale so narrow windows shrink the
+      // panel further (no overlap with the music side rail).
+      const vScale = viewportScale();
+      scale = scale * vScale;
       const gapX = 180 * scale;
       const gapY = 96 * scale;
       const safeRightLimit = vw - RIGHT_MUSIC_W - gapX;
@@ -315,16 +339,11 @@ function App() {
         const maxY = vh - PANEL_BOTTOM_INSET - PANEL_H_ESTIMATE;
         return Math.max(minY, Math.min(maxY, y));
       };
-      // 1) LEFT of building
+      // Compute every candidate placement once.
       const leftLx = anchor.left - gapX - PANEL_W;
-      if (leftLx >= PANEL_VIEWPORT_INSET) {
-        return { left: leftLx, top: clampY(anchor.top - gapY - tenantLift), scale };
-      }
-      // 2) RIGHT of building (collision-checked against music panel)
       const rightLx = anchor.right + gapX;
-      if (rightLx + PANEL_W <= safeRightLimit) {
-        return { left: rightLx, top: clampY(anchor.top - gapY - tenantLift), scale };
-      }
+      const aboveTy = anchor.top - gapY - PANEL_H_ESTIMATE;
+      const belowTy = anchor.bottom + gapY;
       const centerX = () => {
         const ideal = (anchor.left + anchor.right) / 2 - PANEL_W / 2;
         const minX = PANEL_VIEWPORT_INSET;
@@ -334,18 +353,37 @@ function App() {
         );
         return Math.max(minX, Math.min(maxX, ideal));
       };
-      // 3) ABOVE
-      const aboveTy = anchor.top - gapY - PANEL_H_ESTIMATE;
-      if (aboveTy >= PANEL_HEADER_INSET) {
-        return { left: centerX(), top: aboveTy, scale };
+      const fits: Record<PanelSide, boolean> = {
+        LEFT:   leftLx >= PANEL_VIEWPORT_INSET,
+        RIGHT:  rightLx + PANEL_W <= safeRightLimit,
+        ABOVE:  aboveTy >= PANEL_HEADER_INSET,
+        BELOW:  belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET,
+        CORNER: true,
+      };
+      // SIDE LOCK: pick a side only on the first valid frame after
+      // selection (or when the locked side completely runs out of
+      // room), then stick with it for the rest of this orbit. Without
+      // this the panel re-evaluates every frame as the camera
+      // rotates and visually jumps L→R→ABOVE.
+      const PREFERENCE: PanelSide[] = ['LEFT', 'RIGHT', 'ABOVE', 'BELOW', 'CORNER'];
+      const cached = panelSideLeftRef.current;
+      if (!cached || !fits[cached]) {
+        panelSideLeftRef.current =
+          PREFERENCE.find((s) => fits[s]) ?? 'CORNER';
       }
-      // 4) BELOW
-      const belowTy = anchor.bottom + gapY;
-      if (belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET) {
-        return { left: centerX(), top: belowTy, scale };
+      const side = panelSideLeftRef.current!;
+      switch (side) {
+        case 'LEFT':
+          return { left: leftLx, top: clampY(anchor.top - gapY - tenantLift), scale };
+        case 'RIGHT':
+          return { left: rightLx, top: clampY(anchor.top - gapY - tenantLift), scale };
+        case 'ABOVE':
+          return { left: centerX(), top: aboveTy, scale };
+        case 'BELOW':
+          return { left: centerX(), top: belowTy, scale };
+        default:
+          return { left: PANEL_VIEWPORT_INSET, top: PANEL_HEADER_INSET, scale };
       }
-      // 5) Safe corner
-      return { left: PANEL_VIEWPORT_INSET, top: PANEL_HEADER_INSET, scale };
     }
 
     /** Mirror of `computeTarget` for the right-side TOP PLAYLISTS
@@ -358,7 +396,7 @@ function App() {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       if (!anchor || !anchor.inFront) {
-        return { left: vw - 360 - PANEL_W, top: vh * 0.30, scale: 1 };
+        return { left: vw - 360 - PANEL_W, top: vh * 0.30, scale: viewportScale() };
       }
       const bbW = Math.max(0, anchor.right - anchor.left);
       const bbH = Math.max(0, anchor.bottom - anchor.top);
@@ -375,6 +413,7 @@ function App() {
         const s = t * t * (3 - 2 * t);
         scale = MIN_SCALE + (1 - MIN_SCALE) * s;
       }
+      scale = scale * viewportScale();
       const gapX = 180 * scale;
       const gapY = 96 * scale;
       const safeRightLimit = vw - RIGHT_MUSIC_W - gapX;
@@ -387,17 +426,9 @@ function App() {
         const maxY = vh - PANEL_BOTTOM_INSET - PANEL_H_ESTIMATE;
         return Math.max(minY, Math.min(maxY, y));
       };
-      // 1) RIGHT of building (preferred for this panel)
       const rightLx = anchor.right + gapX;
-      if (rightLx + PANEL_W <= safeRightLimit) {
-        return { left: rightLx, top: clampY(anchor.top - gapY - tenantLift), scale };
-      }
-      // 2) LEFT of building (fallback)
       const leftLx = anchor.left - gapX - PANEL_W;
-      if (leftLx >= PANEL_VIEWPORT_INSET) {
-        return { left: leftLx, top: clampY(anchor.top - gapY - tenantLift), scale };
-      }
-      // 3) BELOW (avoid colliding with leftPanel above)
+      const aboveTy = anchor.top - gapY - PANEL_H_ESTIMATE;
       const belowTy = anchor.bottom + gapY;
       const centerX = () => {
         const ideal = (anchor.left + anchor.right) / 2 - PANEL_W / 2;
@@ -408,15 +439,37 @@ function App() {
         );
         return Math.max(minX, Math.min(maxX, ideal));
       };
-      if (belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET) {
-        return { left: centerX(), top: belowTy, scale };
-      }
-      // 4) Safe corner — opposite side from leftPanel's safe corner
-      return {
-        left: vw - PANEL_W - PANEL_VIEWPORT_INSET,
-        top: PANEL_HEADER_INSET,
-        scale,
+      const fits: Record<PanelSide, boolean> = {
+        RIGHT:  rightLx + PANEL_W <= safeRightLimit,
+        LEFT:   leftLx >= PANEL_VIEWPORT_INSET,
+        ABOVE:  aboveTy >= PANEL_HEADER_INSET,
+        BELOW:  belowTy + PANEL_H_ESTIMATE <= vh - PANEL_BOTTOM_INSET,
+        CORNER: true,
       };
+      // SIDE LOCK with REVERSED preference (RIGHT first).
+      const PREFERENCE: PanelSide[] = ['RIGHT', 'LEFT', 'BELOW', 'ABOVE', 'CORNER'];
+      const cached = panelSideRightRef.current;
+      if (!cached || !fits[cached]) {
+        panelSideRightRef.current =
+          PREFERENCE.find((s) => fits[s]) ?? 'CORNER';
+      }
+      const side = panelSideRightRef.current!;
+      switch (side) {
+        case 'RIGHT':
+          return { left: rightLx, top: clampY(anchor.top - gapY - tenantLift), scale };
+        case 'LEFT':
+          return { left: leftLx, top: clampY(anchor.top - gapY - tenantLift), scale };
+        case 'ABOVE':
+          return { left: centerX(), top: aboveTy, scale };
+        case 'BELOW':
+          return { left: centerX(), top: belowTy, scale };
+        default:
+          return {
+            left: vw - PANEL_W - PANEL_VIEWPORT_INSET,
+            top: PANEL_HEADER_INSET,
+            scale,
+          };
+      }
     }
 
     let raf = 0;
