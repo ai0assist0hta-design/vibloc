@@ -1517,14 +1517,30 @@ function App() {
                           })()}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div title={tenant.name} style={{
-                            fontSize: 13, fontWeight: 600, color: text, lineHeight: 1.3,
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>{tenant.name}</div>
-                          <div style={{
-                            fontSize: 10, fontWeight: 600, color: text3, marginTop: 1,
-                            letterSpacing: 0.3, textTransform: 'uppercase',
-                          }}>{translateTagLabel(tenant.label, lang)}</div>
+                          {(() => {
+                            // i18n consistency: when the tenant has no
+                            // real brand name (name == generic label),
+                            // show the translated label as the title so
+                            // the row reads in the user's language.
+                            // Real brand names (Blue Bottle Coffee /
+                            // 무지 / etc.) are kept verbatim.
+                            const translated = translateTagLabel(tenant.label, lang);
+                            const isGeneric = tenant.name.trim().toLowerCase()
+                                              === tenant.label.trim().toLowerCase();
+                            const title = isGeneric ? translated : tenant.name;
+                            return (
+                              <>
+                                <div title={tenant.name} style={{
+                                  fontSize: 13, fontWeight: 600, color: text, lineHeight: 1.3,
+                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                }}>{title}</div>
+                                <div style={{
+                                  fontSize: 10, fontWeight: 600, color: text3, marginTop: 1,
+                                  letterSpacing: 0.3, textTransform: 'uppercase',
+                                }}>{translated}</div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     );
@@ -2309,14 +2325,24 @@ function App() {
                             })()}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div title={tenant.name} style={{
-                              fontSize: 13, fontWeight: 600, color: text, lineHeight: 1.3,
-                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                            }}>{tenant.name}</div>
-                            <div style={{
-                              fontSize: 10.5, fontWeight: 600, color: text3, marginTop: 1,
-                              letterSpacing: 0.3, textTransform: 'uppercase',
-                            }}>{translateTagLabel(tenant.label, lang)}</div>
+                            {(() => {
+                              const translated = translateTagLabel(tenant.label, lang);
+                              const isGeneric = tenant.name.trim().toLowerCase()
+                                              === tenant.label.trim().toLowerCase();
+                              const title = isGeneric ? translated : tenant.name;
+                              return (
+                                <>
+                                  <div title={tenant.name} style={{
+                                    fontSize: 13, fontWeight: 600, color: text, lineHeight: 1.3,
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                  }}>{title}</div>
+                                  <div style={{
+                                    fontSize: 10.5, fontWeight: 600, color: text3, marginTop: 1,
+                                    letterSpacing: 0.3, textTransform: 'uppercase',
+                                  }}>{translated}</div>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       );

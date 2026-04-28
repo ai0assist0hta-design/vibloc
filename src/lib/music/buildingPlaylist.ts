@@ -72,12 +72,15 @@ export type BuildingPlaylistEntry = {
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 
-/** Product rule: a tagger's tracks only qualify as a "playlist" once
- *  they reach 3+ tracks. Below this, the group is considered a draft
- *  — it is NOT surfaced in TOP PLAYLISTS rankings, doesn't get a
- *  description input, and is hidden from cross-building popularity
- *  fallbacks. The threshold lives here so every consumer agrees. */
-export const MIN_PLAYLIST_TRACKS = 3;
+/** Product rule: a tagger's pinned tracks count as a "playlist"
+ *  immediately — even one pin qualifies. Lowered from 3 to 1
+ *  (2026-04-27) per UX review: the 3-track gate made every empty
+ *  building's TOP PLAYLISTS read "No qualifying playlists yet —
+ *  pin 3+ tracks", which scared off first-time users. The DRAFT
+ *  badge below MIN is now also a no-op (always rendered the same
+ *  as a normal playlist). Kept as an exported constant for the
+ *  one or two consumers that still reference it. */
+export const MIN_PLAYLIST_TRACKS = 1;
 
 type Store = Record<string, BuildingPlaylistEntry>;
 type Listener = (store: Store) => void;

@@ -25,7 +25,6 @@
 
 import {
   usePlaylist,
-  MIN_PLAYLIST_TRACKS,
   getTaggerPlaylistName,
 } from '../../../lib/music/buildingPlaylist';
 import type { CityVibe } from '../../../lib/music/trackTypes';
@@ -130,20 +129,6 @@ export function BuildingPlaylist({
         }}
       >
         {t('music.myPlaylist')} {playlist.tracks.length > 0 && `(${playlist.tracks.length})`}
-        {playlist.tracks.length > 0 && playlist.tracks.length < MIN_PLAYLIST_TRACKS && (
-          <span style={{
-            marginLeft: 6,
-            padding: '1px 6px', borderRadius: 999,
-            background: 'rgba(245,179,1,0.15)',
-            color: '#a86b00',
-            fontSize: 8.5, fontWeight: 800,
-            border: '1px solid rgba(245,179,1,0.35)',
-            letterSpacing: 0.5,
-            textTransform: 'uppercase',
-          }}>
-            DRAFT · {playlist.tracks.length}/{MIN_PLAYLIST_TRACKS}
-          </span>
-        )}
       </div>
 
       {playlist.tracks.length === 0 && (() => {

@@ -79,17 +79,19 @@ export function TopTaggerCard({
           padding: '14px 12px',
           borderRadius: 12,
           border: `1px dashed ${divider}`,
-          fontSize: 10.5,
+          fontSize: 11,
           color: text2,
           textAlign: 'center',
           letterSpacing: 0.2,
-          lineHeight: 1.45,
+          lineHeight: 1.5,
         }}>
-          No qualifying playlists yet — pin{' '}
-          <span style={{ color: text, fontWeight: 700 }}>
-            {MIN_PLAYLIST_TRACKS}+ tracks
-          </span>{' '}
-          to claim rank&nbsp;#1.
+          <div style={{ color: text, fontWeight: 700, marginBottom: 4 }}>
+            첫 번째 큐레이터가 되어보세요
+          </div>
+          <div style={{ fontSize: 10.5 }}>
+            아래에서 곡을 검색하고 pin하면<br/>
+            바로 이 자리에 올라갑니다
+          </div>
         </div>
       )}
 
