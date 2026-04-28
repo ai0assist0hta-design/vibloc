@@ -86,11 +86,11 @@ export function TopTaggerCard({
           lineHeight: 1.5,
         }}>
           <div style={{ color: text, fontWeight: 700, marginBottom: 4 }}>
-            첫 번째 큐레이터가 되어보세요
+            Be the first curator here
           </div>
           <div style={{ fontSize: 10.5 }}>
-            아래에서 곡을 검색하고 pin하면<br/>
-            바로 이 자리에 올라갑니다
+            Search a song below and pin it —<br/>
+            it lands at the top of this list.
           </div>
         </div>
       )}

@@ -26,7 +26,7 @@ import type { RecommendedTrack } from '../../lib/music/trackTypes';
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
-const SEED_VERSION = 'v6-mixed-avatars';
+const SEED_VERSION = 'v7-english-playlists';
 const MAX_SEED_BUILDINGS = 40;
 
 type Agent = {
@@ -58,21 +58,21 @@ type Agent = {
 const AGENTS: Agent[] = [
   {
     id: 'agent-luna', name: 'Luna Park', avatarUrl: avatarFor('luna-park'),
-    playlistName: '비 오는 새벽 4시 골목',
+    playlistName: 'rainy 4am alley walk',
     taste: ['rnb', 'jazz', 'singer'],
-    note: '늦은 밤 여기 앞에서 걷다가 머릿속에 박혔던 곡들.',
+    note: 'late-night songs that stuck in my head walking past this block.',
   },
   {
     id: 'agent-jiro', name: 'Jiro Tanaka', avatarUrl: avatarFor('jiro-tanaka'),
-    playlistName: 'Shinjuku 5AM Loop',
+    playlistName: 'Shinjuku 5AM loop',
     taste: ['electronic', 'jpop', 'soundtrack'],
     note: 'coffee + ambient bass + neon reflections.',
   },
   {
     id: 'agent-min', name: 'Min Seo', avatarUrl: avatarFor('min-seo'),
-    playlistName: '이태원 골목길 R&B',
+    playlistName: 'Itaewon backstreet R&B',
     taste: ['rnb', 'kpop', 'singer'],
-    note: 'k-r&b heavy. 골목길 산책용 셀렉.',
+    note: 'k-r&b heavy. for slow walks down side alleys.',
   },
   {
     id: 'agent-hugo', name: 'Hugo Vrai', avatarUrl: avatarFor('hugo-vrai'),
@@ -84,19 +84,19 @@ const AGENTS: Agent[] = [
     id: 'agent-ava', name: 'Ava Chen', avatarUrl: avatarFor('ava-chen'),
     playlistName: 'rooftop sunset, indie + dream pop',
     taste: ['alternative', 'pop', 'singer'],
-    note: 'rooftop sunset playlist · indie + dream pop',
+    note: 'rooftop sunset playlist · indie + dream pop.',
   },
   {
     id: 'agent-noa', name: 'Noa Kim', avatarUrl: avatarFor('noa-kim'),
-    playlistName: '카페에서 아메리카노 한 잔',
+    playlistName: 'cafe americano hour',
     taste: ['jazz', 'singer', 'rnb'],
-    note: 'lo-fi + jazz + 따뜻한 보컬.',
+    note: 'lo-fi + jazz + warm vocals.',
   },
   {
     id: 'agent-rio', name: 'Rio Suzuki', avatarUrl: avatarFor('rio-suzuki'),
     playlistName: 'morning commute · lofi hiphop',
     taste: ['hiphop', 'electronic', 'jpop'],
-    note: '매일 출근길 듣는 셋.',
+    note: 'my daily train-ride set.',
   },
   {
     id: 'agent-ezra', name: 'Ezra Maeda', avatarUrl: avatarFor('ezra-maeda'),
@@ -106,9 +106,9 @@ const AGENTS: Agent[] = [
   },
   {
     id: 'agent-sora', name: 'Sora Hinata', avatarUrl: avatarFor('sora-hinata'),
-    playlistName: '渋谷 일요일 오후',
+    playlistName: 'Shibuya sunday afternoon',
     taste: ['jpop', 'pop', 'singer'],
-    note: '시부야 brunch 카페 음악.',
+    note: 'brunch-cafe playlist.',
   },
   {
     id: 'agent-kai',  name: 'Kai Roberts', avatarUrl: avatarFor('kai-roberts'),
@@ -118,25 +118,25 @@ const AGENTS: Agent[] = [
   },
   {
     id: 'agent-yuna', name: 'Yuna Choi',   avatarUrl: avatarFor('yuna-choi'),
-    playlistName: '강남역 새벽 택시',
+    playlistName: 'Gangnam 3AM cab',
     taste: ['kpop', 'rnb', 'pop'],
-    note: '플리 1시간 짜리 — 1차 끝나고 2차 가는 길.',
+    note: 'one-hour set — leaving the first round, heading to the second.',
   },
   {
     id: 'agent-leo',  name: 'Leo Vasquez', avatarUrl: avatarFor('leo-vasquez'),
     playlistName: 'echo park / silver lake drive',
     taste: ['alternative', 'latin', 'pop'],
-    note: 'LA eastside windows down.',
+    note: 'LA eastside, windows down.',
   },
   {
     id: 'agent-mei',  name: 'Mei Watanabe', avatarUrl: avatarFor('mei-watanabe'),
-    playlistName: '신주쿠 비 오는 일요일',
+    playlistName: 'rainy sunday in Shinjuku',
     taste: ['jpop', 'jazz', 'singer'],
     note: 'rainy sunday at the listening bar.',
   },
   {
     id: 'agent-omar', name: 'Omar Hassan', avatarUrl: avatarFor('omar-hassan'),
-    playlistName: 'Manhattan 4 AM cab ride',
+    playlistName: 'Manhattan 4AM cab ride',
     taste: ['hiphop', 'rnb', 'electronic'],
     note: 'after-hours uptown taxi loop.',
   },
