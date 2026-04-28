@@ -28,6 +28,7 @@ import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
 import { getTenantLogoUrl, CATEGORY_ICON } from './lib/geo/tenantLogo';
+import { tenantClickUrl } from './lib/geo/tenantClickUrl';
 import { MapPin } from 'lucide-react';
 import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetview/streetViewViewpoint';
 import { loadAppleGenreColors } from './lib/music/genreColorSource';
@@ -1498,17 +1499,7 @@ function App() {
                   {allTenantsList.map((tenant, i) => {
                     const s = swatch(tenant.category);
                     const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
-                    // One-click Google Maps search for the tenant — uses
-                    // the building's lat/lon as context so we land on the
-                    // right pin among multiple branches of the same chain.
-                    const gQuery = encodeURIComponent(
-                      `${tenant.name} ${tenant.label}`.trim(),
-                    );
-                    const gURL = `https://www.google.com/maps/search/?api=1`
-                      + `&query=${gQuery}`
-                      + (Number.isFinite(buildingLat) && Number.isFinite(buildingLon)
-                          ? `&query_place_id=&query=${gQuery}@${buildingLat},${buildingLon}`
-                          : '');
+                    const gURL = tenantClickUrl(tenant, buildingLat, buildingLon);
                     return (
                       <a
                         key={`${tenant.category}-${tenant.name}-${i}`}
@@ -2378,8 +2369,7 @@ function App() {
                     {allTenantsList.map((tenant, i) => {
                       const s = swatch(tenant.category);
                       const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
-                      const gQuery = encodeURIComponent(`${tenant.name} ${tenant.label}`.trim());
-                      const gURL = `https://www.google.com/maps/search/?api=1&query=${gQuery}`;
+                      const gURL = tenantClickUrl(tenant, buildingLat, buildingLon);
                       return (
                         <a
                           key={`m-${tenant.category}-${tenant.name}-${i}`}
