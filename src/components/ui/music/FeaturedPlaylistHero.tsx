@@ -9,13 +9,13 @@
  */
 
 import { useMemo, useState } from 'react';
-import { QrCode } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import {
   useTopTaggers,
   getTaggerPlaylistName,
   getTracksByTagger,
 } from '../../../lib/music/buildingPlaylist';
-import { PlaylistQRModal } from './PlaylistQRModal';
+import { PlaylistShareModal } from './PlaylistShareModal';
 
 type Props = {
   buildingId: string;
@@ -52,7 +52,7 @@ export function FeaturedPlaylistHero({
   );
 
   // ⚠ all hooks must be declared before any early-return.
-  const [qrOpen, setQrOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   if (!top) return null;
 
@@ -105,9 +105,9 @@ export function FeaturedPlaylistHero({
         </div>
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); setQrOpen(true); }}
-          aria-label="Share playlist via QR code"
-          title="Share via QR"
+          onClick={(e) => { e.stopPropagation(); setShareOpen(true); }}
+          aria-label="Share playlist link"
+          title="Share link"
           style={{
             marginLeft: 'auto',
             padding: 6, borderRadius: 8,
@@ -125,7 +125,7 @@ export function FeaturedPlaylistHero({
             e.currentTarget.style.color = text2;
           }}
         >
-          <QrCode size={16} strokeWidth={2} />
+          <Share2 size={16} strokeWidth={2} />
         </button>
       </div>
 
@@ -199,11 +199,11 @@ export function FeaturedPlaylistHero({
           </>
         )}
       </div>
-      <PlaylistQRModal
+      <PlaylistShareModal
         buildingId={buildingId}
         taggerId={top.taggerId}
-        open={qrOpen}
-        onClose={() => setQrOpen(false)}
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
       />
     </div>
   );
