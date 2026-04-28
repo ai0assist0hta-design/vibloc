@@ -1669,12 +1669,29 @@ function App() {
               );
             })()}
 
-            {/* Content — #1 hero on top, then top-3 list with medals */}
+            {/* Content — section header (mirrors leftPanel's PLACE
+                pill), #1 hero on top, then top-3 list with medals. */}
             <div style={{
               position: 'relative',
               padding: '14px 18px 18px',
               display: 'flex', flexDirection: 'column', gap: 14,
             }}>
+              {/* Section header — green dot + MUSIC, structurally
+                  identical to the left panel's pink-dot PLACE
+                  header so the two floating panels read as a pair. */}
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
+                textTransform: 'uppercase', color: text3,
+                fontFamily: "'IBM Plex Mono', monospace",
+                display: 'flex', alignItems: 'center', gap: 7,
+              }}>
+                <span aria-hidden="true" style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: darkMode ? '#34d399' : '#10b981',
+                  flexShrink: 0,
+                }}/>
+                {t('panel.music')}
+              </div>
               <FeaturedPlaylistHero
                 buildingId={selectedBuilding.id}
                 text={text}

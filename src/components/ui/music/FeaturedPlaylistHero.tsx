@@ -92,29 +92,21 @@ export function FeaturedPlaylistHero({
         outline: 'none',
       }}
     >
-      {/* Tiny eyebrow — subtle "FEATURED" marker so the user reads
-          this as the headline pick, not just decoration. */}
+      {/* Eyebrow row — share button only, right-aligned. The
+          "FEATURED · #1" text was removed because the right
+          floating panel already carries a green "● MUSIC" section
+          header (mirrors the left panel's "● PLACE"); a second
+          headline inside the hero was redundant. */}
       <div style={{
-        display: 'flex', alignItems: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
         alignSelf: 'stretch', marginBottom: 2,
       }}>
-        <div
-          style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 9.5, fontWeight: 800, letterSpacing: 1.4,
-            textTransform: 'uppercase',
-            color: text3,
-          }}
-        >
-          Featured · #1
-        </div>
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setShareOpen(true); }}
           aria-label="Share playlist link"
           title="Share link"
           style={{
-            marginLeft: 'auto',
             padding: 6, borderRadius: 8,
             border: 'none', background: 'transparent',
             color: text2, cursor: 'pointer',

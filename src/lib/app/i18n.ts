@@ -75,6 +75,7 @@ const DICT: Record<string, Record<Lang, string>> = {
   'panel.skyscraper':    { en: 'Skyscraper',            ko: '마천루',        ja: '超高層ビル' },
   'panel.close':         { en: 'Close',                 ko: '닫기',          ja: '閉じる' },
   'panel.tenants':       { en: 'Tenants',               ko: '입점 정보',     ja: 'テナント情報' },
+  'panel.music':         { en: 'Music',                 ko: '음악',          ja: '音楽' },
   'panel.copyPlusCode':  { en: 'Copy Plus Code',        ko: 'Plus Code 복사', ja: 'Plus Code をコピー' },
 
   // Search bar
