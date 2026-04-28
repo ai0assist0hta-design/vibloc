@@ -40,11 +40,22 @@ export type SharedTrack = {
 /** Best-effort canonical Apple Music URL for a shared track.
  *
  *  Prefers the iTunes-API-supplied `trackViewUrl` (correct slug,
- *  storefront, album-anchored), falls back to the universal short
- *  form `music.apple.com/song/{trackId}` which Apple has supported
- *  since 2022 and resolves to the right region automatically. */
-export function appleMusicUrl(t: { i: string; u?: string }): string {
+ *  storefront, album-anchored — opens directly to the track in the
+ *  Apple Music app on iOS / macOS).
+ *
+ *  Falls back to a search URL using artist + title, which is the
+ *  only no-context Apple Music URL that's *guaranteed* to work for
+ *  any catalog item. The bare `music.apple.com/song/{id}` short
+ *  form looks tempting but it depends on a routing table Apple
+ *  doesn't publish and silently 404s for many IDs. Search is one
+ *  extra tap but never breaks. */
+export function appleMusicUrl(t: { i: string; n?: string; a?: string; u?: string }): string {
   if (t.u) return t.u;
+  const term = [t.a, t.n].filter(Boolean).join(' ').trim();
+  if (term) {
+    return `https://music.apple.com/search?term=${encodeURIComponent(term)}`;
+  }
+  // Last-ditch: storefront-less song lookup. Better than a dead link.
   return `https://music.apple.com/song/${encodeURIComponent(t.i)}`;
 }
 
