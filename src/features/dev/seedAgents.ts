@@ -32,7 +32,7 @@ const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
 // deep links are guaranteed identical to what music.apple.com
 // shows. The remaining text-id seeds resolve at runtime via the
 // storefront-aware scorer + MusicBrainz fallback.
-const SEED_VERSION = 'v12-verified-ids';
+const SEED_VERSION = 'v13-hires-placeholder';
 const MAX_SEED_BUILDINGS = 40;
 
 type Country = 'JP' | 'KR' | 'US';
@@ -255,9 +255,11 @@ function mk(
 ): RecommendedTrack {
   // Deterministic placeholder artwork via picsum (seeded by id) so each
   // track gets a stable square image even without an iTunes round-trip.
+  // 600 px so the placeholder is still sharp on @2x / @3x displays
+  // before the iTunes enricher swaps in the real Apple cover.
   return {
     id, trackName, artistName,
-    artworkUrl: `https://picsum.photos/seed/${id}/120/120`,
+    artworkUrl: `https://picsum.photos/seed/${id}/600/600`,
     previewUrl: '',
     primaryGenreName,
     genre,
