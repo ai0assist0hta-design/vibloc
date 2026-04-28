@@ -30,6 +30,8 @@
 
 import type { BuildingTag } from '../geo/osmLoader';
 import type { GenreKey } from '../../types';
+import { buildingMood, moodKeywords, moodToGenreBoosts } from './tenantMood';
+import { getCurrentTimeSnapshot } from '../../stores/useTimeStore';
 
 export type BuildingVibe = {
   keywords: string[];
@@ -46,153 +48,95 @@ const EMPTY_VIBE: BuildingVibe = {
 /**
  * Translate the tenant mix of a building into music keywords + genre
  * weight boosts. Returns a fresh object every call (no shared state).
+ *
+ * NEW (2026-04-28): Cuisine-specific literal mappings have been
+ * dropped. The previous code did things like "japanese restaurant
+ * → city pop, korean → k-pop" — which felt mechanical and overrode
+ * the city's actual musical identity (a Korean BBQ in Manhattan
+ * should sound like Manhattan, not Seoul). The replacement uses
+ * `tenantMood.ts`'s 4-D mood vector (energy / warmth / intimacy /
+ * formality) weighted by the *current hour* against each tenant's
+ * peak-traffic hour, then translates that mood into small additive
+ * genre boosts. Combined with the city profile + weather / time-of-
+ * day biases that recommendEngine already applies, the result
+ * shifts mood without overwriting cultural identity.
+ *
+ * The `label` (used as the panel headline) still picks the most
+ * specific human-readable tenant name so the UI surface is unchanged.
  */
 export function deriveBuildingVibe(tags: BuildingTag[]): BuildingVibe {
   if (!tags || tags.length === 0) return { ...EMPTY_VIBE, genreBoosts: new Map() };
 
-  const keywords: string[] = [];
-  const boosts = new Map<GenreKey, number>();
+  // ── Mood-vector layer (the smart bit) ──
+  // Combine every tenant tag into a single mood vector weighted by
+  // proximity-to-peak-hour, then translate that to small genre boosts.
+  // This is what gives the recommendation its situational feel —
+  // morning vs night, cozy vs energetic — without ever touching the
+  // city's musical identity.
+  const time = getCurrentTimeSnapshot();
+  const mood = buildingMood(tags, time?.hour ?? 14);
+  const moodBoosts = mood ? moodToGenreBoosts(mood) : new Map<GenreKey, number>();
+  const moodKws = mood ? moodKeywords(mood) : [];
+
+  const keywords: string[] = [...moodKws];
+  const boosts = new Map<GenreKey, number>(moodBoosts);
   let label: string | null = null;
 
-  const bump = (g: GenreKey, n: number) => {
-    boosts.set(g, (boosts.get(g) ?? 0) + n);
-  };
   const addKw = (...kws: string[]) => {
     for (const k of kws) {
       if (!keywords.includes(k)) keywords.push(k);
     }
   };
 
+  // ── Label resolution + venue-specific OVERLAYS ──
+  // Most tenant categories now contribute only via the mood vector
+  // above. A tiny set of venues with extremely strong musical
+  // identity (cinema → soundtrack, religious → choral, club → club
+  // hits) still gets a focused keyword/genre overlay because those
+  // ARE the music, not just the mood. Cuisine ethnicity, cafe vs
+  // restaurant flavor, etc. are intentionally NOT distinguished
+  // here — that work is done by the mood vector.
   for (const tag of tags) {
     const lbl = tag.label.toLowerCase();
 
-    // ── Food / drink — cuisine-specialized ──
+    // Food: label only. Cuisine ethnicity DELIBERATELY no longer
+    // contributes to genre/keyword — that's the city profile's job.
     if (tag.category === 'food') {
-      if (lbl.includes('japanese') || lbl.includes('sushi') || lbl.includes('ramen') || lbl.includes('izakaya')) {
-        addKw('city pop', 'tokyo jazz');
-        bump('pop', 2);
-        bump('jazz', 1);
-      } else if (lbl.includes('korean')) {
-        addKw('k-pop', 'k-hiphop', 'korean indie');
-        bump('pop', 2);
-        bump('hiphop', 1);
-      } else if (lbl.includes('italian') || lbl.includes('pizza')) {
-        addKw('italian', 'bossa nova');
-        bump('jazz', 2);
-        bump('classical', 1);
-      } else if (lbl.includes('french')) {
-        addKw('french chanson', 'parisian jazz');
-        bump('jazz', 2);
-        bump('classical', 1);
-      } else if (lbl.includes('chinese') || lbl.includes('dim sum')) {
-        addKw('mandopop', 'chinese pop');
-        bump('pop', 2);
-      } else if (lbl.includes('mexican') || lbl.includes('latin') || lbl.includes('spanish')) {
-        addKw('latin', 'reggaeton', 'latin trap');
-        bump('pop', 2);
-        bump('hiphop', 1);
-      } else if (lbl.includes('indian')) {
-        addKw('bollywood', 'indian fusion');
-        bump('pop', 1);
-        bump('electronic', 1);
-      } else if (lbl.includes('thai') || lbl.includes('vietnamese') || lbl.includes('asian')) {
-        addKw('chillwave', 'asian indie');
-        bump('alternative', 2);
-      } else if (lbl.includes('middle east') || lbl.includes('turkish') || lbl.includes('arab')) {
-        addKw('arabic', 'oud');
-        bump('classical', 1);
-        bump('electronic', 1);
-      } else if (lbl.includes('bar') || lbl.includes('pub')) {
-        addKw('bar jazz', 'lounge', 'live');
-        bump('jazz', 2);
-        bump('rock', 1);
-      } else if (lbl.includes('cafe')) {
-        addKw('lo-fi cafe', 'acoustic');
-        bump('singer', 2);
-        bump('jazz', 1);
-      } else if (lbl.includes('fast food')) {
-        addKw('pop hits');
-        bump('pop', 1);
-      } else {
-        addKw('dinner jazz');
-        bump('jazz', 1);
-      }
       label = label ?? tag.label;
     }
-    // ── Hotel ──
+    // Hotel: label only.
     else if (tag.category === 'hotel') {
-      addKw('hotel lounge', 'chill ambient');
-      bump('jazz', 2);
-      bump('electronic', 1);
       label = label ?? 'Hotel';
     }
-    // ── Entertainment ──
+    // Entertainment: a few venue types HAVE strong inherent musical
+    // identity (cinema → soundtrack, religious → choral, club →
+    // club hits). Those still get a focused overlay because the
+    // music IS the venue, not just its mood.
     else if (tag.category === 'entertainment') {
-      if (lbl.includes('cinema')) {
-        addKw('soundtrack', 'film score');
-        bump('soundtrack', 3);
-      } else if (lbl.includes('theatre')) {
-        addKw('broadway', 'musical');
-        bump('soundtrack', 2);
-        bump('classical', 1);
-      } else if (lbl.includes('museum')) {
-        addKw('ambient', 'modern classical');
-        bump('classical', 2);
+      if (lbl.includes('cinema') || lbl.includes('theatre')) {
+        addKw('soundtrack');
+        boosts.set('soundtrack', (boosts.get('soundtrack') ?? 0) + 2.5);
       } else if (lbl.includes('club')) {
-        // Nightclubs split between EDM rooms and hip-hop rooms
-        // almost everywhere — bias both so the search pool reflects
-        // the actual club music ecosystem, not just techno.
-        addKw('club hits', 'hip hop club', 'edm');
-        bump('electronic', 2);
-        bump('hiphop', 2);
-      } else if (lbl.includes('attraction')) {
-        addKw('travel', 'world');
-        bump('world', 2);
-        bump('pop', 1);
-      } else {
-        addKw('lounge');
-        bump('electronic', 1);
+        addKw('club hits', 'edm');
+        boosts.set('electronic', (boosts.get('electronic') ?? 0) + 2);
+        boosts.set('hiphop', (boosts.get('hiphop') ?? 0) + 1.5);
+      } else if (lbl.includes('museum') || lbl.includes('gallery')) {
+        addKw('modern classical');
+        boosts.set('classical', (boosts.get('classical') ?? 0) + 1.5);
       }
       label = label ?? tag.label;
     }
-    // ── Religious ──
+    // Religious: label only — the mood-vector layer already pulls
+    // formality + low-energy → classical, no need for "gregorian"
+    // search seeds (which mismatch most modern listeners anyway).
     else if (tag.category === 'religious') {
-      addKw('sacred', 'choir', 'gregorian');
-      bump('classical', 3);
       label = label ?? tag.label;
     }
-    // ── Education ──
-    else if (tag.category === 'education') {
-      addKw('lo-fi study', 'indie campus');
-      bump('alternative', 2);
-      bump('jazz', 1);
+    // Education / Shop: label only.
+    else if (tag.category === 'education' || tag.category === 'shop') {
       label = label ?? tag.label;
     }
-    // ── Shop ──
-    else if (tag.category === 'shop') {
-      if (lbl.includes('mall') || lbl.includes('dept')) {
-        addKw('shopping pop', 'top hits');
-        bump('pop', 2);
-      } else if (lbl.includes('electronics')) {
-        addKw('synthwave', 'future bass');
-        bump('electronic', 2);
-      } else if (
-        lbl.includes('streetwear') ||
-        lbl.includes('sneaker') ||
-        lbl.includes('skate')
-      ) {
-        // Streetwear/sneaker culture is hip-hop-anchored across
-        // every major city — Supreme NYC, A Bathing Ape Tokyo,
-        // Round Two LA. Boost hiphop hard when these tags appear.
-        addKw('streetwear hiphop', 'sneaker rap');
-        bump('hiphop', 3);
-      } else {
-        addKw('retail pop');
-        bump('pop', 1);
-      }
-      label = label ?? tag.label;
-    }
-    // office / residential / medical / government / industrial → no boost
+    // office / residential / medical / government / industrial → no signal.
   }
 
   return { keywords: keywords.slice(0, 4), genreBoosts: boosts, label };

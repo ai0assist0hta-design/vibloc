@@ -499,14 +499,16 @@ async function cityVibeAlgorithm(
 
   const merged: RecommendedTrack[] = [];
   const seen = new Set<string>();
-  // ~60% RSS, ~40% keyword — RSS is the more reliable "this is
-  // actually playing in this country right now" signal.
+  // ~75% RSS, ~25% keyword — RSS is the popularity signal the spec
+  // asks us to prioritize ("인기도 높은 노래 위주"). Keyword search
+  // still contributes the long-tail mood tracks the chart misses,
+  // but at a lighter ratio so the panel feels current, not niche.
   let rssIdx = 0;
   let kwIdx = 0;
   let tookRss = 0;
   let tookKw = 0;
   while (merged.length < limit * 4 && (rssIdx < rssTracks.length || kwIdx < kwTracks.length)) {
-    const wantRss = tookRss * 2 <= tookKw * 3 || kwIdx >= kwTracks.length;
+    const wantRss = tookRss <= tookKw * 3 || kwIdx >= kwTracks.length;
     let pick: RecommendedTrack | null = null;
     if (wantRss && rssIdx < rssTracks.length) {
       pick = rssTracks[rssIdx++];
