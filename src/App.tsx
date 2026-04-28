@@ -511,11 +511,13 @@ function App() {
   const _topPinnedArtwork = _playlistForTint.tracks[0]?.artworkUrl ?? null;
   const headerTint = useArtworkTint(_topPinnedArtwork);
   const [buildings, setBuildings] = useState<OSMBuilding[]>([]);
-  // Dev-only: seed demo agent playlists for buildings that have no
-  // pins yet, so the UI renders meaningful data before real users
-  // tag anything. Idempotent — never overwrites real entries.
+  // Seed demo agent playlists for buildings that have no pins yet,
+  // so the UI renders meaningful data before real users tag
+  // anything. Idempotent — never overwrites real entries. Runs in
+  // production too: VIBLOC has no real-user data yet, the seeded
+  // personas ARE the demo content (and the iTunes enricher needs
+  // to fire so covers match Apple Music).
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
     if (buildings.length === 0) return;
     void import('./features/dev/seedAgents').then(({ seedBuildingPlaylists }) => {
       seedBuildingPlaylists(

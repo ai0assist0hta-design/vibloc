@@ -46,6 +46,10 @@ const MIN_SCORE = 80;
 function normalize(s: string): string {
   return s
     .toLowerCase()
+    // NFD splits Latin "é" into "e" + U+0301 so we can drop the
+    // combining mark below. CJK characters pass through unchanged
+    // (NFD does NOT decompose Han / Hiragana / Katakana / Hangul
+    // syllables to jamos under default options).
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/\([^)]*\)/g, ' ')
     .replace(/\[[^\]]*\]/g, ' ')

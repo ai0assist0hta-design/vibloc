@@ -26,7 +26,12 @@ import type { RecommendedTrack } from '../../lib/music/trackTypes';
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
-const SEED_VERSION = 'v9-locale-aware';
+// v10 = strict cover-art matching pass. Bumping wipes any
+// agent-only buildings whose tracks were enriched with the loose v1
+// scorer (some covers ended up matching the wrong song). New seed
+// runs with placeholder covers, then the enricher resolves them via
+// the strict scorer in lib/music/coverArt.ts.
+const SEED_VERSION = 'v10-strict-cover-match';
 const MAX_SEED_BUILDINGS = 40;
 
 type Country = 'JP' | 'KR' | 'US';
