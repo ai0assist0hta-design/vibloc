@@ -346,13 +346,12 @@ function CameraNavigator({ target }: { target: NavTarget | null }) {
       // a generic SE diagonal so the math doesn't NaN.
       camToOldTarget.set(0.7071, 0.4, 0.7071).normalize();
     }
-    // Goal target = building ROOFTOP (per user request: zoom should
-    // pivot around the rooftop, not the mid-height of the building).
-    // The current camera→target direction is reused as-is so the
-    // user's existing pitch / altitude angle is preserved — the
-    // camera just slides along the ray to the framing distance, no
-    // automatic tilt-up from below.
-    targetPos.current.set(cx, height, cz);
+    // Goal target = building MID-HEIGHT (reverted from the earlier
+    // rooftop-pivot setup that was added when the rooftop avatar
+    // existed — that anchor is gone now and rooftop framing made the
+    // camera tip too far up). The current camera→target direction
+    // is reused so the user's pitch is preserved.
+    targetPos.current.set(cx, height * 0.5, cz);
     cameraGoal.current
       .copy(camToOldTarget)
       .multiplyScalar(distance)

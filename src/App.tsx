@@ -631,11 +631,13 @@ function App() {
     setGeocodedInfo(null);
     setSanitizedCoord(null);
     if (b) {
-      // Reverse-geocode for name / address. Camera fly-to intentionally
-      // SKIPPED on 3D building clicks — clicking a building should not
-      // re-frame the view (user kept losing their orientation when the
-      // camera zoomed to the building top). Search-bar entries still
-      // call handleNavigate directly.
+      // Mirror the search-bar interaction: building selection (3D click,
+      // search, address-jump) flies the camera to a consistent framing.
+      // The camera target was previously rooftop-pivoted for the avatar
+      // floater; with that gone, framing now lands on the mid-height
+      // (see CameraNavigator.targetPos in PlateauScene.tsx).
+      handleNavigate([b.center[0], b.center[1]], b.height, b.footprint);
+
       const config = CITY_AREAS[area];
       const { lat, lon } = metersToLatLon(b.center[0], b.center[1], config.refLat, config.refLon);
       setGeocoding(true);
@@ -644,7 +646,7 @@ function App() {
         setGeocoding(false);
       });
     }
-  }, [area]);
+  }, [area, handleNavigate]);
 
   const handleSearchSelect = useCallback((b: OSMBuilding) => {
     handleBuildingSelect(b);
