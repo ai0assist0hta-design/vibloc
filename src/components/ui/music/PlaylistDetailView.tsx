@@ -16,9 +16,21 @@
 import { useEffect, useState } from 'react';
 import { useTaggerPlaylist, usePlaylist } from '../../../lib/music/buildingPlaylist';
 import { resolveAvatarUrl } from '../../../features/auth/avatar';
+import type { RecommendedTrack } from '../../../lib/music/trackTypes';
 import { TrackRow } from './TrackRow';
 
 const NAME_MAX_LEN = 60;
+
+/** Best-effort Apple Music deep link for a pinned track. Prefers the
+ *  iTunes Search API's `trackViewUrl` (storefront-correct, opens the
+ *  exact track page in the Apple Music app on iOS / macOS). Falls
+ *  back to a search URL — bulletproof but lands on results. */
+function appleMusicHrefFor(t: RecommendedTrack): string | undefined {
+  if (t.trackViewUrl) return t.trackViewUrl;
+  const term = `${t.artistName} ${t.trackName}`.trim();
+  if (!term) return undefined;
+  return `https://music.apple.com/search?term=${encodeURIComponent(term)}`;
+}
 
 type Props = {
   buildingId: string;
@@ -204,6 +216,11 @@ export function PlaylistDetailView({
               onRightAction={() => {
                 if (isMine) playlist.unpin(tr.id);
               }}
+              // Replace the ✓ on someone else's playlist with a one-tap
+              // jump to Apple Music. The ⋯ Apple deep-link doesn't
+              // touch the user's pinned-state, so it stays opt-in only
+              // on read-only views (other curators, not your own list).
+              appleMusicHref={!isMine ? appleMusicHrefFor(tr) : undefined}
             />
           ))
         )}
