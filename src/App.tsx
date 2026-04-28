@@ -23,6 +23,7 @@ import { AddTrackComposer } from './components/ui/music/AddTrackComposer';
 import { TopTaggerCard } from './components/ui/music/TopTaggerCard';
 import { FeaturedPlaylistHero } from './components/ui/music/FeaturedPlaylistHero';
 import { PopularTrackCard } from './components/ui/music/PopularTrackCard';
+import { NowPlayingBar } from './components/ui/music/NowPlayingBar';
 import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
@@ -745,6 +746,11 @@ function App() {
       }}
     >
       <PlateauScene area={area} navigateTarget={navigateTarget} darkMode={darkMode} sunLightPos={sunLightPos} selectedBuilding={selectedBuilding} onBuildingSelect={handleBuildingSelect} onBuildingsLoaded={setBuildings} onSelectedAnchor={onSelectedAnchor} />
+
+      {/* Global "now playing" bar — fades in when a preview is
+          playing. Mounted at the App root so it stays visible even
+          when the user closes the building panel mid-track. */}
+      <NowPlayingBar />
 
       {/* Logo + Profile */}
       <div

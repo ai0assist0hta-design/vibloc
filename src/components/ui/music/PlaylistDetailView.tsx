@@ -64,13 +64,24 @@ export function PlaylistDetailView({
 
   function handlePlayAll() {
     const first = tracks.find((t) => t.previewUrl);
-    if (first) playPreview(first.id, first.previewUrl);
+    if (!first) return;
+    playPreview(first.id, first.previewUrl, {
+      title: first.trackName,
+      artist: first.artistName,
+      artworkUrl: first.artworkUrl || undefined,
+      appleUrl: first.trackViewUrl || undefined,
+    });
   }
   function handleShuffle() {
     const playable = tracks.filter((t) => t.previewUrl);
     if (!playable.length) return;
     const pick = playable[Math.floor(Math.random() * playable.length)];
-    playPreview(pick.id, pick.previewUrl);
+    playPreview(pick.id, pick.previewUrl, {
+      title: pick.trackName,
+      artist: pick.artistName,
+      artworkUrl: pick.artworkUrl || undefined,
+      appleUrl: pick.trackViewUrl || undefined,
+    });
   }
 
   if (!group) {

@@ -1,0 +1,223 @@
+/**
+ * Global "now playing" bar — fixed bottom-center of the viewport.
+ *
+ * Hidden until the user actually plays a preview, then fades in
+ * (200 ms). Reads PreviewPlayer's singleton state directly so it
+ * stays in sync no matter which surface (TrackRow, PlaylistDetail
+ * Play / Shuffle, FeaturedHero, share preview, …) triggered the
+ * playback.
+ *
+ * Scope intentionally minimal — VIBLOC plays 30 s iTunes previews
+ * one at a time, with no queue, no algorithmic shuffle, no
+ * scrubbing across tracks, no AirPlay. The macOS Music bar's
+ * shuffle / prev / next / repeat / lyrics / queue / AirPlay /
+ * volume controls would all be dead weight here. Six elements:
+ *
+ *   [artwork] [title / artist]  ▶/⏸  [progress]  Apple Music  ×
+ *
+ * Click the artwork or text → opens the track's Apple Music page
+ * (same logic as the in-row Apple pill, so iOS jumps into the app).
+ */
+
+import { Pause, Play, Music2, X } from 'lucide-react';
+import { openAppleMusic } from '../../../lib/share/openAppleMusic';
+import { APPLE_RED, FONT, INK, PAPER } from '../../../lib/ui/tokens';
+import {
+  pausePreview,
+  resumePreview,
+  seekPreview,
+  stopPreview,
+  usePlayerState,
+} from './PreviewPlayer';
+
+export function NowPlayingBar() {
+  const player = usePlayerState();
+  const visible = !!player.currentId && !!player.meta;
+
+  // Always render the chrome so the fade transition has something
+  // to interpolate on. `pointerEvents: none` when hidden so the
+  // bar doesn't intercept clicks while invisible.
+  return (
+    <div
+      role="region"
+      aria-label="Now playing"
+      style={{
+        position: 'fixed',
+        left: '50%',
+        bottom: 18,
+        transform: `translateX(-50%) translateY(${visible ? 0 : 16}px)`,
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? 'auto' : 'none',
+        transition: 'opacity 180ms ease-out, transform 180ms ease-out',
+        zIndex: 100,
+        width: 'min(440px, calc(100vw - 32px))',
+        background: 'rgba(15,15,20,0.78)',
+        color: PAPER,
+        borderRadius: 14,
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
+        backdropFilter: 'blur(18px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(18px) saturate(160%)',
+        padding: '8px 10px 10px',
+        display: 'flex', flexDirection: 'column', gap: 6,
+        fontFamily: FONT.ui,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Artwork — clickable, opens Apple Music */}
+        <button
+          type="button"
+          onClick={() => player.meta?.appleUrl && openAppleMusic(player.meta.appleUrl)}
+          aria-label="Open in Apple Music"
+          disabled={!player.meta?.appleUrl}
+          style={{
+            flexShrink: 0,
+            width: 40, height: 40, borderRadius: 6,
+            border: '1px solid rgba(255,255,255,0.10)',
+            padding: 0, overflow: 'hidden',
+            background: '#222',
+            cursor: player.meta?.appleUrl ? 'pointer' : 'default',
+            display: 'block',
+          }}
+        >
+          {player.meta?.artworkUrl ? (
+            <img
+              src={player.meta.artworkUrl}
+              alt=""
+              width={40} height={40}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              referrerPolicy="no-referrer" decoding="async"
+            />
+          ) : null}
+        </button>
+
+        {/* Title + Artist */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div
+            style={{
+              fontSize: 12, fontWeight: 700, letterSpacing: -0.1,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}
+            title={player.meta?.title}
+          >
+            {player.meta?.title || ''}
+          </div>
+          <div
+            style={{
+              fontSize: 10.5, color: 'rgba(250,249,246,0.65)',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}
+            title={player.meta?.artist}
+          >
+            {player.meta?.artist || ''}
+          </div>
+        </div>
+
+        {/* Play / Pause */}
+        <button
+          type="button"
+          onClick={() => (player.isPlaying ? pausePreview() : resumePreview())}
+          aria-label={player.isPlaying ? 'Pause' : 'Play'}
+          style={{
+            flexShrink: 0,
+            width: 32, height: 32, borderRadius: 999,
+            border: 'none',
+            background: 'rgba(255,255,255,0.92)',
+            color: INK,
+            cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {player.isPlaying
+            ? <Pause size={14} fill="currentColor" strokeWidth={0} />
+            : <Play  size={14} fill="currentColor" strokeWidth={0} style={{ marginLeft: 1 }} />}
+        </button>
+
+        {/* Open in Apple Music */}
+        <button
+          type="button"
+          onClick={() => player.meta?.appleUrl && openAppleMusic(player.meta.appleUrl)}
+          disabled={!player.meta?.appleUrl}
+          aria-label="Open in Apple Music"
+          title="Open in Apple Music"
+          style={{
+            flexShrink: 0,
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            padding: '6px 9px', borderRadius: 999,
+            border: 'none',
+            background: APPLE_RED, color: '#fff',
+            fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3,
+            fontFamily: FONT.mono,
+            cursor: player.meta?.appleUrl ? 'pointer' : 'not-allowed',
+            opacity: player.meta?.appleUrl ? 0.95 : 0.4,
+          }}
+        >
+          <Music2 size={11} strokeWidth={2.4} />
+          Apple
+        </button>
+
+        {/* Close — stops playback + hides the bar */}
+        <button
+          type="button"
+          onClick={stopPreview}
+          aria-label="Close player"
+          style={{
+            flexShrink: 0,
+            width: 26, height: 26, borderRadius: 999,
+            border: 'none', background: 'transparent',
+            color: 'rgba(250,249,246,0.65)',
+            cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <X size={14} strokeWidth={2.2} />
+        </button>
+      </div>
+
+      {/* Progress bar — click anywhere to seek. Ignored if duration
+          isn't loaded yet (preview metadata still streaming). */}
+      <ProgressBar
+        position={player.position}
+        duration={player.duration}
+        onSeek={(t) => seekPreview(t)}
+      />
+    </div>
+  );
+}
+
+function ProgressBar({
+  position, duration, onSeek,
+}: { position: number; duration: number; onSeek: (s: number) => void }) {
+  const pct = duration > 0 ? Math.max(0, Math.min(1, position / duration)) * 100 : 0;
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    onSeek(ratio * duration);
+  }
+  return (
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={Math.round(duration) || 30}
+      aria-valuenow={Math.round(position)}
+      onClick={handleClick}
+      style={{
+        position: 'relative',
+        height: 4, borderRadius: 4,
+        background: 'rgba(255,255,255,0.14)',
+        cursor: duration > 0 ? 'pointer' : 'default',
+      }}
+    >
+      <div style={{
+        position: 'absolute', top: 0, left: 0, bottom: 0,
+        width: `${pct}%`,
+        background: 'rgba(255,255,255,0.85)',
+        borderRadius: 4,
+        transition: 'width 80ms linear',
+      }} />
+    </div>
+  );
+}

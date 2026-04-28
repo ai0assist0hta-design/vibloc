@@ -77,7 +77,13 @@ export function TrackRow({
                               : 'Add to playlist';
 
   function handleRowClick() {
-    if (t.previewUrl) playPreview(t.id, t.previewUrl);
+    if (!t.previewUrl) return;
+    playPreview(t.id, t.previewUrl, {
+      title: t.trackName,
+      artist: t.artistName,
+      artworkUrl: t.artworkUrl || undefined,
+      appleUrl: t.trackViewUrl || undefined,
+    });
   }
 
   return (

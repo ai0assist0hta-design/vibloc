@@ -105,7 +105,13 @@ function PopularRow({
   const t = popular.track;
 
   function handleClick() {
-    if (t.previewUrl) playPreview(t.id, t.previewUrl);
+    if (!t.previewUrl) return;
+    playPreview(t.id, t.previewUrl, {
+      title: t.trackName,
+      artist: t.artistName,
+      artworkUrl: t.artworkUrl || undefined,
+      appleUrl: t.trackViewUrl || undefined,
+    });
   }
 
   // Layout matches TrackRow exactly so TOP PICKS and AI 추천곡 align

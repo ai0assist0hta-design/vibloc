@@ -4,19 +4,24 @@
  * Why a singleton?
  * ----------------
  * Multiple ▶ buttons may live in the same panel (RecommendedList +
- * future VibeDropFeed). When the user clicks one, ALL other previews
- * must stop instantly so we never have two tracks playing on top of
- * each other. The cleanest way to enforce that is a single shared
- * `<audio>` element managed by a tiny module-level store and exposed
- * via a hook.
+ * future VibeDropFeed) and the new global NowPlayingBar at the
+ * bottom of the viewport. When the user clicks one, ALL other
+ * previews must stop instantly so we never have two tracks playing
+ * on top of each other. The cleanest way to enforce that is a
+ * single shared `<audio>` element managed by a tiny module-level
+ * store and exposed via a hook.
  *
  * The audio element is created lazily (so SSR / pre-paint never
  * touches the DOM) and never unmounted — it follows the user across
  * the whole session, which is also what makes "click ▶ on track A,
  * close panel, open another building, ▶ track B" actually work.
  *
- * a11y: keyboard shortcut (Space) is wired in the consumer button so
- * focusable elements stay native and screen readers see real
+ * State carries enough metadata for the NowPlayingBar to render the
+ * track without a separate lookup: title, artist, artwork URL, and
+ * the canonical Apple Music URL for the "open in Apple Music" CTA.
+ *
+ * a11y: keyboard shortcut (Space) is wired in the consumer button
+ * so focusable elements stay native and screen readers see real
  * `aria-pressed` state on each track row.
  */
 
@@ -24,28 +29,45 @@ import { useEffect, useState } from 'react';
 
 type Listener = (state: PlayerState) => void;
 
-type PlayerState = {
+export type TrackMeta = {
+  title: string;
+  artist: string;
+  artworkUrl?: string;
+  /** Canonical music.apple.com URL — wired to the NowPlayingBar's
+   *  "Open in Apple Music" button. Falls back to a search URL inside
+   *  the helper when missing. */
+  appleUrl?: string;
+};
+
+export type PlayerState = {
   /** trackId currently loaded — null when idle. */
   currentId: string | null;
   /** True if `<audio>` is actively playing. */
   isPlaying: boolean;
+  /** Metadata for the bottom bar. Null when idle. */
+  meta: TrackMeta | null;
+  /** Total preview duration in seconds (≈ 30 for iTunes previews). */
+  duration: number;
+  /** Current playhead position in seconds. */
+  position: number;
 };
 
 let audioEl: HTMLAudioElement | null = null;
-let state: PlayerState = { currentId: null, isPlaying: false };
+let state: PlayerState = {
+  currentId: null, isPlaying: false, meta: null, duration: 0, position: 0,
+};
 const listeners = new Set<Listener>();
 
 function ensureAudio(): HTMLAudioElement {
   if (audioEl) return audioEl;
   if (typeof window === 'undefined') {
-    // Safety for any future SSR pass — return a no-op object.
     return {} as HTMLAudioElement;
   }
   audioEl = new Audio();
   audioEl.preload = 'none';
   audioEl.crossOrigin = 'anonymous';
   audioEl.addEventListener('ended', () => {
-    state = { ...state, isPlaying: false };
+    state = { ...state, isPlaying: false, position: 0 };
     notify();
   });
   audioEl.addEventListener('pause', () => {
@@ -53,6 +75,20 @@ function ensureAudio(): HTMLAudioElement {
       state = { ...state, isPlaying: false };
       notify();
     }
+  });
+  audioEl.addEventListener('timeupdate', () => {
+    if (!audioEl) return;
+    state = {
+      ...state,
+      position: audioEl.currentTime || 0,
+      duration: audioEl.duration || state.duration || 0,
+    };
+    notify();
+  });
+  audioEl.addEventListener('loadedmetadata', () => {
+    if (!audioEl) return;
+    state = { ...state, duration: audioEl.duration || 0 };
+    notify();
   });
   return audioEl;
 }
@@ -62,37 +98,79 @@ function notify() {
 }
 
 /** Play (or restart) a preview by URL. If `id` is already current
- *  and playing, this acts as a toggle (pauses). */
-export function playPreview(id: string, url: string): void {
+ *  and playing, this acts as a toggle (pauses). Optional `meta`
+ *  populates the global NowPlayingBar — pass it whenever possible. */
+export function playPreview(id: string, url: string, meta?: TrackMeta): void {
   const a = ensureAudio();
   if (state.currentId === id && state.isPlaying) {
     a.pause();
-    state = { currentId: id, isPlaying: false };
+    state = { ...state, isPlaying: false };
     notify();
     return;
   }
   if (state.currentId !== id) {
     a.src = url;
+    state = {
+      currentId: id,
+      isPlaying: false,
+      meta: meta ?? null,
+      duration: 0,
+      position: 0,
+    };
+    notify();
+  } else if (meta) {
+    state = { ...state, meta };
+    notify();
   }
   void a.play().then(
     () => {
-      state = { currentId: id, isPlaying: true };
+      state = { ...state, currentId: id, isPlaying: true };
       notify();
     },
     () => {
       // Autoplay blocked or network failure. Reset.
-      state = { currentId: null, isPlaying: false };
+      state = { currentId: null, isPlaying: false, meta: null, duration: 0, position: 0 };
       notify();
     },
   );
 }
 
-/** Stop everything. */
+/** Resume the currently-loaded track without reloading its src. Used
+ *  by the NowPlayingBar's play button — saves a network round-trip
+ *  vs. calling playPreview again. */
+export function resumePreview(): void {
+  const a = ensureAudio();
+  if (!state.currentId) return;
+  void a.play().then(() => {
+    state = { ...state, isPlaying: true };
+    notify();
+  });
+}
+
+/** Pause without resetting playhead — Space-bar style toggle. */
+export function pausePreview(): void {
+  const a = ensureAudio();
+  a.pause();
+  state = { ...state, isPlaying: false };
+  notify();
+}
+
+/** Stop everything and clear track metadata so the NowPlayingBar
+ *  fades out. */
 export function stopPreview(): void {
   const a = ensureAudio();
   a.pause();
   a.currentTime = 0;
-  state = { currentId: null, isPlaying: false };
+  state = { currentId: null, isPlaying: false, meta: null, duration: 0, position: 0 };
+  notify();
+}
+
+/** Seek to a time (seconds). Clamped to [0, duration]. */
+export function seekPreview(seconds: number): void {
+  const a = ensureAudio();
+  if (!a.duration) return;
+  a.currentTime = Math.max(0, Math.min(a.duration, seconds));
+  state = { ...state, position: a.currentTime };
   notify();
 }
 
