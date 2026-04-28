@@ -4,6 +4,7 @@ import { SearchBar } from './components/ui/SearchBar';
 import { Compass } from './components/ui/Compass';
 import { TimeSlider } from './components/ui/TimeSlider';
 import { LanguageToggle } from './components/ui/LanguageToggle';
+import { CityDropdown } from './components/ui/CityDropdown';
 import { CanvasTour } from './components/ui/CanvasTour';
 import { LocalePrompt } from './components/ui/LocalePrompt';
 import { useT, translateTagLabel, useI18nStore } from './lib/app/i18n';
@@ -854,47 +855,30 @@ function App() {
         {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
       </button>
 
-      {/* Area selector — bottom-center per Mapbox/Apple Maps thumb-zone
-          convention (#11). City switching is the most-used chrome
-          control, so it lives in the most reachable spot. */}
+      {/* Bottom-LEFT cluster — city dropdown + language toggle. Moved
+          here from bottom-center so the NowPlayingBar (bottom-center)
+          and any future player chrome don't fight for the thumb zone.
+          The city selector collapsed from 6 chips to a single pill
+          dropdown — same selection power, ⅙ the visual weight, and
+          the surface feels less "menu-bar-ish" per Hick's Law (one
+          decision shown, others discoverable on tap). */}
       <div
         style={{
           position: 'absolute',
           bottom: 24,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          left: 24,
           display: 'flex',
-          gap: 6,
+          alignItems: 'center',
+          gap: 8,
           zIndex: 15,
         }}
       >
-        {(Object.keys(CITY_AREAS) as CityAreaKey[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => { setArea(key); setSelectedBuilding(null); setSanitizedCoord(null); }}
-            style={{
-              padding: '8px 14px',
-              borderRadius: 12,
-              border: area === key
-                ? (darkMode ? '2px solid #e0e0e8' : '2px solid #1a1a2e')
-                : (darkMode ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.1)'),
-              background: area === key
-                ? (darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.08)')
-                : (darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)'),
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: 11,
-              fontWeight: area === key ? 700 : 400,
-              color: darkMode ? '#e0e0e8' : '#1a1a2e',
-              cursor: 'pointer',
-              boxShadow: darkMode ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.06)',
-              transition: 'all 0.4s ease',
-            }}
-          >
-            {t(`city.${key}`)}
-          </button>
-        ))}
+        <CityDropdown
+          area={area}
+          onSelect={(key) => { setArea(key); setSelectedBuilding(null); setSanitizedCoord(null); }}
+          darkMode={darkMode}
+          t={t}
+        />
         <LanguageToggle darkMode={darkMode} />
       </div>
 

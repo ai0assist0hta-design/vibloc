@@ -27,7 +27,7 @@ import {
 } from '../../lib/share/playlistShareUrl';
 import { isIOS, isInAppBrowser, openAppleMusic } from '../../lib/share/openAppleMusic';
 import {
-  APPLE_RED, INK, PAPER, MUTED, DIVIDER, FONT,
+  APPLE_RED, INK, PAPER, MUTED, DIVIDER,
 } from '../../lib/ui/tokens';
 
 export function PlaylistPreviewPage() {

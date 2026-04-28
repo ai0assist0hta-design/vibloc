@@ -20,6 +20,7 @@ import { resolveAvatarUrl } from '../../../features/auth/avatar';
 import { useT } from '../../../lib/app/i18n';
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
 import { APPLE_RED, FONT } from '../../../lib/ui/tokens';
+import { PlaylistCover } from './PlaylistCover';
 import { playPreview } from './PreviewPlayer';
 import { TrackRow } from './TrackRow';
 
@@ -55,10 +56,14 @@ export function PlaylistDetailView({
   const [draft, setDraft] = useState(name);
   useEffect(() => { setDraft(name); }, [name, taggerId]);
 
-  // Cover = top track's artwork, falling back to a gradient monogram.
-  // Mirrors the rest of VIBLOC's cover-art pattern.
-  const coverUrl = useMemo(
-    () => group?.coverArtworkUrl || tracks.find((t) => t.artworkUrl)?.artworkUrl || null,
+  // Cover sources that the shared PlaylistCover component picks
+  // between (custom override → 2×2 mosaic → single image → monogram).
+  // useMemo keeps the array stable so PlaylistCover doesn't think
+  // the artwork list changed every render.
+  const coverGrid = useMemo(
+    () => (group?.coverGridUrls && group.coverGridUrls.length > 0
+      ? group.coverGridUrls
+      : tracks.map((t) => t.artworkUrl).filter(Boolean) as string[]),
     [group, tracks],
   );
 
@@ -158,7 +163,15 @@ export function PlaylistDetailView({
       <div style={{
         display: 'flex', alignItems: 'flex-start', gap: 14,
       }}>
-        <CoverArt url={coverUrl} fallback={headline} divider={divider} text2={text2} />
+        <PlaylistCover
+          customUrl={group?.customCoverUrl}
+          artworkUrls={coverGrid}
+          fallbackText={headline}
+          size={132}
+          radius={12}
+          divider={divider}
+          text2={text2}
+        />
         <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
           {isMine ? (
             <input
@@ -336,50 +349,7 @@ function pillBtnStyle({
   void text2;
 }
 
-/** Square album cover. The URL comes from the iTunes Search API
- *  (Apple's own CDN) at 1200×1200 — see `lib/music/itunes.ts`. We
- *  pick the most-liked pinned track's artwork as the playlist face;
- *  no separate upload, no manual selection. */
-function CoverArt({
-  url, fallback, divider, text2,
-}: { url: string | null; fallback: string; divider: string; text2: string }) {
-  return (
-    <div style={{
-      position: 'relative',
-      width: 132, height: 132,
-      flexShrink: 0,
-      borderRadius: 12,
-      overflow: 'hidden',
-      border: `1px solid ${divider}`,
-      boxShadow: '0 12px 28px rgba(0,0,0,0.16)',
-      background: divider,
-    }}>
-      {url ? (
-        <img
-          src={url}
-          alt={fallback}
-          width={132}
-          height={132}
-          loading="eager"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          style={{
-            width: '100%', height: '100%',
-            objectFit: 'cover',
-            display: 'block',
-          }}
-        />
-      ) : (
-        <div style={{
-          width: '100%', height: '100%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: text2,
-          fontFamily: FONT.mono,
-          fontSize: 40, fontWeight: 800,
-        }}>
-          {(fallback.trim().charAt(0) || '?').toUpperCase()}
-        </div>
-      )}
-    </div>
-  );
-}
+// CoverArt was the previous in-file 1×1 fallback. Replaced by the
+// shared PlaylistCover (mosaic + custom override). Kept removed
+// rather than dead-coded so future readers don't think there are
+// two cover renderers to choose between.
