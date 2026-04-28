@@ -23,6 +23,32 @@
 import type { BuildingPlaylistEntry, PinnedTrack } from '../../lib/music/buildingPlaylist';
 import { reloadFromStorage } from '../../lib/music/buildingPlaylist';
 import type { RecommendedTrack } from '../../lib/music/trackTypes';
+// Build-time-baked covers. Every entry was resolved by
+// scripts/bakeSeedCovers.mjs against four sources in priority:
+// iTunes lookup-by-id (storefront-aware) → iTunes search (scored) →
+// Deezer → MusicBrainz + Cover Art Archive. Keys are
+// "{normalized artist}|{normalized title}". When mk() finds a match
+// it ships the byte-correct cover URL on the FIRST paint — no
+// runtime API call needed for those tracks. Re-bake any time the
+// seed table changes:  node scripts/bakeSeedCovers.mjs
+import bakedCovers from './seedCovers.json' with { type: 'json' };
+
+type BakedCover = {
+  url: string;
+  previewUrl?: string;
+  trackViewUrl?: string;
+  source: 'itunes-id' | 'itunes-search' | 'deezer' | 'musicbrainz';
+  pickedTitle?: string;
+  pickedCollection?: string;
+};
+const BAKED: Record<string, BakedCover> = bakedCovers as Record<string, BakedCover>;
+
+function normalizeForBakedKey(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/\([^)]*\)/g,' ').replace(/\[[^\]]*\]/g,' ')
+    .replace(/\bfeat\.?\b.*$/i,' ').replace(/[^\p{L}\p{N}]+/gu,' ')
+    .trim().replace(/\s+/g,' ');
+}
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
@@ -32,7 +58,10 @@ const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
 // deep links are guaranteed identical to what music.apple.com
 // shows. The remaining text-id seeds resolve at runtime via the
 // storefront-aware scorer + MusicBrainz fallback.
-const SEED_VERSION = 'v14-audited-collections';
+// v15 = build-time baked covers. mk() now reads seedCovers.json
+// (50/52 seeds resolved across iTunes lookup + Search + Deezer +
+// MusicBrainz/CAA), so first paint already has the right image.
+const SEED_VERSION = 'v15-baked-covers';
 const MAX_SEED_BUILDINGS = 40;
 
 type Country = 'JP' | 'KR' | 'US';
@@ -261,17 +290,21 @@ function mk(
   id: string, trackName: string, artistName: string,
   genre: RecommendedTrack['genre'], primaryGenreName: string,
 ): RecommendedTrack {
-  // Deterministic placeholder artwork via picsum (seeded by id) so each
-  // track gets a stable square image even without an iTunes round-trip.
-  // 600 px so the placeholder is still sharp on @2x / @3x displays
-  // before the iTunes enricher swaps in the real Apple cover.
+  // First check the build-time baked cover map. ~50 of 52 seeds
+  // ship with a real Apple / Deezer / Cover-Art-Archive URL frozen
+  // into seedCovers.json so the first paint already has the right
+  // image — no runtime network call needed. Falls back to a sharp
+  // picsum placeholder for the few seeds the baker couldn't resolve
+  // (those still get retried by the runtime enricher).
+  const bakedKey = `${normalizeForBakedKey(artistName)}|${normalizeForBakedKey(trackName)}`;
+  const baked = BAKED[bakedKey];
   return {
     id, trackName, artistName,
-    artworkUrl: `https://picsum.photos/seed/${id}/600/600`,
-    previewUrl: '',
+    artworkUrl: baked?.url || `https://picsum.photos/seed/${id}/600/600`,
+    previewUrl: baked?.previewUrl || '',
     primaryGenreName,
     genre,
-    trackViewUrl: '',
+    trackViewUrl: baked?.trackViewUrl || '',
   };
 }
 

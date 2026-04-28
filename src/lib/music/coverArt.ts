@@ -212,10 +212,18 @@ export async function resolveCover(
   if (!a || !t) return null;
 
   // ── Tier 0: deterministic id lookup ──
+  // Country detection: a JP-only release (Pocket Park 2008 Remastered)
+  // returns 0 results from the US store. Detect script + genre and
+  // route the lookup through the matching storefront so the trackId
+  // resolves byte-for-byte to the cover Apple shows in that region.
   if (opts?.trackId !== undefined) {
     const idStr = String(opts.trackId).trim();
     if (/^\d{6,12}$/.test(idStr)) {
-      const hit = await lookupTrackId(idStr);
+      const lookupCountry = detectStorefront(t, a, country, opts?.genre);
+      // Sequential fallback so each call is short-circuited on hit.
+      let hit = await lookupTrackId(idStr, lookupCountry);
+      if (!hit && lookupCountry !== 'US') hit = await lookupTrackId(idStr, 'US');
+      if (!hit) hit = await lookupTrackId(idStr); // bare, no country
       if (hit) {
         return {
           artworkUrl: hit.artworkUrl,

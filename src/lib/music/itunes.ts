@@ -164,18 +164,35 @@ export async function searchTrack(
  */
 export async function lookupTrackId(
   trackId: string | number,
-  signal?: AbortSignal,
+  countryOrSignal?: CountryCode | AbortSignal,
+  maybeSignal?: AbortSignal,
 ): Promise<RecommendedTrack | null> {
+  // Backwards-compat overload: previous signature was
+  // `lookupTrackId(id, signal?)`. New signature accepts an optional
+  // country code in slot 2 so JP / KR-only releases (e.g. Miki
+  // Matsubara's Pocket Park, Vaundy's strobo) actually resolve.
+  let country: CountryCode | undefined;
+  let signal: AbortSignal | undefined;
+  if (typeof countryOrSignal === 'string') {
+    country = countryOrSignal;
+    signal = maybeSignal;
+  } else {
+    signal = countryOrSignal;
+  }
+
   const idStr = String(trackId).trim();
   if (!idStr || !/^\d{6,12}$/.test(idStr)) return null;
 
-  const cacheKey = `lookup|${idStr}`;
+  const cacheKey = `lookup|${idStr}|${country ?? ''}`;
   const cached = cacheGet<RecommendedTrack | null>(cacheKey);
   if (cached !== null && cached !== undefined) return cached;
 
+  const params = new URLSearchParams({ id: idStr, entity: 'song' });
+  if (country) params.set('country', country.toLowerCase());
+
   try {
     const res = await fetch(
-      `${LOOKUP_ENDPOINT}?id=${encodeURIComponent(idStr)}&entity=song`,
+      `${LOOKUP_ENDPOINT}?${params.toString()}`,
       { signal, credentials: 'omit' },
     );
     if (!res.ok) return null;
