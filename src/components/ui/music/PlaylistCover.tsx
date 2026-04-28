@@ -18,10 +18,12 @@
  * other album-art tiles in VIBLOC.
  */
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 type Props = {
-  /** Optional override — full-bleed single image. */
+  /** Optional override — full-bleed single image. Falls back to the
+   *  mosaic / single / monogram chain if the URL 404s (e.g. the
+   *  custom cover file hasn't been uploaded to public/ yet). */
   customUrl?: string | null;
   /** Up to 4 track artwork URLs for the mosaic fallback. */
   artworkUrls: (string | null | undefined)[];
@@ -41,6 +43,15 @@ export function PlaylistCover({
   radius = 14, divider, text2, style,
 }: Props) {
   const usable = artworkUrls.filter((u): u is string => !!u);
+  // When the custom URL fails to load (404, broken host, CORS, etc.)
+  // we want the cover to silently fall through to the mosaic instead
+  // of leaving a giant alt-text rectangle on screen.
+  const [customBroken, setCustomBroken] = useState(false);
+  // First-track image broken? Drop it from the chain too.
+  const [singleBroken, setSingleBroken] = useState(false);
+
+  const useCustom = !!customUrl && !customBroken;
+  const usableLive = singleBroken ? usable.slice(1) : usable;
 
   return (
     <div
@@ -56,22 +67,24 @@ export function PlaylistCover({
         ...style,
       }}
     >
-      {customUrl ? (
+      {useCustom ? (
         <img
-          src={customUrl}
+          src={customUrl!}
           alt={fallbackText}
           width={size} height={size}
           loading="eager" decoding="async" referrerPolicy="no-referrer"
+          onError={() => setCustomBroken(true)}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-      ) : usable.length >= 4 ? (
-        <Mosaic urls={usable.slice(0, 4)} alt={fallbackText} />
-      ) : usable.length >= 1 ? (
+      ) : usableLive.length >= 4 ? (
+        <Mosaic urls={usableLive.slice(0, 4)} alt={fallbackText} />
+      ) : usableLive.length >= 1 ? (
         <img
-          src={usable[0]}
+          src={usableLive[0]}
           alt={fallbackText}
           width={size} height={size}
           loading="eager" decoding="async" referrerPolicy="no-referrer"
+          onError={() => setSingleBroken(true)}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       ) : (
