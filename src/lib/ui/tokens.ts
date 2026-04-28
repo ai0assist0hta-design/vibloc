@@ -80,3 +80,28 @@ export const EYEBROW = {
   letterSpacing: 1.4,
   textTransform: 'uppercase' as const,
 };
+
+/** Panel-level header (PLACE / MUSIC dot+label). Same on both
+ *  floating panels so they read as a paired design system. */
+export const PANEL_HEADER = {
+  fontFamily: FONT.mono,
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: 1.5,
+  textTransform: 'uppercase' as const,
+};
+
+/** Section header within a panel (TENANTS / TOP PLAYLISTS / TOP
+ *  PICKS / MY PLAYLIST / AI 추천 …). One spec, applied everywhere
+ *  so the visual rhythm of the two panels matches row-for-row. */
+export const SECTION_HEADER = {
+  fontFamily: FONT.mono,
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: 1.2,
+  textTransform: 'uppercase' as const,
+};
+
+/** Floating-panel inner padding. Both leftPanel and rightPanel use
+ *  this so their content columns line up edge-to-edge. */
+export const PANEL_PADDING = '14px 18px 18px';

@@ -34,7 +34,8 @@ import { MapPin } from 'lucide-react';
 import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetview/streetViewViewpoint';
 import { loadAppleGenreColors } from './lib/music/genreColorSource';
 import { useArtworkTint } from './lib/music/headerTint';
-import { usePlaylist } from './lib/music/buildingPlaylist';
+import { getTopTaggers, getTracksByTagger, usePlaylist } from './lib/music/buildingPlaylist';
+import { playPreview } from './components/ui/music/PreviewPlayer';
 import { STATIC_GENRE_COLORS } from './data/genres';
 import { useWeatherStore } from './stores/useWeatherStore';
 import { useAuthStore } from './features/auth/useAuthStore';
@@ -514,6 +515,32 @@ function App() {
   const _topPinnedArtwork = _playlistForTint.tracks[0]?.artworkUrl ?? null;
   const headerTint = useArtworkTint(_topPinnedArtwork);
   const [buildings, setBuildings] = useState<OSMBuilding[]>([]);
+
+  // Auto-play the building's #1 playlist's first preview-able track
+  // when the user selects a building. Slight delay (250 ms) gives
+  // the seed enricher time to populate previewUrl on the seed
+  // tracks (the iTunes search runs async in the background) and
+  // matches the panel's slide-in feel — playback starts as the
+  // hero card finishes mounting.
+  useEffect(() => {
+    if (!selectedBuilding) return;
+    const id = selectedBuilding.id;
+    const t = setTimeout(() => {
+      const top = getTopTaggers(id, 1)[0];
+      if (!top) return;
+      const tracks = getTracksByTagger(id, top.taggerId);
+      const first = tracks.find((tr) => tr.previewUrl);
+      if (!first) return;
+      playPreview(first.id, first.previewUrl, {
+        title: first.trackName,
+        artist: first.artistName,
+        artworkUrl: first.artworkUrl || undefined,
+        appleUrl: first.trackViewUrl || undefined,
+      });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [selectedBuilding]);
+
   // Seed demo agent playlists for buildings that have no pins yet,
   // so the UI renders meaningful data before real users tag
   // anything. Idempotent — never overwrites real entries. Runs in
@@ -1455,7 +1482,10 @@ function App() {
                 paddingTop: 12,
               }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 800, letterSpacing: 0.9,
+                  // Standardized SECTION_HEADER spec — matches
+                  // TopTaggerCard's "TOP PLAYLISTS" header so both
+                  // panels share the same in-section rhythm.
+                  fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
                   textTransform: 'uppercase', color: text3,
                   fontFamily: "'IBM Plex Mono', monospace",
                   marginBottom: 8,

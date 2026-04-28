@@ -38,7 +38,9 @@ export function PopularTrackCard({
       fontFamily: "'IBM Plex Mono', monospace",
     }}>
       <div style={{
-        fontSize: 12, fontWeight: 800, letterSpacing: 1.0,
+        // Standardized SECTION_HEADER — paired with TENANTS / TOP
+        // PLAYLISTS / MY PLAYLIST for consistent panel rhythm.
+        fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
         textTransform: 'uppercase', color: text2, marginBottom: 6,
         display: 'flex', alignItems: 'center', gap: 6,
       }}>

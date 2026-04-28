@@ -62,8 +62,11 @@ export function TopTaggerCard({
       aria-label="Top-liked playlists for this building"
     >
       <div style={{
-        fontSize: 12, fontWeight: 800, letterSpacing: 1.0,
+        // Standardized SECTION_HEADER — matches TENANTS / TOP PICKS /
+        // MY PLAYLIST so both panels share the same header rhythm.
+        fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
         textTransform: 'uppercase', color: text2, marginBottom: 6,
+        fontFamily: "'IBM Plex Mono', monospace",
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
         TOP PLAYLISTS
