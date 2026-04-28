@@ -32,11 +32,11 @@ import { resolveCover } from '../../lib/music/coverArt';
 import { reloadFromStorage } from '../../lib/music/buildingPlaylist';
 
 const STORAGE_KEY = 'vibloc.playlists.v2';
-// v3 = Tier-0 deterministic id lookup added. Bumping the cache key
-// forces a one-time re-resolve so any wrong covers from the previous
-// scored-search era get replaced with the byte-exact Apple ones for
-// every seed whose `id` is a numeric iTunes trackId.
-const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v3';
+// v4 = MusicBrainz + Cover Art Archive fallback added. Bumping the
+// cache key forces a one-time re-resolve so any track that iTunes
+// couldn't match (and was sitting on a placeholder) gets a chance
+// at the open-source cover.
+const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v4';
 const PLACEHOLDER_HOST = 'picsum.photos';
 
 type EnrichedFields = {

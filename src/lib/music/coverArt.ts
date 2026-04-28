@@ -27,12 +27,14 @@
  */
 
 import { lookupTrackId, searchTrack, type CountryCode } from './itunes';
+import { findCoverArt as findMusicBrainzCover } from './musicbrainz';
 
 export type ResolvedCover = {
-  artworkUrl: string;          // Apple CDN, already 1200×1200
+  artworkUrl: string;          // Apple CDN OR Cover Art Archive (open-source)
   previewUrl?: string;
-  trackViewUrl?: string;       // canonical music.apple.com link
+  trackViewUrl?: string;       // canonical music.apple.com link (only for Apple sources)
   matchScore: number;          // 0-100; 100 = deterministic id lookup
+  source: 'itunes-id' | 'itunes-search' | 'musicbrainz';
 };
 
 const MIN_SCORE = 80;
@@ -186,6 +188,7 @@ export async function resolveCover(
           previewUrl: hit.previewUrl || undefined,
           trackViewUrl: hit.trackViewUrl || undefined,
           matchScore: 100,
+          source: 'itunes-id',
         };
       }
       // id was supplied but lookup returned nothing — fall through
@@ -219,12 +222,40 @@ export async function resolveCover(
     if (best && best.score >= 95) break;
   }
 
-  if (!best || best.score < MIN_SCORE) return null;
+  if (best && best.score >= MIN_SCORE) {
+    return {
+      artworkUrl: best.track.artworkUrl,
+      previewUrl: best.track.previewUrl || undefined,
+      trackViewUrl: best.track.trackViewUrl || undefined,
+      matchScore: best.score,
+      source: 'itunes-search',
+    };
+  }
 
-  return {
-    artworkUrl: best.track.artworkUrl,
-    previewUrl: best.track.previewUrl || undefined,
-    trackViewUrl: best.track.trackViewUrl || undefined,
-    matchScore: best.score,
-  };
+  // ── Tier 2: open-source MusicBrainz + Cover Art Archive ──
+  // Last-resort. Hits when iTunes either ranks the wrong song first
+  // or doesn't carry the recording at all (long-tail / indie /
+  // regional releases). MusicBrainz uses Lucene-style boolean
+  // search which is far more precise for ambiguous queries, and
+  // Cover Art Archive is CC-licensed open data so we hot-link the
+  // resulting image with no quota worries.
+  //
+  // Trade-off: the artwork is the open-source community's chosen
+  // release pressing for the recording, which may differ from
+  // Apple's storefront cover. We accept that — better an authentic
+  // cover from a different release than the wrong song's cover.
+  try {
+    const mbCover = await findMusicBrainzCover(a, t, 1200);
+    if (mbCover) {
+      return {
+        artworkUrl: mbCover,
+        matchScore: 90,
+        source: 'musicbrainz',
+        // No previewUrl / trackViewUrl from MB. Caller keeps any
+        // existing preview link if it already had one.
+      };
+    }
+  } catch { /* best-effort, fall through */ }
+
+  return null;
 }
