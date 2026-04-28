@@ -18,7 +18,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, Music2, Share2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Share2 } from 'lucide-react';
 import {
   appleMusicUrl,
   decodePlaylistFromHash,
@@ -27,7 +27,7 @@ import {
 } from '../../lib/share/playlistShareUrl';
 import { isIOS, isInAppBrowser, openAppleMusic } from '../../lib/share/openAppleMusic';
 import {
-  APPLE_RED, INK, PAPER, MUTED, DIVIDER,
+  INK, PAPER, MUTED, DIVIDER,
 } from '../../lib/ui/tokens';
 
 export function PlaylistPreviewPage() {
@@ -297,21 +297,24 @@ function TrackRow({ t, idx, ios }: { t: SharedTrack; idx: number; ios: boolean }
         }} title={t.a}>{t.a}</div>
       </div>
 
-      {/* Same compact app-icon as TrackRow / NowPlayingBar — visual
-          consistency across every Apple Music entry point. The
-          parent <a> handles navigation; this is purely the affordance. */}
+      {/* Same compact app-icon as TrackRow / NowPlayingBar — gradient
+          + beamed-note glyph matching the actual Apple Music icon.
+          The parent <a> handles navigation; this is the affordance. */}
       <span
         aria-label="Open in Apple Music"
         style={{
           flexShrink: 0,
           width: 24, height: 24,
           borderRadius: 6,
-          background: APPLE_RED, color: '#fff',
+          background: 'linear-gradient(180deg, #FB5C74 0%, #FA243C 100%)',
+          color: '#fff',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.20)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.18)',
         }}
       >
-        <Music2 size={13} strokeWidth={2.4} fill="currentColor" />
+        <svg width="15" height="15" viewBox="0 0 32 32" aria-hidden="true">
+          <path fill="#fff" d="M11.5 6.6 C11.5 5.8 12 5.2 12.8 5 L23.6 2.6 C24.4 2.4 25 3 25 3.8 L25 19.5 C25 21.5 23.5 23 21.5 23 C19.5 23 18 21.5 18 19.5 C18 17.5 19.5 16 21.5 16 C22.1 16 22.6 16.1 23 16.4 L23 9 L13.5 11 L13.5 22.5 C13.5 24.5 12 26 10 26 C8 26 6.5 24.5 6.5 22.5 C6.5 20.5 8 19 10 19 C10.6 19 11.1 19.1 11.5 19.4 Z" />
+        </svg>
       </span>
     </a>
   );

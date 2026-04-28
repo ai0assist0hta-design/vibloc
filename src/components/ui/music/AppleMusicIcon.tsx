@@ -10,10 +10,8 @@
  * stays visually identical.
  */
 
-import { Music2 } from 'lucide-react';
 import { useT } from '../../../lib/app/i18n';
 import { openAppleMusic } from '../../../lib/share/openAppleMusic';
-import { APPLE_RED } from '../../../lib/ui/tokens';
 
 type Props = {
   /** music.apple.com URL. When missing the button renders disabled. */
@@ -25,6 +23,46 @@ type Props = {
    *  TrackRow where the row itself is also clickable to play). */
   stopPropagation?: boolean;
 };
+
+/** Solid-white beamed double-eighth-note silhouette — same shape
+ *  Apple's Music app icon uses (two filled note heads + two stems
+ *  joined by a slightly-curved beam). Drawn as a single SVG path so
+ *  it scales crisply at every size from 16 px to 256 px. */
+function NoteGlyph({ size }: { size: number }) {
+  // viewBox 32×32 chosen so the note fills ~70% of the icon — same
+  // visual ratio as Apple's actual app icon glyph.
+  return (
+    <svg
+      width={size} height={size}
+      viewBox="0 0 32 32"
+      aria-hidden="true"
+      style={{ display: 'block' }}
+    >
+      <path
+        fill="#fff"
+        d="
+          M11.5 6.6
+          C11.5 5.8 12.0 5.2 12.8 5.0
+          L23.6 2.6
+          C24.4 2.4 25.0 3.0 25.0 3.8
+          L25.0 19.5
+          C25.0 21.5 23.5 23.0 21.5 23.0
+          C19.5 23.0 18.0 21.5 18.0 19.5
+          C18.0 17.5 19.5 16.0 21.5 16.0
+          C22.1 16.0 22.6 16.1 23.0 16.4
+          L23.0 9.0
+          L13.5 11.0
+          L13.5 22.5
+          C13.5 24.5 12.0 26.0 10.0 26.0
+          C8.0 26.0 6.5 24.5 6.5 22.5
+          C6.5 20.5 8.0 19.0 10.0 19.0
+          C10.6 19.0 11.1 19.1 11.5 19.4
+          Z
+        "
+      />
+    </svg>
+  );
+}
 
 export function AppleMusicIcon({ href, size = 22, stopPropagation = true }: Props) {
   const t = useT();
@@ -42,18 +80,20 @@ export function AppleMusicIcon({ href, size = 22, stopPropagation = true }: Prop
       style={{
         flexShrink: 0,
         width: size, height: size,
-        // Apple Music icon corner radius is ~22% of side. iOS 7+
-        // app-icon math (squircle approximation good enough at this
-        // size — pure border-radius reads close to the real glyph).
+        // iOS app-icon squircle approximation. 22% radius reads as
+        // the right shape from 16 px up.
         borderRadius: Math.round(size * 0.22),
         border: 'none',
-        background: APPLE_RED,
+        // Apple's actual gradient — light coral pink at the top
+        // graduating to a saturated red at the bottom. Sampled
+        // approximately from the iOS 18 Music app icon.
+        background: 'linear-gradient(180deg, #FB5C74 0%, #FA243C 100%)',
         color: '#fff',
         cursor: enabled ? 'pointer' : 'not-allowed',
         opacity: enabled ? 1 : 0.45,
         display: 'inline-flex',
         alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.20)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.18)',
         transition: 'transform 100ms ease, opacity 120ms ease',
         padding: 0,
       }}
@@ -61,7 +101,7 @@ export function AppleMusicIcon({ href, size = 22, stopPropagation = true }: Prop
       onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
     >
-      <Music2 size={Math.round(size * 0.55)} strokeWidth={2.4} fill="currentColor" />
+      <NoteGlyph size={Math.round(size * 0.62)} />
     </button>
   );
 }
