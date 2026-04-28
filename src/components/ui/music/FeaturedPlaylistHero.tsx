@@ -8,14 +8,19 @@
  * Renders nothing when the building has zero playlists yet.
  */
 
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { Share2 } from 'lucide-react';
 import {
   useTopTaggers,
   getTaggerPlaylistName,
   getTracksByTagger,
 } from '../../../lib/music/buildingPlaylist';
-import { PlaylistShareModal } from './PlaylistShareModal';
+
+// Modal pulls in lz-string + its own UI. Defer until the user clicks
+// share so it never loads on the city map's initial paint.
+const PlaylistShareModal = lazy(() =>
+  import('./PlaylistShareModal').then((m) => ({ default: m.PlaylistShareModal })),
+);
 
 type Props = {
   buildingId: string;
@@ -199,12 +204,16 @@ export function FeaturedPlaylistHero({
           </>
         )}
       </div>
-      <PlaylistShareModal
-        buildingId={buildingId}
-        taggerId={top.taggerId}
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-      />
+      {shareOpen && (
+        <Suspense fallback={null}>
+          <PlaylistShareModal
+            buildingId={buildingId}
+            taggerId={top.taggerId}
+            open={shareOpen}
+            onClose={() => setShareOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

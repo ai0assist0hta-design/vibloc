@@ -309,7 +309,6 @@ const DICT: Record<string, Record<Lang, string>> = {
   // ─── UI chrome ───
   'time.realTime':         { en: 'REAL-TIME',                ko: '실시간',                    ja: 'リアルタイム' },
   'time.now':              { en: 'NOW',                      ko: '지금',                      ja: '今' },
-  'ui.closeBuildingPanel': { en: 'Close building details',   ko: '건물 세부정보 닫기',        ja: '建物の詳細を閉じる' },
   'ui.more':               { en: 'More ▸',                   ko: '더보기 ▸',                  ja: 'もっと見る ▸' },
   'ui.openStreetView':     { en: 'Open Street View',         ko: '스트리트뷰 열기',           ja: 'ストリートビューを開く' },
 
