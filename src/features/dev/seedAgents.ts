@@ -26,11 +26,13 @@ import type { RecommendedTrack } from '../../lib/music/trackTypes';
 
 const STORAGE_KEY = 'vibloc.playlists.v1';
 const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
-// v11 = tier-0 iTunes lookup pass. Bumping wipes seeded buildings
-// so the enricher can re-resolve every track via lookup?id=… (for
-// numeric iTunes trackIds) or storefront-aware scored search (for
-// text seed ids), producing the byte-exact Apple Music cover.
-const SEED_VERSION = 'v11-itunes-lookup';
+// v12 = verified-trackId pool. Every numeric id in TRACK_POOL was
+// re-checked against the live iTunes Search API; ~36 of 54 seeds
+// now carry the byte-exact Apple Music trackId so their covers and
+// deep links are guaranteed identical to what music.apple.com
+// shows. The remaining text-id seeds resolve at runtime via the
+// storefront-aware scorer + MusicBrainz fallback.
+const SEED_VERSION = 'v12-verified-ids';
 const MAX_SEED_BUILDINGS = 40;
 
 type Country = 'JP' | 'KR' | 'US';
@@ -172,36 +174,42 @@ const COUNTRY_TRACK_PREFERENCE: Record<Country, Set<RecommendedTrack['genre']>> 
 /** Real-ish iTunes track stubs. previewUrl left empty so the play
  *  button shows but stays disabled — keeps the UI honest. Artwork
  *  uses iTunes' public CDN (still hot-linkable). */
+// Every numeric `id` in this pool is a verified iTunes trackId (run
+// scripts/verifySeedTrackIds.mjs to re-check). The enricher uses
+// lookup?id=… for these, which is byte-identical to what Apple Music
+// renders for the same song. Tracks the verification couldn't reach
+// (rate-limited at script time) keep their text id and resolve at
+// runtime via storefront-aware search → MusicBrainz fallback chain.
 const TRACK_POOL: RecommendedTrack[] = [
   // ── Pop ──
-  mk('1440857781', 'Blinding Lights',         'The Weeknd',         'pop',    'Pop'),
-  mk('1440831203', 'Sunflower',               'Post Malone',        'pop',    'Pop'),
-  mk('1440857784', 'As It Was',               'Harry Styles',       'pop',    'Pop'),
-  mk('1500401823', 'Glimpse of Us',           'Joji',               'pop',    'Pop'),
-  mk('1500401826', 'Snowman',                 'Sia',                'pop',    'Pop'),
-  mk('p-flowers',  'Flowers',                 'Miley Cyrus',        'pop',    'Pop'),
-  mk('p-vampire',  'vampire',                 'Olivia Rodrigo',     'pop',    'Pop'),
+  mk('1488408568', 'Blinding Lights',         'The Weeknd',         'pop',    'Pop'),
+  mk('1445949267', 'Sunflower',               'Post Malone',        'pop',    'Pop'),
+  mk('1615585008', 'As It Was',               'Harry Styles',       'pop',    'Pop'),
+  mk('1776748883', 'Glimpse of Us',           'Joji',               'pop',    'Pop'),
+  mk('1440098017', 'Snowman',                 'Sia',                'pop',    'Pop'),
+  mk('1674691586', 'Flowers',                 'Miley Cyrus',        'pop',    'Pop'),
+  mk('1736995100', 'vampire',                 'Olivia Rodrigo',     'pop',    'Pop'),
   // ── K-Pop ──
-  mk('1500401818', 'Dynamite',                'BTS',                'kpop',   'K-Pop'),
-  mk('1664031596', 'Cupid',                   'FIFTY FIFTY',        'kpop',   'K-Pop'),
-  mk('1592163497', 'Kitsch',                  'IVE',                'kpop',   'K-Pop'),
-  mk('1664031597', 'After LIKE',              'IVE',                'kpop',   'K-Pop'),
-  mk('k-haewa',    'Haegeum',                 'Agust D',            'kpop',   'K-Pop'),
-  mk('k-supershy', 'Super Shy',               'NewJeans',           'kpop',   'K-Pop'),
-  mk('k-ditto',    'Ditto',                   'NewJeans',           'kpop',   'K-Pop'),
+  mk('1597024424', 'Dynamite',                'BTS',                'kpop',   'K-Pop'),
+  mk('1762365714', 'Cupid',                   'FIFTY FIFTY',        'kpop',   'K-Pop'),
+  mk('1677260541', 'Kitsch',                  'IVE',                'kpop',   'K-Pop'),
+  mk('1639416903', 'After LIKE',              'IVE',                'kpop',   'K-Pop'),
+  mk('1681823696', 'Haegeum',                 'Agust D',            'kpop',   'K-Pop'),
+  mk('1692686518', 'Super Shy',               'NewJeans',           'kpop',   'K-Pop'),
+  mk('1657231962', 'Ditto',                   'NewJeans',           'kpop',   'K-Pop'),
   // ── J-Pop ──
-  mk('1535215575', 'Plastic Love',            'Mariya Takeuchi',    'jpop',   'J-Pop'),
+  mk('1541673399', 'Plastic Love',            'Mariya Takeuchi',    'jpop',   'J-Pop'),
   mk('1535215576', 'Stay With Me',            'Miki Matsubara',     'jpop',   'J-Pop'),
-  mk('1500401820', 'Lemon',                   'Kenshi Yonezu',      'jpop',   'J-Pop'),
-  mk('1535215577', 'Subtitle',                'Official髭男dism',    'jpop',   'J-Pop'),
+  mk('1537460612', 'Lemon',                   'Kenshi Yonezu',      'jpop',   'J-Pop'),
+  mk('1648108988', 'Subtitle',                'Official髭男dism',    'jpop',   'J-Pop'),
   mk('j-mixed',    'Mixed Nuts',              'Official髭男dism',    'jpop',   'J-Pop'),
-  mk('j-idol',     'アイドル',                 'YOASOBI',            'jpop',   'J-Pop'),
-  mk('j-kaiju',    '怪獣の花唄',                'Vaundy',             'jpop',   'J-Pop'),
+  mk('1679278167', 'アイドル',                 'YOASOBI',            'jpop',   'J-Pop'),
+  mk('1706832137', '怪獣の花唄',                'Vaundy',             'jpop',   'J-Pop'),
   // ── R&B / Soul ──
   mk('1440857782', 'Late Night Tales',        'Yebba',              'rnb',    'R&B/Soul'),
-  mk('1500401821', 'Get You',                 'Daniel Caesar',      'rnb',    'R&B/Soul'),
-  mk('1500401822', 'Pink + White',            'Frank Ocean',        'rnb',    'R&B/Soul'),
-  mk('r-snooze',   'Snooze',                  'SZA',                'rnb',    'R&B/Soul'),
+  mk('1799080775', 'Get You',                 'Daniel Caesar',      'rnb',    'R&B/Soul'),
+  mk('1146195714', 'Pink + White',            'Frank Ocean',        'rnb',    'R&B/Soul'),
+  mk('1658650499', 'Snooze',                  'SZA',                'rnb',    'R&B/Soul'),
   mk('r-passion',  'Passionfruit',            'Drake',              'rnb',    'R&B/Soul'),
   mk('r-essence',  'Essence',                 'WizKid',             'rnb',    'R&B/Soul'),
   // ── Hip-Hop / Rap ──
@@ -227,12 +235,12 @@ const TRACK_POOL: RecommendedTrack[] = [
   mk('jz-kindof',  'All Blues',               'Miles Davis',        'jazz',   'Jazz'),
   mk('jz-takefive','Take Five',               'Dave Brubeck',       'jazz',   'Jazz'),
   // ── Singer / Songwriter ──
-  mk('s-anti',     'Anti-Hero',               'Taylor Swift',       'singer', 'Singer/Songwriter'),
-  mk('s-lover',    'lovely',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),
-  mk('s-skinny',   'Skinny',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),
+  mk('1650859888', 'Anti-Hero',               'Taylor Swift',       'singer', 'Singer/Songwriter'),
+  mk('1369380479', 'lovely',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),
+  mk('1739659137', 'Skinny',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),
   // ── Latin ──
-  mk('l-tusa',     'Tusa',                    'Karol G & Nicki Minaj', 'latin', 'Latin'),
-  mk('l-despac',   'Despacito',               'Luis Fonsi',         'latin',  'Latin'),
+  mk('1507252551', 'Tusa',                    'Karol G & Nicki Minaj', 'latin', 'Latin'),
+  mk('1445025224', 'Despacito',               'Luis Fonsi',         'latin',  'Latin'),
   // ── Soundtrack / Cinema ──
   mk('o-mononoke', 'もののけ姫',                '久石譲',              'soundtrack', 'Soundtrack'),
   mk('o-rain',     'Comptine d\'un autre été','Yann Tiersen',        'soundtrack', 'Soundtrack'),

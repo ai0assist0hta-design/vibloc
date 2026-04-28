@@ -36,7 +36,7 @@ const STORAGE_KEY = 'vibloc.playlists.v2';
 // cache key forces a one-time re-resolve so any track that iTunes
 // couldn't match (and was sitting on a placeholder) gets a chance
 // at the open-source cover.
-const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v4';
+const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v5';
 const PLACEHOLDER_HOST = 'picsum.photos';
 
 type EnrichedFields = {
