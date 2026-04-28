@@ -18,7 +18,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Music2, Share2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ExternalLink, Music2, Share2 } from 'lucide-react';
 import {
   appleMusicUrl,
   decodePlaylistFromHash,
@@ -31,6 +31,36 @@ const INK = '#1a1a2e';
 const PAPER = '#faf9f6';
 const MUTED = '#6e6e73';
 const DIVIDER = 'rgba(26,26,46,0.10)';
+
+// ─── Platform sniffers ───────────────────────────────────────────────
+//
+// `music://` opens the Apple Music app *directly*, bypassing iOS
+// Universal Link routing — which is the only reliable way out of
+// an in-app webview (KakaoTalk, Instagram, Threads, Line) where
+// `https://music.apple.com/…` would otherwise just render the web
+// player inside the host app.
+
+function isIOS(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  // iPhone / iPad. iPadOS reports "Macintosh" + touch, so check that too.
+  if (/iPhone|iPad|iPod/.test(ua)) return true;
+  if (/Macintosh/.test(ua) && typeof document !== 'undefined' && 'ontouchend' in document) return true;
+  return false;
+}
+
+function isInAppBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /KAKAOTALK|FBAN|FBAV|Instagram|Line|NAVER|DaumApps|wv\)|Twitter|Threads/i.test(ua);
+}
+
+/** Convert any music.apple.com URL into the `music://` variant so iOS
+ *  hands it to the Apple Music app instead of routing through Safari
+ *  (or the host webview). */
+function toAppScheme(url: string): string {
+  return url.replace(/^https?:\/\/music\.apple\.com/, 'music://music.apple.com');
+}
 
 export function PlaylistPreviewPage() {
   // Decode once on mount, then stay stable. Hash mutations after
@@ -54,6 +84,10 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
   }, [playlist]);
 
   const totalSec = playlist.tracks.length * 200;
+
+  // Detect once per mount. SSR-safe.
+  const ios = useMemo(() => isIOS(), []);
+  const inApp = useMemo(() => isInAppBrowser(), []);
 
   async function handleShare() {
     const url = window.location.href;
@@ -184,6 +218,26 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
         </div>
       </section>
 
+      {/* In-app browser hint — KakaoTalk / Instagram / Threads webviews
+          swallow Apple Music universal links. Tell the user once. */}
+      {inApp && (
+        <div style={{
+          margin: '12px auto 0', maxWidth: 560,
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          padding: '12px 14px',
+          background: 'rgba(245,179,1,0.10)',
+          border: '1px solid rgba(245,179,1,0.40)',
+          borderRadius: 12,
+          fontSize: 12, lineHeight: 1.5, color: '#7a4f00',
+        }}>
+          <AlertCircle size={16} strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div>
+            인앱 브라우저에서 열려 Apple Music 앱이 안 뜰 수 있어요.
+            우상단 <strong>⋯ → Safari/Chrome으로 열기</strong>를 한 번 눌러주세요.
+          </div>
+        </div>
+      )}
+
       {/* Track list */}
       <ol style={{
         listStyle: 'none', margin: '8px 0 0', padding: '0 12px',
@@ -192,7 +246,7 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
       }}>
         {playlist.tracks.map((t, i) => (
           <li key={`${t.i}-${i}`}>
-            <TrackRow t={t} idx={i + 1} />
+            <TrackRow t={t} idx={i + 1} ios={ios} />
           </li>
         ))}
       </ol>
@@ -217,13 +271,36 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
   );
 }
 
-function TrackRow({ t, idx }: { t: SharedTrack; idx: number }) {
-  const url = appleMusicUrl(t);
+function TrackRow({ t, idx, ios }: { t: SharedTrack; idx: number; ios: boolean }) {
+  const httpsUrl = appleMusicUrl(t);
+  // On iOS we *prefer* the music:// scheme so the Apple Music app
+  // opens directly even from inside Safari, KakaoTalk, etc. The
+  // onClick handler does the redirect manually so we can also fall
+  // back to the https URL after a short delay if the app scheme is
+  // blocked (e.g. user uninstalled Apple Music).
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!ios) return; // let the browser follow the https href
+    e.preventDefault();
+    const appUrl = toAppScheme(httpsUrl);
+    // Mark the time we tried so we can detect a fast page-blur
+    // (= app actually opened) vs. a stalled scheme (= fall through).
+    const t0 = Date.now();
+    // Give the app ~1s to take focus. If it didn't, open the web
+    // version in a new tab so the user still gets *something*.
+    const fallback = window.setTimeout(() => {
+      if (Date.now() - t0 < 1500) {
+        window.open(httpsUrl, '_blank', 'noopener,noreferrer');
+      }
+    }, 800);
+    window.addEventListener('pagehide', () => clearTimeout(fallback), { once: true });
+    window.location.href = appUrl;
+  }
   return (
     <a
-      href={url}
+      href={httpsUrl}
       target="_blank"
       rel="noreferrer"
+      onClick={handleClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '8px 10px', borderRadius: 10,
