@@ -106,7 +106,7 @@ const VARIANT_RE =
   /\b(remix|cover|karaoke|tribute|live|instrumental|acoustic|remaster(?:ed)?|edit|version|mix|sped\s*up|slowed|deluxe edition)\b/i;
 
 const COMPILATION_RE =
-  /\b(compilation|various artists|now that's what|hits|greatest|the best of|deluxe|bonus track|anniversary|reissue|collection)\b/i;
+  /\b(compilation|various artists|now that's what|hits|greatest|the best of|deluxe|bonus track|anniversary|reissue|collection|dj\s*mix|boiler\s*room|today'?s hits|workout|playlist|mixed by|ministry of sound|continuous mix|pres\.|presents)\b/i;
 
 function score(
   candidate: {

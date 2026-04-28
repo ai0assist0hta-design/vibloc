@@ -26,12 +26,9 @@ import {
   type SharedTrack,
 } from '../../lib/share/playlistShareUrl';
 import { isIOS, isInAppBrowser, openAppleMusic } from '../../lib/share/openAppleMusic';
-
-const APPLE_RED = '#FA243C';
-const INK = '#1a1a2e';
-const PAPER = '#faf9f6';
-const MUTED = '#6e6e73';
-const DIVIDER = 'rgba(26,26,46,0.10)';
+import {
+  APPLE_RED, INK, PAPER, MUTED, DIVIDER, FONT,
+} from '../../lib/ui/tokens';
 
 export function PlaylistPreviewPage() {
   // Decode once on mount, then stay stable. Hash mutations after

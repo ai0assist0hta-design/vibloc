@@ -40,7 +40,7 @@ const STORAGE_KEY = 'vibloc.playlists.v2';
 // preferred, compilation/deluxe penalized, variant penalty −60).
 // Bumping forces a one-time re-resolve so wrong-collection covers
 // from earlier passes get replaced.
-const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v6';
+const APPLE_CACHE_KEY = 'vibloc.seed.appleCache.v7';
 const PLACEHOLDER_HOST = 'picsum.photos';
 
 type EnrichedFields = {

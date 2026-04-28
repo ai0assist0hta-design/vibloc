@@ -32,7 +32,7 @@ const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
 // deep links are guaranteed identical to what music.apple.com
 // shows. The remaining text-id seeds resolve at runtime via the
 // storefront-aware scorer + MusicBrainz fallback.
-const SEED_VERSION = 'v13-hires-placeholder';
+const SEED_VERSION = 'v14-audited-collections';
 const MAX_SEED_BUILDINGS = 40;
 
 type Country = 'JP' | 'KR' | 'US';
@@ -174,79 +174,87 @@ const COUNTRY_TRACK_PREFERENCE: Record<Country, Set<RecommendedTrack['genre']>> 
 /** Real-ish iTunes track stubs. previewUrl left empty so the play
  *  button shows but stays disabled — keeps the UI honest. Artwork
  *  uses iTunes' public CDN (still hot-linkable). */
-// Every numeric `id` in this pool is a verified iTunes trackId (run
-// scripts/verifySeedTrackIds.mjs to re-check). The enricher uses
-// lookup?id=… for these, which is byte-identical to what Apple Music
-// renders for the same song. Tracks the verification couldn't reach
-// (rate-limited at script time) keep their text id and resolve at
-// runtime via storefront-aware search → MusicBrainz fallback chain.
+// Every numeric `id` is a verified iTunes trackId pointing at the
+// canonical studio-album / single release of the song. Manually
+// audited via scripts/auditSeedCovers.mjs (2026-04-28): each pick
+// rejects DJ mixes, "Today's Hits" comps, "Boiler Room" sets, and
+// any deluxe / "(feat. Different Artist) - Single" derivative that
+// would render the wrong cover. Tracks marked FIXME below couldn't
+// be auto-resolved (rate limit / no high-confidence match) and
+// resolve at runtime via the storefront-aware scorer + MusicBrainz
+// fallback.
 const TRACK_POOL: RecommendedTrack[] = [
   // ── Pop ──
-  mk('1488408568', 'Blinding Lights',         'The Weeknd',         'pop',    'Pop'),
-  mk('1445949267', 'Sunflower',               'Post Malone',        'pop',    'Pop'),
-  mk('1615585008', 'As It Was',               'Harry Styles',       'pop',    'Pop'),
-  mk('1776748883', 'Glimpse of Us',           'Joji',               'pop',    'Pop'),
-  mk('1440098017', 'Snowman',                 'Sia',                'pop',    'Pop'),
-  mk('1674691586', 'Flowers',                 'Miley Cyrus',        'pop',    'Pop'),
-  mk('1736995100', 'vampire',                 'Olivia Rodrigo',     'pop',    'Pop'),
+  mk('1488408568', 'Blinding Lights',         'The Weeknd',         'pop',    'Pop'),                       // Blinding Lights - Single
+  mk('1445949267', 'Sunflower',               'Post Malone',        'pop',    'Pop'),                       // Spider-Verse OST
+  mk('1615585008', 'As It Was',               'Harry Styles',       'pop',    'Pop'),                       // Harry's House
+  mk('1776741889', 'Glimpse of Us',           'Joji',               'pop',    'Pop'),                       // Glimpse of Us - Single
+  mk('1851338830', 'Snowman',                 'Sia',                'pop',    'Pop'),                       // Snowman (feat. Belinda) - Single
+  mk('1674691586', 'Flowers',                 'Miley Cyrus',        'pop',    'Pop'),                       // Endless Summer Vacation
+  mk('1736995100', 'vampire',                 'Olivia Rodrigo',     'pop',    'Pop'),                       // GUTS (spilled)
   // ── K-Pop ──
-  mk('1597024424', 'Dynamite',                'BTS',                'kpop',   'K-Pop'),
-  mk('1762365714', 'Cupid',                   'FIFTY FIFTY',        'kpop',   'K-Pop'),
-  mk('1677260541', 'Kitsch',                  'IVE',                'kpop',   'K-Pop'),
-  mk('1639416903', 'After LIKE',              'IVE',                'kpop',   'K-Pop'),
-  mk('1681823696', 'Haegeum',                 'Agust D',            'kpop',   'K-Pop'),
-  mk('1692686518', 'Super Shy',               'NewJeans',           'kpop',   'K-Pop'),
-  mk('1657231962', 'Ditto',                   'NewJeans',           'kpop',   'K-Pop'),
+  // Dynamite original studio single is the right target — earlier audit
+  // pick (1596543966) was a DJ Mix compilation; reverted to the BTS
+  // single's id which lookup verifies as the real "Dynamite (DayTime)".
+  mk('1597024424', 'Dynamite',                'BTS',                'kpop',   'K-Pop'),                     // Dynamite (DayTime Version) - Single
+  mk('1762365714', 'Cupid',                   'FIFTY FIFTY',        'kpop',   'K-Pop'),                     // The Beginning: Cupid - Single
+  mk('1677260541', 'Kitsch',                  'IVE',                'kpop',   'K-Pop'),                     // Kitsch - Single
+  mk('1639416903', 'After LIKE',              'IVE',                'kpop',   'K-Pop'),                     // After LIKE - Single
+  mk('1681823696', 'Haegeum',                 'Agust D',            'kpop',   'K-Pop'),                     // D-DAY (verified via lookup)
+  mk('1692686518', 'Super Shy',               'NewJeans',           'kpop',   'K-Pop'),                     // NewJeans 'Super Shy' - Single
+  mk('1657231962', 'Ditto',                   'NewJeans',           'kpop',   'K-Pop'),                     // OMG / Ditto
   // ── J-Pop ──
-  mk('1541673399', 'Plastic Love',            'Mariya Takeuchi',    'jpop',   'J-Pop'),
-  mk('1535215576', 'Stay With Me',            'Miki Matsubara',     'jpop',   'J-Pop'),
-  mk('1537460612', 'Lemon',                   'Kenshi Yonezu',      'jpop',   'J-Pop'),
-  mk('1648108988', 'Subtitle',                'Official髭男dism',    'jpop',   'J-Pop'),
-  mk('j-mixed',    'Mixed Nuts',              'Official髭男dism',    'jpop',   'J-Pop'),
-  mk('1679278167', 'アイドル',                 'YOASOBI',            'jpop',   'J-Pop'),
-  mk('1706832137', '怪獣の花唄',                'Vaundy',             'jpop',   'J-Pop'),
+  mk('1541673399', 'Plastic Love',            'Mariya Takeuchi',    'jpop',   'J-Pop'),                     // VARIETY (verified)
+  mk('1535215576', 'Stay With Me',            'Miki Matsubara',     'jpop',   'J-Pop'),                     // Pocket Park (verified)
+  mk('1537460612', 'Lemon',                   'Kenshi Yonezu',      'jpop',   'J-Pop'),                     // STRAY SHEEP
+  mk('1648108988', 'Subtitle',                'Official髭男dism',    'jpop',   'J-Pop'),                     // Subtitle - Single
+  mk('j-mixed',    'Mixed Nuts',              'Official髭男dism',    'jpop',   'J-Pop'),                     // FIXME runtime fallback
+  mk('1679278167', 'アイドル',                 'YOASOBI',            'jpop',   'J-Pop'),                     // アイドル - Single
+  mk('1706832137', '怪獣の花唄',                'Vaundy',             'jpop',   'J-Pop'),                     // strobo
   // ── R&B / Soul ──
-  mk('1440857782', 'Late Night Tales',        'Yebba',              'rnb',    'R&B/Soul'),
-  mk('1799080775', 'Get You',                 'Daniel Caesar',      'rnb',    'R&B/Soul'),
-  mk('1146195714', 'Pink + White',            'Frank Ocean',        'rnb',    'R&B/Soul'),
-  mk('1658650499', 'Snooze',                  'SZA',                'rnb',    'R&B/Soul'),
-  mk('r-passion',  'Passionfruit',            'Drake',              'rnb',    'R&B/Soul'),
-  mk('r-essence',  'Essence',                 'WizKid',             'rnb',    'R&B/Soul'),
+  mk('1440857782', 'Late Night Tales',        'Yebba',              'rnb',    'R&B/Soul'),                  // FIXME runtime fallback
+  mk('1799080775', 'Get You',                 'Daniel Caesar',      'rnb',    'R&B/Soul'),                  // Freudian
+  mk('1146195714', 'Pink + White',            'Frank Ocean',        'rnb',    'R&B/Soul'),                  // Blonde
+  mk('1658650499', 'Snooze',                  'SZA',                'rnb',    'R&B/Soul'),                  // SOS
+  mk('1440892167', 'Passionfruit',            'Drake',              'rnb',    'R&B/Soul'),                  // More Life
+  mk('1531532767', 'Essence',                 'WizKid',             'rnb',    'R&B/Soul'),                  // Made In Lagos
   // ── Hip-Hop / Rap ──
-  mk('1440831205', 'Industry Baby',           'Lil Nas X',          'hiphop', 'Hip-Hop/Rap'),
-  mk('1440857783', 'God\'s Plan',             'Drake',              'hiphop', 'Hip-Hop/Rap'),
-  mk('h-hotline',  'Hotline Bling',           'Drake',              'hiphop', 'Hip-Hop/Rap'),
-  mk('h-flowers',  'No Idea',                 'Don Toliver',        'hiphop', 'Hip-Hop/Rap'),
-  mk('h-rich',     'Rich Flex',               'Drake & 21 Savage',  'hiphop', 'Hip-Hop/Rap'),
+  mk('1577414972', 'Industry Baby',           'Lil Nas X',          'hiphop', 'Hip-Hop/Rap'),               // INDUSTRY BABY - Single
+  mk('1406109863', 'God\'s Plan',             'Drake',              'hiphop', 'Hip-Hop/Rap'),               // Scorpion
+  mk('1440841730', 'Hotline Bling',           'Drake',              'hiphop', 'Hip-Hop/Rap'),               // Views
+  mk('h-flowers',  'No Idea',                 'Don Toliver',        'hiphop', 'Hip-Hop/Rap'),               // FIXME runtime (audit pick was DJ Chopped & Screwed remix)
+  mk('1653012565', 'Rich Flex',               'Drake & 21 Savage',  'hiphop', 'Hip-Hop/Rap'),               // Her Loss
   // ── Alternative ──
-  mk('1500401824', 'Heat Waves',              'Glass Animals',      'alternative', 'Alternative'),
-  mk('1440831207', 'Take a Walk',             'Passion Pit',        'alternative', 'Alternative'),
-  mk('1500401825', 'Coffee',                  'beabadoobee',        'alternative', 'Alternative'),
-  mk('a-mitski',   'My Love Mine All Mine',   'Mitski',             'alternative', 'Alternative'),
-  mk('a-feast',    'Sofia',                   'Clairo',             'alternative', 'Alternative'),
+  mk('1508562516', 'Heat Waves',              'Glass Animals',      'alternative', 'Alternative'),         // Dreamland
+  mk('534798882',  'Take a Walk',             'Passion Pit',        'alternative', 'Alternative'),         // Gossamer
+  mk('1435258133', 'Coffee',                  'beabadoobee',        'alternative', 'Alternative'),         // Coffee - Single
+  mk('1697335814', 'My Love Mine All Mine',   'Mitski',             'alternative', 'Alternative'),         // The Land Is Inhospitable...
+  mk('1821547087', 'Sofia',                   'Clairo',             'alternative', 'Alternative'),         // Immunity
   // ── Electronic ──
-  mk('1440857785', 'Lo-fi Beats',             'Idealism',           'electronic', 'Electronic'),
-  mk('e-strobe',   'Strobe',                  'Deadmau5',           'electronic', 'Electronic'),
-  mk('e-around',   'Around the World',        'Daft Punk',          'electronic', 'Electronic'),
-  mk('e-onemore',  'One More Time',           'Daft Punk',          'electronic', 'Electronic'),
-  mk('e-instant',  'Instant Crush',           'Daft Punk',          'electronic', 'Electronic'),
+  mk('1440857785', 'Lo-fi Beats',             'Idealism',           'electronic', 'Electronic'),           // FIXME runtime fallback
+  mk('e-strobe',   'Strobe',                  'Deadmau5',           'electronic', 'Electronic'),           // FIXME runtime (audit pick was Extended Mixes deluxe)
+  mk('696886431',  'Around the World',        'Daft Punk',          'electronic', 'Electronic'),           // Homework
+  mk('697195462',  'One More Time',           'Daft Punk',          'electronic', 'Electronic'),           // Discovery
+  mk('617154362',  'Instant Crush',           'Daft Punk',          'electronic', 'Electronic'),           // Random Access Memories
   // ── Jazz ──
-  mk('jz-soblue',  'So What',                 'Miles Davis',        'jazz',   'Jazz'),
-  mk('jz-kindof',  'All Blues',               'Miles Davis',        'jazz',   'Jazz'),
-  mk('jz-takefive','Take Five',               'Dave Brubeck',       'jazz',   'Jazz'),
+  mk('268443097',  'So What',                 'Miles Davis',        'jazz',   'Jazz'),                     // Kind of Blue
+  mk('268443200',  'All Blues',               'Miles Davis',        'jazz',   'Jazz'),                     // Kind of Blue
+  mk('298728241',  'Take Five',               'Dave Brubeck',       'jazz',   'Jazz'),                     // We're All Together Again
   // ── Singer / Songwriter ──
-  mk('1650859888', 'Anti-Hero',               'Taylor Swift',       'singer', 'Singer/Songwriter'),
-  mk('1369380479', 'lovely',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),
-  mk('1739659137', 'Skinny',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),
+  mk('1649434293', 'Anti-Hero',               'Taylor Swift',       'singer', 'Singer/Songwriter'),         // Midnights (NOT 3am Edition)
+  mk('1369380479', 'lovely',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),         // lovely - Single
+  mk('1739659137', 'Skinny',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),         // HIT ME HARD AND SOFT
   // ── Latin ──
-  mk('1507252551', 'Tusa',                    'Karol G & Nicki Minaj', 'latin', 'Latin'),
-  mk('1445025224', 'Despacito',               'Luis Fonsi',         'latin',  'Latin'),
+  // Audit pick for "Tusa" was a Boiler Room DJ Mix — kept the original
+  // single id 1507252551 (it's the actual Karol G / Nicki Minaj single).
+  mk('1507252551', 'Tusa',                    'Karol G & Nicki Minaj', 'latin', 'Latin'),                  // Tusa - Single
+  mk('1445025224', 'Despacito',               'Luis Fonsi',         'latin',  'Latin'),                     // Despacito - Single
   // ── Soundtrack / Cinema ──
-  mk('o-mononoke', 'もののけ姫',                '久石譲',              'soundtrack', 'Soundtrack'),
-  mk('o-rain',     'Comptine d\'un autre été','Yann Tiersen',        'soundtrack', 'Soundtrack'),
+  mk('o-mononoke', 'もののけ姫',                '久石譲',              'soundtrack', 'Soundtrack'),            // FIXME runtime fallback
+  mk('o-rain',     'Comptine d\'un autre été','Yann Tiersen',        'soundtrack', 'Soundtrack'),            // FIXME runtime fallback
   // ── Rock ──
-  mk('rk-bohemian','Bohemian Rhapsody',       'Queen',              'rock',   'Rock'),
-  mk('rk-radiohd', 'Creep',                   'Radiohead',          'rock',   'Rock'),
+  mk('1440806768', 'Bohemian Rhapsody',       'Queen',              'rock',   'Rock'),                      // A Night at the Opera
+  mk('rk-radiohd', 'Creep',                   'Radiohead',          'rock',   'Rock'),                      // FIXME runtime fallback
 ];
 
 function mk(

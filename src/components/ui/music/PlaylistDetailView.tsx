@@ -18,11 +18,11 @@ import { Play, Shuffle, ChevronLeft } from 'lucide-react';
 import { useTaggerPlaylist, usePlaylist } from '../../../lib/music/buildingPlaylist';
 import { resolveAvatarUrl } from '../../../features/auth/avatar';
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
+import { APPLE_RED, FONT } from '../../../lib/ui/tokens';
 import { playPreview } from './PreviewPlayer';
 import { TrackRow } from './TrackRow';
 
 const NAME_MAX_LEN = 60;
-const APPLE_RED = '#FA243C';
 
 /** Best-effort Apple Music deep link for a pinned track. Prefers the
  *  iTunes Search API's `trackViewUrl` (storefront-correct, opens the
@@ -77,7 +77,7 @@ export function PlaylistDetailView({
     return (
       <div style={{
         padding: '24px 16px',
-        fontFamily: "'IBM Plex Mono', monospace",
+        fontFamily: FONT.mono,
         fontSize: 11, color: text2,
         textAlign: 'center',
       }}>
@@ -94,7 +94,7 @@ export function PlaylistDetailView({
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: 14,
-      fontFamily: "'IBM Plex Mono', monospace",
+      fontFamily: FONT.mono,
     }}>
       {/* Slim back bar */}
       <div style={{
@@ -163,7 +163,7 @@ export function PlaylistDetailView({
                 padding: 0,
                 fontSize: 18, fontWeight: 800, color: text,
                 letterSpacing: -0.2, lineHeight: 1.15,
-                fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif",
+                fontFamily: FONT.ui,
                 outline: 'none',
               }}
             />
@@ -172,7 +172,7 @@ export function PlaylistDetailView({
               style={{
                 fontSize: 18, fontWeight: 800, color: text,
                 letterSpacing: -0.2, lineHeight: 1.15,
-                fontFamily: "'Inter', 'Pretendard', system-ui, sans-serif",
+                fontFamily: FONT.ui,
                 wordBreak: 'break-word',
               }}
               title={headline}
@@ -291,7 +291,7 @@ export function PlaylistDetailView({
 
 function backBtnStyle(text: string, divider: string): React.CSSProperties {
   return {
-    fontFamily: "'IBM Plex Mono', monospace",
+    fontFamily: FONT.mono,
     fontSize: 10, fontWeight: 700, letterSpacing: 0.6,
     padding: '5px 10px', borderRadius: 8,
     border: `1px solid ${divider}`,
@@ -312,7 +312,7 @@ function pillBtnStyle({
     background: filled ? APPLE_RED : 'transparent',
     color: filled ? '#fff' : text,
     fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
-    fontFamily: "'IBM Plex Mono', monospace",
+    fontFamily: FONT.mono,
     cursor: 'pointer',
     transition: 'transform 120ms ease, opacity 120ms ease, background 120ms ease',
   };
@@ -358,7 +358,7 @@ function CoverArt({
           width: '100%', height: '100%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: text2,
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: FONT.mono,
           fontSize: 40, fontWeight: 800,
         }}>
           {(fallback.trim().charAt(0) || '?').toUpperCase()}

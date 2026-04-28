@@ -27,6 +27,7 @@ import { useState } from 'react';
 import { Play, Pause, Plus, Check, X, MoreHorizontal, Music2 } from 'lucide-react';
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
 import { openAppleMusic } from '../../../lib/share/openAppleMusic';
+import { APPLE_RED, FONT } from '../../../lib/ui/tokens';
 import { playPreview, usePlayerState } from './PreviewPlayer';
 
 export type RightAction = 'add' | 'pinned' | 'remove';
@@ -45,7 +46,6 @@ type Props = {
   appleMusicHref?: string;
 };
 
-const APPLE_RED = '#FA243C';
 
 const HOVER_BG = 'rgba(26,26,46,0.05)';
 
@@ -162,7 +162,7 @@ export function TrackRow({
             fontSize: 13,
             fontWeight: isCurrent ? 700 : 600,
             color: text,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: FONT.mono,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -176,7 +176,7 @@ export function TrackRow({
           style={{
             fontSize: 11.5,
             color: text2,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: FONT.mono,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -203,7 +203,7 @@ export function TrackRow({
             border: 'none',
             background: APPLE_RED, color: '#fff',
             fontSize: 10.5, fontWeight: 800, letterSpacing: 0.3,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: FONT.mono,
             cursor: 'pointer',
             flexShrink: 0,
             opacity: 0.92,
