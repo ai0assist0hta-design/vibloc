@@ -58,10 +58,10 @@ const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
 // deep links are guaranteed identical to what music.apple.com
 // shows. The remaining text-id seeds resolve at runtime via the
 // storefront-aware scorer + MusicBrainz fallback.
-// v15 = build-time baked covers. mk() now reads seedCovers.json
-// (50/52 seeds resolved across iTunes lookup + Search + Deezer +
-// MusicBrainz/CAA), so first paint already has the right image.
-const SEED_VERSION = 'v15-baked-covers';
+// v16 = personal playlist names ("{First}'s playlist") replacing
+// the editorial blurb headlines. Bumping forces re-seed so existing
+// buildings pick up the new name on next visit.
+const SEED_VERSION = 'v16-personal-names';
 const MAX_SEED_BUILDINGS = 40;
 
 type Country = 'JP' | 'KR' | 'US';
@@ -89,98 +89,100 @@ type Agent = {
 };
 
 /** Demo curators — each one is a small persona with a distinct city,
- *  time-of-day, and taste profile. Names mix Korean, Japanese, and
- *  Western to mirror the cities VIBLOC ships (Shinjuku, Itaewon,
- *  Manhattan, LA). Avatars via DiceBear (deterministic by seed). */
+ *  time-of-day, and taste profile. Playlist names follow the
+ *  "{First}'s playlist" pattern (mirrors how iOS Music defaults
+ *  user-created libraries) so the cards read as personal collections
+ *  instead of editorial blurbs. The persona's vibe / taste keeps
+ *  driving track selection — only the headline string changed. */
 const AGENTS: Agent[] = [
   // ── KR curators (Seoul: Itaewon, Gangnam, Hongdae) ──
   { id: 'agent-luna', name: 'Luna Park', avatarUrl: null,
     homeCountry: 'KR', vibe: 'late-night',
-    playlistName: 'rainy 4am alley walk',
+    playlistName: "Luna's playlist",
     taste: ['rnb', 'jazz', 'singer'],
     note: 'late-night songs from walking these blocks.' },
   { id: 'agent-min', name: 'Min Seo', avatarUrl: null,
     homeCountry: 'KR', vibe: 'sunset',
-    playlistName: 'Itaewon backstreet R&B',
+    playlistName: "Min's playlist",
     taste: ['rnb', 'kpop', 'singer'],
     note: 'k-r&b heavy. for slow walks down side alleys.' },
   { id: 'agent-yuna', name: 'Yuna Choi', avatarUrl: null,
     homeCountry: 'KR', vibe: 'late-night',
-    playlistName: 'Gangnam 3AM cab',
+    playlistName: "Yuna's playlist",
     taste: ['kpop', 'rnb', 'pop'],
     note: 'one-hour set — leaving the first round, heading to the second.' },
   { id: 'agent-jaehyun', name: 'Jaehyun Park', avatarUrl: null,
     homeCountry: 'KR', vibe: 'office',
-    playlistName: 'Yeoksam tower lunch hour',
+    playlistName: "Jaehyun's playlist",
     taste: ['kpop', 'pop', 'electronic'],
     note: '회식 전 카페 셋.' },
   { id: 'agent-haeun', name: 'Haeun Lee', avatarUrl: null,
     homeCountry: 'KR', vibe: 'cafe',
-    playlistName: 'Hongdae bookshop afternoon',
+    playlistName: "Haeun's playlist",
     taste: ['singer', 'jazz', 'alternative'],
     note: 'soft acoustic set.' },
 
   // ── JP curators (Shinjuku, Shibuya) ──
   { id: 'agent-jiro', name: 'Jiro Tanaka', avatarUrl: null,
     homeCountry: 'JP', vibe: 'late-night',
-    playlistName: 'Shinjuku 5AM loop',
+    playlistName: "Jiro's playlist",
     taste: ['electronic', 'jpop', 'soundtrack'],
     note: 'coffee + ambient bass + neon reflections.' },
   { id: 'agent-rio', name: 'Rio Suzuki', avatarUrl: null,
     homeCountry: 'JP', vibe: 'office',
-    playlistName: 'morning commute · lofi hiphop',
+    playlistName: "Rio's playlist",
     taste: ['hiphop', 'electronic', 'jpop'],
     note: 'my daily train-ride set.' },
   { id: 'agent-sora', name: 'Sora Hinata', avatarUrl: null,
     homeCountry: 'JP', vibe: 'cafe',
-    playlistName: 'Shibuya sunday afternoon',
+    playlistName: "Sora's playlist",
     taste: ['jpop', 'pop', 'singer'],
     note: 'brunch-cafe playlist.' },
   { id: 'agent-mei', name: 'Mei Watanabe', avatarUrl: null,
     homeCountry: 'JP', vibe: 'cafe',
-    playlistName: 'rainy sunday in Shinjuku',
+    playlistName: "Mei's playlist",
     taste: ['jpop', 'jazz', 'singer'],
     note: 'rainy sunday at the listening bar.' },
   { id: 'agent-haru', name: 'Haru Mori', avatarUrl: null,
     homeCountry: 'JP', vibe: 'sunset',
-    playlistName: 'Tokyo rooftop sundown',
+    playlistName: "Haru's playlist",
     taste: ['jpop', 'pop', 'electronic'],
     note: 'city pop revival cuts.' },
 
   // ── US curators (Manhattan, LA) ──
   { id: 'agent-kai', name: 'Kai Roberts', avatarUrl: null,
     homeCountry: 'US', vibe: 'sunset',
-    playlistName: 'Brooklyn rooftop @ golden hour',
+    playlistName: "Kai's playlist",
     taste: ['hiphop', 'rnb', 'pop'],
     note: 'BK summer set.' },
   { id: 'agent-omar', name: 'Omar Hassan', avatarUrl: null,
     homeCountry: 'US', vibe: 'late-night',
-    playlistName: 'Manhattan 4AM cab ride',
+    playlistName: "Omar's playlist",
     taste: ['hiphop', 'rnb', 'electronic'],
     note: 'after-hours uptown taxi loop.' },
   { id: 'agent-leo', name: 'Leo Vasquez', avatarUrl: null,
     homeCountry: 'US', vibe: 'hangout',
-    playlistName: 'echo park / silver lake drive',
+    playlistName: "Leo's playlist",
     taste: ['alternative', 'latin', 'pop'],
     note: 'LA eastside, windows down.' },
   { id: 'agent-ava', name: 'Ava Chen', avatarUrl: null,
     homeCountry: 'US', vibe: 'sunset',
-    playlistName: 'rooftop sunset, indie + dream pop',
+    playlistName: "Ava's playlist",
     taste: ['alternative', 'pop', 'singer'],
     note: 'indie + dream pop.' },
   { id: 'agent-ezra', name: 'Ezra Maeda', avatarUrl: null,
     homeCountry: 'US', vibe: 'late-night',
-    playlistName: 'late night drives',
+    playlistName: "Ezra's playlist",
     taste: ['electronic', 'pop', 'rock'],
     note: 'synthwave heavy.' },
   { id: 'agent-noa', name: 'Noa Kim', avatarUrl: null,
     homeCountry: 'US', vibe: 'cafe',
-    playlistName: 'cafe americano hour',
+    playlistName: "Noa's playlist",
     taste: ['jazz', 'singer', 'rnb'],
     note: 'lo-fi + jazz + warm vocals.' },
   { id: 'agent-hugo', name: 'Hugo Vrai', avatarUrl: null,
     homeCountry: 'US', vibe: 'hangout',
-    playlistName: 'french touch / city pop',
+    playlistName: "Hugo's playlist",
     taste: ['electronic', 'jpop', 'pop'],
     note: 'french touch + city pop crossover.' },
 ];
