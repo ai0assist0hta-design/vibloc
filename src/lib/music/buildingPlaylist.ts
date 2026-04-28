@@ -248,6 +248,11 @@ export type TaggerGroup = {
   taggerId: string;
   taggerName: string;
   taggerAvatarUrl: string | null;
+  /** Album artwork of the playlist's most-liked / most-recent track.
+   *  Used as the playlist's default thumbnail (Spotify-style "made
+   *  by the song" cover) when the curator hasn't uploaded their own
+   *  avatar. Null only if every pinned track lacks artwork. */
+  coverArtworkUrl: string | null;
   /** Combined ranking score = playlistLikes + sum(trackLikes). */
   totalLikes: number;
   /** Hearts the playlist itself received (independent of track likes). */
@@ -288,6 +293,13 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
   if (!entry || entry.tracks.length === 0) return [];
 
   const groups = new Map<string, TaggerGroup>();
+  // Track the best-cover candidate per tagger separately — pick the
+  // most-liked track's artwork (then most-recent on ties) so the
+  // thumbnail represents the strongest song of the playlist.
+  const coverCandidates = new Map<
+    string,
+    { artworkUrl: string | null; likes: number; pinnedAt: number }
+  >();
   for (const t of entry.tracks) {
     const id = t.taggerId ?? 'anonymous';
     const name = t.taggerName ?? 'Anonymous';
@@ -301,6 +313,7 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
         taggerId: id,
         taggerName: name,
         taggerAvatarUrl: t.taggerAvatarUrl ?? null,
+        coverArtworkUrl: null, // filled below
         totalLikes: t.likes ?? 0,
         playlistLikes: 0,
         trackCount: 1,
@@ -308,6 +321,23 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
         latestAt: t.pinnedAt,
       });
     }
+    const tArt = t.artworkUrl || null;
+    if (tArt) {
+      const cur = coverCandidates.get(id);
+      const tLikes = t.likes ?? 0;
+      if (!cur ||
+          tLikes > cur.likes ||
+          (tLikes === cur.likes && t.pinnedAt > cur.pinnedAt)) {
+        coverCandidates.set(id, {
+          artworkUrl: tArt,
+          likes: tLikes,
+          pinnedAt: t.pinnedAt,
+        });
+      }
+    }
+  }
+  for (const g of groups.values()) {
+    g.coverArtworkUrl = coverCandidates.get(g.taggerId)?.artworkUrl ?? null;
   }
 
   // Fold playlist-level likes into the ranking score.

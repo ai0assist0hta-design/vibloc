@@ -147,6 +147,7 @@ export function TopTaggerCard({
             <TaggerThumb
               taggerId={g.taggerId}
               avatarUrl={g.taggerAvatarUrl ?? null}
+              coverUrl={g.coverArtworkUrl ?? null}
               divider={divider}
               alt={g.taggerName}
             />
@@ -220,54 +221,62 @@ export function TopTaggerCard({
   );
 }
 
-/** Tagger avatar thumb. Two render modes, picked deterministically
- *  per `taggerId` so the same user always gets the same look:
+/** Tagger avatar thumb. Three-tier fallback chain (Spotify-style):
  *
- *   1. PHOTO   — when `avatarUrl` is supplied (DiceBear cartoon for
- *                seed agents, real upload for actual users) AND the
- *                hash bit lands on "photo".
- *   2. MONOGRAM — Slack/Discord style initial-on-tinted-circle.
+ *   1. AVATAR — `avatarUrl` set → render as the curator's chosen photo.
+ *   2. COVER  — fall back to the playlist's top track artwork
+ *              (`coverUrl`). This is the default for seeded curators
+ *              and any real user who hasn't uploaded an avatar — it
+ *              makes the playlist feel anchored to its sound.
+ *   3. MONOGRAM — initial-letter circle with hashed hue, last resort.
  *
- *  Photo falls back to monogram on <img> error, so a broken avatar
- *  URL never leaves a blank circle. */
+ *  Image loads fall back to the next tier on <img> error so a broken
+ *  CDN URL never leaves a blank circle. */
 function TaggerThumb({
-  taggerId, avatarUrl, divider, alt,
+  taggerId, avatarUrl, coverUrl, divider, alt,
 }: {
   taggerId: string;
   avatarUrl: string | null;
+  coverUrl: string | null;
   divider: string;
   alt: string;
 }) {
-  // Stable hash. Bit 0 → photo vs monogram coin flip; the rest of
-  // the bits drive the monogram hue.
   let h = 0;
   for (let i = 0; i < taggerId.length; i++) h = (h * 31 + taggerId.charCodeAt(i)) >>> 0;
-  const showPhoto = !!avatarUrl && (h & 1) === 0;
   const initial = (alt || taggerId).trim().charAt(0).toUpperCase() || '?';
   const hue = h % 360;
-  const [photoBroken, setPhotoBroken] = useState(false);
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const [coverBroken, setCoverBroken] = useState(false);
 
-  if (showPhoto && !photoBroken) {
+  // Tier 1 — curator's chosen photo (real users).
+  if (avatarUrl && !avatarBroken) {
     return (
       <img
-        src={avatarUrl!}
+        src={avatarUrl}
         alt={alt}
         loading="lazy"
         decoding="async"
         referrerPolicy="no-referrer"
-        onError={() => setPhotoBroken(true)}
-        style={{
-          width: 28, height: 28, borderRadius: '50%',
-          objectFit: 'cover',
-          background: `hsl(${hue}, 55%, 88%)`,
-          border: `2px solid ${divider}`,
-          boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
-          flexShrink: 0,
-          display: 'block',
-        }}
+        onError={() => setAvatarBroken(true)}
+        style={thumbImgStyle(hue, divider)}
       />
     );
   }
+  // Tier 2 — playlist's top-track album cover.
+  if (coverUrl && !coverBroken) {
+    return (
+      <img
+        src={coverUrl}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onError={() => setCoverBroken(true)}
+        style={thumbImgStyle(hue, divider)}
+      />
+    );
+  }
+  // Tier 3 — initial monogram fallback.
   return (
     <span
       aria-label={alt}
@@ -284,6 +293,18 @@ function TaggerThumb({
       }}
     >{initial}</span>
   );
+}
+
+function thumbImgStyle(hue: number, divider: string): React.CSSProperties {
+  return {
+    width: 28, height: 28, borderRadius: '50%',
+    objectFit: 'cover',
+    background: `hsl(${hue}, 55%, 88%)`,
+    border: `2px solid ${divider}`,
+    boxShadow: '0 0 0 1px rgba(0,0,0,0.06)',
+    flexShrink: 0,
+    display: 'block',
+  };
 }
 
 /** Olympic-style medal pip — gold/silver/bronze depending on rank.
