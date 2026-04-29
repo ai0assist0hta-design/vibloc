@@ -76,6 +76,23 @@ const DICT: Record<string, Record<Lang, string>> = {
   'panel.close':         { en: 'Close',                 ko: '닫기',          ja: '閉じる' },
   'panel.tenants':       { en: 'Tenants',               ko: '입점 정보',     ja: 'テナント情報' },
   'panel.music':         { en: 'Music',                 ko: '음악',          ja: '音楽' },
+
+  // Desktop-only gate (small viewports)
+  'gate.headline': {
+    en: 'VIBLOC is a desktop experience.',
+    ko: 'VIBLOC은 데스크탑에서 사용해주세요.',
+    ja: 'VIBLOCはデスクトップ向けです。',
+  },
+  'gate.body': {
+    en: 'The 3D city, side panels, and now-playing controls need a wider screen. Open this on a laptop or larger tablet to start exploring.',
+    ko: '3D 도시 · 양쪽 패널 · 음악 플레이어를 모두 보려면 더 큰 화면이 필요합니다. 노트북이나 큰 태블릿에서 열어 주세요.',
+    ja: '3D都市・サイドパネル・再生コントロールを表示するには大きな画面が必要です。ノートPCまたはタブレットで開いてください。',
+  },
+  'gate.hint': {
+    en: 'Best at 1280 px+ width',
+    ko: '1280px 이상 화면 권장',
+    ja: '1280px以上を推奨',
+  },
   'panel.copyPlusCode':  { en: 'Copy Plus Code',        ko: 'Plus Code 복사', ja: 'Plus Code をコピー' },
 
   // Search bar
@@ -344,6 +361,8 @@ const DICT: Record<string, Record<Lang, string>> = {
   // ─── Player / Detail / Share (added 2026-04-28) ───
   'player.play':           { en: 'Play',                  ko: '재생',          ja: '再生' },
   'player.pause':          { en: 'Pause',                 ko: '일시정지',      ja: '一時停止' },
+  'player.prev':           { en: 'Previous track',        ko: '이전 곡',       ja: '前の曲' },
+  'player.next':           { en: 'Next track',            ko: '다음 곡',       ja: '次の曲' },
   'player.shuffle':        { en: 'Shuffle',               ko: '랜덤재생',      ja: 'シャッフル' },
   'player.close':          { en: 'Close player',          ko: '플레이어 닫기', ja: 'プレーヤーを閉じる' },
   'player.appleMusic':     { en: 'Apple Music',           ko: 'Apple Music',   ja: 'Apple Music' },

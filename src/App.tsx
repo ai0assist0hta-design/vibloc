@@ -35,7 +35,7 @@ import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetview/street
 import { loadAppleGenreColors } from './lib/music/genreColorSource';
 import { useArtworkTint } from './lib/music/headerTint';
 import { getTopTaggers, getTracksByTagger, usePlaylist } from './lib/music/buildingPlaylist';
-import { playPreview } from './components/ui/music/PreviewPlayer';
+import { playPreview, setQueue } from './components/ui/music/PreviewPlayer';
 import { STATIC_GENRE_COLORS } from './data/genres';
 import { useWeatherStore } from './stores/useWeatherStore';
 import { useAuthStore } from './features/auth/useAuthStore';
@@ -536,17 +536,29 @@ function App() {
       const top = getTopTaggers(id, 1)[0];
       if (!top) return;
       const tracks = getTracksByTagger(id, top.taggerId);
-      const first = tracks.find((tr) => tr.previewUrl);
+      // Build a queue of every preview-able track from the #1
+      // playlist so the NowPlayingBar's prev/next buttons can walk
+      // it. The queue is set even when auto-play is a no-op (same
+      // building re-click) so the user can still skip from the bar.
+      const queue = tracks
+        .filter((tr) => tr.previewUrl)
+        .map((tr) => ({
+          id: tr.id,
+          url: tr.previewUrl,
+          meta: {
+            title: tr.trackName,
+            artist: tr.artistName,
+            artworkUrl: tr.artworkUrl || undefined,
+            appleUrl: tr.trackViewUrl || undefined,
+          },
+        }));
+      setQueue(queue);
+      const first = queue[0];
       if (!first) return;
       const last = lastAutoPlayRef.current;
       if (last && last.buildingId === id && last.trackId === first.id) return;
       lastAutoPlayRef.current = { buildingId: id, trackId: first.id };
-      playPreview(first.id, first.previewUrl, {
-        title: first.trackName,
-        artist: first.artistName,
-        artworkUrl: first.artworkUrl || undefined,
-        appleUrl: first.trackViewUrl || undefined,
-      });
+      playPreview(first.id, first.url, first.meta);
     }, 250);
     return () => clearTimeout(t);
   }, [selectedBuilding]);

@@ -6,6 +6,7 @@ import { LandingPage } from '@/pages/landing/LandingPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignupPage } from '@/pages/auth/SignupPage';
 import { MyPage } from '@/pages/mypage/MyPage';
+import { DesktopOnlyGate } from '@/components/ui/DesktopOnlyGate';
 
 // MapAppPage drags in three.js / drei / postprocessing / 3d-tiles-renderer
 // (~1.4 MB of the bundle). Visitors landing on `/`, `/login`, `/signup`,
@@ -54,9 +55,15 @@ export function AppRoutes() {
       <Route
         path="/map"
         element={
-          <Suspense fallback={<MapBootSplash />}>
-            <MapAppPage />
-          </Suspense>
+          // Desktop-only gate wraps the 3D experience: phones / small
+          // viewports get a friendly splash explaining VIBLOC needs a
+          // larger screen, instead of a broken layout. Marketing /
+          // share-preview routes stay mobile-friendly outside this.
+          <DesktopOnlyGate>
+            <Suspense fallback={<MapBootSplash />}>
+              <MapAppPage />
+            </Suspense>
+          </DesktopOnlyGate>
         }
       />
       <Route

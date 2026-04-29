@@ -50,11 +50,24 @@ export type PlayerState = {
   duration: number;
   /** Current playhead position in seconds. */
   position: number;
+  /** Optional queue (e.g. the building's #1 playlist) for prev / next
+   *  navigation in the NowPlayingBar. Empty array = no nav, buttons
+   *  render disabled. The current track index is derived from
+   *  `queue.findIndex(t => t.id === currentId)`. */
+  queue: QueueEntry[];
+};
+
+/** Trimmed track shape for queue nav — a queue entry needs the URL
+ *  to play and the meta to show in the bar. */
+export type QueueEntry = {
+  id: string;
+  url: string;
+  meta: TrackMeta;
 };
 
 let audioEl: HTMLAudioElement | null = null;
 let state: PlayerState = {
-  currentId: null, isPlaying: false, meta: null, duration: 0, position: 0,
+  currentId: null, isPlaying: false, meta: null, duration: 0, position: 0, queue: [],
 };
 const listeners = new Set<Listener>();
 
@@ -69,6 +82,14 @@ function ensureAudio(): HTMLAudioElement {
   audioEl.addEventListener('ended', () => {
     state = { ...state, isPlaying: false, position: 0 };
     notify();
+    // Auto-advance to the next queue entry if one exists. Mirrors
+    // Spotify / Apple Music behavior — the user expects continuous
+    // listening once a queue is set.
+    const idx = state.queue.findIndex((q) => q.id === state.currentId);
+    if (idx >= 0 && idx < state.queue.length - 1) {
+      const next = state.queue[idx + 1];
+      playPreview(next.id, next.url, next.meta);
+    }
   });
   audioEl.addEventListener('pause', () => {
     if (audioEl && audioEl.currentTime < (audioEl.duration || Infinity)) {
@@ -111,6 +132,7 @@ export function playPreview(id: string, url: string, meta?: TrackMeta): void {
   if (state.currentId !== id) {
     a.src = url;
     state = {
+      ...state,            // preserve queue
       currentId: id,
       isPlaying: false,
       meta: meta ?? null,
@@ -129,10 +151,45 @@ export function playPreview(id: string, url: string, meta?: TrackMeta): void {
     },
     () => {
       // Autoplay blocked or network failure. Reset.
-      state = { currentId: null, isPlaying: false, meta: null, duration: 0, position: 0 };
+      state = { currentId: null, isPlaying: false, meta: null, duration: 0, position: 0, queue: [] };
       notify();
     },
   );
+}
+
+/** Replace the prev/next queue without interrupting current playback.
+ *  Called by surfaces that want the bar's nav buttons to work — e.g.
+ *  the auto-play effect in App.tsx hands over the building's #1
+ *  playlist as a queue right after starting the first track. */
+export function setQueue(queue: QueueEntry[]): void {
+  state = { ...state, queue };
+  notify();
+}
+
+/** Skip forward to the next track in the queue. No-op when queue
+ *  is empty or current track is the last one (no wrap). */
+export function nextTrack(): void {
+  const idx = state.queue.findIndex((q) => q.id === state.currentId);
+  if (idx < 0 || idx >= state.queue.length - 1) return;
+  const next = state.queue[idx + 1];
+  playPreview(next.id, next.url, next.meta);
+}
+
+/** Step back to the previous track. If the playhead is past the
+ *  3-second mark, restart the current track instead (Spotify /
+ *  Apple Music convention) so the user can skip back to the start. */
+export function prevTrack(): void {
+  if (state.position > 3) {
+    seekPreview(0);
+    return;
+  }
+  const idx = state.queue.findIndex((q) => q.id === state.currentId);
+  if (idx <= 0) {
+    seekPreview(0);
+    return;
+  }
+  const prev = state.queue[idx - 1];
+  playPreview(prev.id, prev.url, prev.meta);
 }
 
 /** Resume the currently-loaded track without reloading its src. Used
@@ -161,7 +218,8 @@ export function stopPreview(): void {
   const a = ensureAudio();
   a.pause();
   a.currentTime = 0;
-  state = { currentId: null, isPlaying: false, meta: null, duration: 0, position: 0 };
+  // Wipe everything including the queue — close button = full reset.
+  state = { currentId: null, isPlaying: false, meta: null, duration: 0, position: 0, queue: [] };
   notify();
 }
 

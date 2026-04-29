@@ -19,18 +19,28 @@
  * (same logic as the in-row Apple pill, so iOS jumps into the app).
  */
 
-import { Pause, Play, X } from 'lucide-react';
+import { Pause, Play, SkipBack, SkipForward, X } from 'lucide-react';
 import { useT } from '../../../lib/app/i18n';
 import { openAppleMusic } from '../../../lib/share/openAppleMusic';
 import { FONT, INK, PAPER } from '../../../lib/ui/tokens';
 import { AppleMusicIcon } from './AppleMusicIcon';
 import {
+  nextTrack,
   pausePreview,
+  prevTrack,
   resumePreview,
   seekPreview,
   stopPreview,
   usePlayerState,
 } from './PreviewPlayer';
+
+// ── Button geometry (single source of truth so every NowPlayingBar
+//    button shares the same hit area). 28 px = WCAG 2.5.8 minimum
+//    24 + 2 px breathing room top + bottom.
+const BTN = 28;
+const ICON_PRIMARY = 14; // ▶ ⏸
+const ICON_SECONDARY = 13; // ⏮ ⏭ × — slightly smaller so the play
+                            // button still reads as the dominant control.
 
 export function NowPlayingBar() {
   const player = usePlayerState();
@@ -127,7 +137,18 @@ export function NowPlayingBar() {
           </div>
         </div>
 
-        {/* Play / Pause */}
+        {/* Prev — restarts current if >3s in, else jumps to previous
+            queue entry. Disabled when the queue is empty or we're
+            already at the start with playhead < 3s. */}
+        <GhostBtn
+          onClick={() => prevTrack()}
+          disabled={!player.queue.length}
+          ariaLabel={t('player.prev')}
+        >
+          <SkipBack size={ICON_SECONDARY} fill="currentColor" strokeWidth={0} />
+        </GhostBtn>
+
+        {/* Play / Pause — dominant control, slightly larger 32 px. */}
         <button
           type="button"
           onClick={() => (player.isPlaying ? pausePreview() : resumePreview())}
@@ -140,35 +161,38 @@ export function NowPlayingBar() {
             color: INK,
             cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'transform 100ms ease',
           }}
+          onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.94)'; }}
+          onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
         >
           {player.isPlaying
-            ? <Pause size={14} fill="currentColor" strokeWidth={0} />
-            : <Play  size={14} fill="currentColor" strokeWidth={0} style={{ marginLeft: 1 }} />}
+            ? <Pause size={ICON_PRIMARY} fill="currentColor" strokeWidth={0} />
+            : <Play  size={ICON_PRIMARY} fill="currentColor" strokeWidth={0} style={{ marginLeft: 1 }} />}
         </button>
+
+        {/* Next — advances queue. Disabled at end. */}
+        <GhostBtn
+          onClick={() => nextTrack()}
+          disabled={
+            !player.queue.length
+            || player.queue.findIndex((q) => q.id === player.currentId) >= player.queue.length - 1
+          }
+          ariaLabel={t('player.next')}
+        >
+          <SkipForward size={ICON_SECONDARY} fill="currentColor" strokeWidth={0} />
+        </GhostBtn>
 
         {/* Open in Apple Music — small square app-icon button.
-            Shared component matches the same visual on track rows. */}
-        <AppleMusicIcon href={player.meta?.appleUrl} size={26} />
+            28 px so it matches BTN below; AppleMusicIcon was 26 px,
+            now bumped to share the same hit area as the controls. */}
+        <AppleMusicIcon href={player.meta?.appleUrl} size={BTN} />
 
         {/* Close — stops playback + hides the bar */}
-        <button
-          type="button"
-          onClick={stopPreview}
-          aria-label={t('player.close')}
-          style={{
-            flexShrink: 0,
-            width: 26, height: 26, borderRadius: 999,
-            border: 'none', background: 'transparent',
-            color: 'rgba(250,249,246,0.65)',
-            cursor: 'pointer',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-        >
-          <X size={14} strokeWidth={2.2} />
-        </button>
+        <GhostBtn onClick={stopPreview} ariaLabel={t('player.close')}>
+          <X size={ICON_SECONDARY} strokeWidth={2.2} />
+        </GhostBtn>
       </div>
 
       {/* Progress bar — click anywhere to seek. Ignored if duration
@@ -179,6 +203,44 @@ export function NowPlayingBar() {
         onSeek={(t) => seekPreview(t)}
       />
     </div>
+  );
+}
+
+/** Ghost (transparent) icon button. Same 28 × 28 hit area as every
+ *  other secondary control on the bar so the row reads as one
+ *  toolbar instead of a collection of mismatched widgets. */
+function GhostBtn({
+  onClick, disabled, ariaLabel, children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  ariaLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      style={{
+        flexShrink: 0,
+        width: BTN, height: BTN, borderRadius: 999,
+        border: 'none', background: 'transparent',
+        color: 'rgba(250,249,246,0.78)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.35 : 1,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 120ms ease, opacity 120ms ease',
+      }}
+      onMouseEnter={(e) => {
+        if (!disabled) e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+      }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+    >
+      {children}
+    </button>
   );
 }
 
