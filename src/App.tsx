@@ -60,6 +60,12 @@ const AREA_COUNTRY: Record<string, 'JP' | 'KR' | 'US'> = {
  *  scrolls inside whichever panel overflows. `min(…, 720px)` caps the
  *  height on tall screens so the panel doesn't dwarf the building. */
 const PANEL_CONTENT_H = 'min(calc(100vh - 140px), 720px)';
+
+/** Inner padding used by both floating panels' content layer.
+ *  Identical between left and right so the section eyebrows (PLACE /
+ *  MUSIC) sit on the exact same Y and the two panels read as a
+ *  paired design system. */
+const PANEL_INNER_PAD = '14px 18px 18px 18px';
 import './index.css';
 
 /**
@@ -1362,13 +1368,16 @@ function App() {
             {/* Scrollable content layer — sits on top of the blur halo.
                 Height locked to PANEL_CONTENT_H so the left and right
                 floating panels always render at the SAME visible
-                height; whichever panel has overflow scrolls inside. */}
+                height; whichever panel has overflow scrolls inside.
+                Padding mirrors PANEL_INNER_PAD so the PLACE eyebrow
+                lines up with MUSIC on the right panel — same top
+                inset, same horizontal indent. */}
             <div
               style={{
                 position: 'relative',
                 height: PANEL_CONTENT_H,
                 overflowY: 'auto',
-                padding: '4px 20px 4px 4px',
+                padding: PANEL_INNER_PAD,
                 fontFamily: "'IBM Plex Mono', monospace",
                 color: text,
                 display: 'flex',
@@ -1732,13 +1741,13 @@ function App() {
 
             {/* Content — section header (mirrors leftPanel's PLACE
                 pill), #1 hero on top, then top-3 list with medals.
-                Height locked to PANEL_CONTENT_H so left and right
-                panels always render at the SAME visible height. */}
+                Same height + same padding token as leftPanel so the
+                two eyebrows (PLACE / MUSIC) line up on the same Y. */}
             <div style={{
               position: 'relative',
               height: PANEL_CONTENT_H,
               overflowY: 'auto',
-              padding: '14px 18px 18px',
+              padding: PANEL_INNER_PAD,
               display: 'flex', flexDirection: 'column', gap: 14,
             }}>
               {/* Section header — green dot + MUSIC, structurally
