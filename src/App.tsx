@@ -1552,7 +1552,10 @@ function App() {
                 >
                   {allTenantsList.map((tenant, i) => {
                     const s = swatch(tenant.category);
-                    const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
+                    // Brand logos dropped — every tenant now uses the
+                    // category Lucide icon as a small pictogram so the
+                    // tenant rail reads as a uniform list, not a mix
+                    // of corporate brand marks.
                     const gURL = tenantClickUrl(tenant, buildingLat, buildingLon);
                     return (
                       <a
@@ -1595,38 +1598,15 @@ function App() {
                             position: 'relative',
                           }}
                         >
-                          {logoUrl ? (
-                            <img src={logoUrl} alt="" width={36} height={36}
-                              style={{
-                                position: 'absolute', inset: 0,
-                                width: '100%', height: '100%',
-                                objectFit: 'cover',
-                                background: '#fff',
-                              }}
-                              onError={(e) => {
-                                // Hide the broken img + reveal the icon
-                                // sibling rendered below it.
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  const fallback = parent.querySelector(
-                                    '[data-tenant-icon]'
-                                  ) as HTMLElement | null;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }
-                              }}
-                            />
-                          ) : null}
                           {(() => {
                             const Icon = CATEGORY_ICON[tenant.category] ?? MapPin;
                             return (
-                              <span data-tenant-icon style={{
-                                display: logoUrl ? 'none' : 'flex',
+                              <span style={{
+                                display: 'flex',
                                 alignItems: 'center', justifyContent: 'center',
                                 color: s.icon,
-                                position: logoUrl ? 'absolute' : 'static',
                               }}>
-                                <Icon size={16} strokeWidth={2.2} />
+                                <Icon size={18} strokeWidth={2.2} />
                               </span>
                             );
                           })()}
@@ -2443,7 +2423,7 @@ function App() {
                   >
                     {allTenantsList.map((tenant, i) => {
                       const s = swatch(tenant.category);
-                      const logoUrl = getTenantLogoUrl(tenant.name, tenant.website, tenant.brandWikidata);
+                      // Brand logos dropped (mobile mirror of desktop).
                       const gURL = tenantClickUrl(tenant, buildingLat, buildingLon);
                       return (
                         <a
@@ -2471,34 +2451,13 @@ function App() {
                             flexShrink: 0, overflow: 'hidden',
                             position: 'relative',
                           }}>
-                            {logoUrl ? (
-                              <img src={logoUrl} alt="" width={44} height={44}
-                                style={{
-                                  position: 'absolute', inset: 0,
-                                  width: '100%', height: '100%',
-                                  objectFit: 'cover',
-                                  background: '#fff',
-                                }}
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) {
-                                    const fallback = parent.querySelector(
-                                      '[data-tenant-icon]'
-                                    ) as HTMLElement | null;
-                                    if (fallback) fallback.style.display = 'flex';
-                                  }
-                                }}
-                              />
-                            ) : null}
                             {(() => {
                               const Icon = CATEGORY_ICON[tenant.category] ?? MapPin;
                               return (
-                                <span data-tenant-icon style={{
-                                  display: logoUrl ? 'none' : 'flex',
+                                <span style={{
+                                  display: 'flex',
                                   alignItems: 'center', justifyContent: 'center',
                                   color: s.icon,
-                                  position: logoUrl ? 'absolute' : 'static',
                                 }}>
                                   <Icon size={20} strokeWidth={2.2} />
                                 </span>

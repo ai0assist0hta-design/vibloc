@@ -72,3 +72,36 @@ body.map-active #root {
     scroll-behavior: auto !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Slim transparent scrollbars (added 2026-04-29)
+   ─────────────────────────────────────────────────────────────────
+   The default Chromium scrollbar inside the floating panels was
+   wide + had a white track that broke the panel's blurred-glass
+   look (visible in screenshots). Replace with a 6 px ink-tinted
+   thumb on a transparent track so the scroll affordance survives
+   without a hard white stripe behind it.
+
+   Firefox: scrollbar-width: thin + scrollbar-color (no track color
+   support, so we use 'transparent' for the track).
+   WebKit / Blink: ::-webkit-scrollbar pseudo selectors.
+   ───────────────────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 26, 46, 0.22) transparent;
+}
+@media (prefers-color-scheme: dark) {
+  * { scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(26, 26, 46, 0.22);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(26, 26, 46, 0.40); }
+@media (prefers-color-scheme: dark) {
+  *::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.22); }
+  *::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.40); }
+}
+*::-webkit-scrollbar-corner { background: transparent; }

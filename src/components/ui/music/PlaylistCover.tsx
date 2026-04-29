@@ -104,8 +104,7 @@ function Mosaic({ urls, alt }: { urls: string[]; alt: string }) {
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gridTemplateRows: '1fr 1fr',
-        gap: 1, // hairline between tiles
-        background: 'rgba(0,0,0,0.18)',
+        gap: 0, // tiles touch — no seam between mosaic frames
       }}
     >
       {urls.map((u, i) => (
