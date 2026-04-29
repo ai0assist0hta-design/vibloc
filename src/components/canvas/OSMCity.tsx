@@ -436,7 +436,10 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
         geo.setAttribute('aIsResidential', new Float32BufferAttribute(resArr, 1));
         geos.push(geo);
         buildingIndices.push(bi);
-      } catch { /* skip */ }
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn(`[city] geometry build failed for building ${bi}`, e);
+        /* skip — bad triangulation, don't crash the whole batch */
+      }
     }
 
     if (geos.length === 0) return null;

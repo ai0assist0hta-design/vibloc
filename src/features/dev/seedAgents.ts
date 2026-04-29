@@ -470,7 +470,10 @@ export function seedBuildingPlaylists(
     try {
       const parsed = JSON.parse(raw) as Record<string, BuildingPlaylistEntry>;
       if (parsed && typeof parsed === 'object') store = parsed;
-    } catch { /* corrupted — overwrite */ }
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn('[seed] localStorage corrupted, will overwrite', e);
+      /* overwrite */
+    }
   }
 
   // Bump-on-version: when the seed schema changes (e.g. we added

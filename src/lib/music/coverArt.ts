@@ -255,7 +255,11 @@ export async function resolveCover(
   let best: { score: number; track: Awaited<ReturnType<typeof searchTrack>>[number] } | null = null;
   for (const cc of STOREFRONTS) {
     let results: Awaited<ReturnType<typeof searchTrack>> = [];
-    try { results = await searchTrack(term, cc, 10); } catch { /* network — try next */ }
+    try { results = await searchTrack(term, cc, 10); }
+    catch (e) {
+      if (import.meta.env.DEV) console.warn(`[cover] iTunes search failed (${cc})`, e);
+      /* network — try next storefront */
+    }
     for (const r of results) {
       const s = score(r, want);
       if (!best || s > best.score) best = { score: s, track: r };
@@ -297,7 +301,10 @@ export async function resolveCover(
         // existing preview link if it already had one.
       };
     }
-  } catch { /* best-effort, fall through */ }
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn('[cover] MusicBrainz fallback failed', e);
+    /* best-effort, fall through to null */
+  }
 
   return null;
 }

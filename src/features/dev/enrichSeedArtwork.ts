@@ -66,7 +66,10 @@ function readCache(): AppleCache {
     if (!raw) return {};
     const parsed = JSON.parse(raw) as unknown;
     if (parsed && typeof parsed === 'object') return parsed as AppleCache;
-  } catch { /* corrupted — start fresh */ }
+  } catch (e) {
+    if (import.meta.env.DEV) console.warn('[enricher] cache parse failed, starting fresh', e);
+    /* corrupted — start fresh */
+  }
   return {};
 }
 
@@ -108,7 +111,10 @@ async function runWithConcurrency<T>(
     while (i < tasks.length) {
       const idx = i++;
       try { out[idx] = await tasks[idx](); }
-      catch { /* swallow — best-effort */ }
+      catch (e) {
+        if (import.meta.env.DEV) console.warn('[enricher] lookup task failed', e);
+        /* swallow — best-effort */
+      }
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, worker));
