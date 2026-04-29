@@ -19,8 +19,17 @@ export function getFogEffect() { return _fogEffect; }
 let _azimuthDeg = 0;
 export function getAzimuthDeg() { return _azimuthDeg; }
 
-// Shared controls ref for reset-to-north
-let _controlsRef: any = null;
+// Shared controls ref for reset-to-north. The drei OrbitControls
+// `ref` resolves to a Three.js OrbitControls instance, but importing
+// the concrete type adds a chunk to the marketing bundle for no
+// runtime gain — narrow structural type covers the surface we use.
+type OrbitControlsRef = {
+  object: import('three').Camera;
+  target: import('three').Vector3;
+  update(): void;
+  getAzimuthalAngle(): number;
+};
+let _controlsRef: OrbitControlsRef | null = null;
 export function resetToNorth() {
   if (!_controlsRef) return;
   const controls = _controlsRef;
@@ -281,7 +290,7 @@ export type NavTarget = {
 
 function CameraNavigator({ target }: { target: NavTarget | null }) {
   const { camera } = useThree();
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<OrbitControlsRef | null>(null);
   const animating = useRef(false);
   const animStart = useRef(0);
   // Captured at the moment a new target arrives so we can interpolate from
@@ -390,9 +399,9 @@ function CameraNavigator({ target }: { target: NavTarget | null }) {
 
   return (
     <OrbitControls
-      ref={(el: any) => {
+      ref={(el) => {
         controlsRef.current = el;
-        if (el) _controlsRef = el;
+        if (el) _controlsRef = el as unknown as OrbitControlsRef;
       }}
       makeDefault
       maxPolarAngle={Math.PI / 2.2}
@@ -481,7 +490,7 @@ export function PlateauScene({
       {darkMode ? (
         <>
           <directionalLight
-            ref={(el: any) => {
+            ref={(el: import('three').DirectionalLight | null) => {
               if (el) {
                 _shadowLight = el;
                 if (el.parent && !el.target.parent) el.parent.add(el.target);
@@ -511,7 +520,7 @@ export function PlateauScene({
       ) : (
         <>
           <directionalLight
-            ref={(el: any) => {
+            ref={(el: import('three').DirectionalLight | null) => {
               if (el) {
                 _shadowLight = el;
                 if (el.parent && !el.target.parent) el.parent.add(el.target);

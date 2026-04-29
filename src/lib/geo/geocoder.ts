@@ -12,12 +12,20 @@ export async function geocodeAddress(query: string): Promise<GeoResult | null> {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'VIBLOC/1.0' },
   });
-  const results = await res.json();
+  // Nominatim returns an array of result objects. We only consume
+  // three fields, so a narrow shape is enough — keeps the function
+  // usable even when Nominatim adds new properties in the future.
+  type NominatimHit = {
+    lat: string;
+    lon: string;
+    display_name: string;
+  };
+  const results = (await res.json()) as NominatimHit[] | null;
 
   if (!results || results.length === 0) return null;
 
   // Prefer results in Japan or South Korea
-  const preferred = results.find((r: any) =>
+  const preferred = results.find((r) =>
     r.display_name?.includes('Japan') ||
     r.display_name?.includes('日本') ||
     r.display_name?.includes('South Korea') ||

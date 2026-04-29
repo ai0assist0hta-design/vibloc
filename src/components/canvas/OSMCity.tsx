@@ -107,11 +107,18 @@ function groundHeightAt(x: number, z: number, hm: HeightMap): number {
   return h00 * (1 - tx) * (1 - tz) + h10 * tx * (1 - tz) + h01 * (1 - tx) * tz + h11 * tx * tz;
 }
 
-// Shared shader ref for per-frame uniform updates (uTime)
-let _buildingShader: any = null;
+// Shared shader ref for per-frame uniform updates (uTime). Three.js
+// onBeforeCompile hands us back the WebGLProgramParametersWithUniforms
+// shape — we only ever touch `.uniforms[uName].value`, so a
+// structural type covers it without pulling the full Three.js
+// program type.
+type ShaderRef = {
+  uniforms: Record<string, { value: unknown }>;
+};
+let _buildingShader: ShaderRef | null = null;
 // Ghost-pass shader (drawn on top with depthWrite=false). Same uniforms
 // as the opaque pass but only the ring fragments are kept.
-let _ghostShader: any = null;
+let _ghostShader: ShaderRef | null = null;
 
 // --- Building click detection ---
 // Point-in-polygon (ray casting)
@@ -1654,7 +1661,7 @@ function DotPoles({ districts, heights, darkMode = false }: { districts: OSMDist
 
 // Single label with distance-based fog
 function FogLabel({ district, height, darkMode = false }: { district: OSMDistrict; height: number; darkMode?: boolean }) {
-  const groupRef = useRef<any>(null);
+  const groupRef = useRef<import('three').Group | null>(null);
   const { camera } = useThree();
 
   useFrame(() => {
