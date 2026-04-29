@@ -31,7 +31,13 @@ import { type CountryCode } from '../../lib/music/itunes';
 import { resolveCover } from '../../lib/music/coverArt';
 import { reloadFromStorage } from '../../lib/music/buildingPlaylist';
 
-const STORAGE_KEY = 'vibloc.playlists.v2';
+// MUST match `STORAGE_KEY` in seedAgents.ts and buildingPlaylist.ts
+// — those write/read `vibloc.playlists.v1` for storage continuity
+// reasons documented in buildingPlaylist.ts. The enricher previously
+// pointed at a non-existent `v2`, which silently no-op'd every
+// runtime mutation (the read returned an empty store, the write
+// wrote to an unread key). Caught during the 2026-04-29 audit.
+const STORAGE_KEY = 'vibloc.playlists.v1';
 // v4 = MusicBrainz + Cover Art Archive fallback added. Bumping the
 // cache key forces a one-time re-resolve so any track that iTunes
 // couldn't match (and was sitting on a placeholder) gets a chance
