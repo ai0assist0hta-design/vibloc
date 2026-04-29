@@ -36,6 +36,12 @@ export function NowPlayingBar() {
   const player = usePlayerState();
   const t = useT();
   const visible = !!player.currentId && !!player.meta;
+  // Respect WCAG 2.3.3 / Apple HIG Reduce Motion: skip the slide
+  // animation entirely when the user has it on. The bar still
+  // appears, just without the translate + opacity easing.
+  const reducedMotion = typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Always render the chrome so the fade transition has something
   // to interpolate on. `pointerEvents: none` when hidden so the
@@ -48,10 +54,15 @@ export function NowPlayingBar() {
         position: 'fixed',
         left: '50%',
         bottom: 18,
+        // CLS 0: the bar always occupies the same fixed slot — only
+        // opacity + transform animate. Layout never shifts because
+        // the element is `position: fixed` and never reflows others.
         transform: `translateX(-50%) translateY(${visible ? 0 : 16}px)`,
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? 'auto' : 'none',
-        transition: 'opacity 180ms ease-out, transform 180ms ease-out',
+        transition: reducedMotion
+          ? 'opacity 1ms linear'
+          : 'opacity 180ms ease-out, transform 180ms ease-out',
         zIndex: 100,
         width: 'min(440px, calc(100vw - 32px))',
         background: 'rgba(15,15,20,0.78)',

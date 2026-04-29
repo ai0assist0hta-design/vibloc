@@ -35,3 +35,40 @@ body.map-active #root {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0);   }
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   A11y baseline — global focus + reduced-motion (added 2026-04-28)
+   ───────────────────────────────────────────────────────────────── */
+
+/* WCAG 2.4.7 Focus Visible — every interactive element gets the
+   same 2 px outline when keyboard-focused. The outline-offset keeps
+   it from clipping inside dense rows / pill buttons. Mouse focus
+   stays invisible because :focus-visible filters it out per UA. */
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Dark-mode focus uses a brighter shade so contrast stays ≥ 3:1 on
+   the dark backdrops the floating panels use. */
+@media (prefers-color-scheme: dark) {
+  :focus-visible {
+    outline-color: #818cf8;
+  }
+}
+
+/* WCAG 2.3.3 Animation from Interactions — when the OS reports
+   "reduce motion", strip every transition / animation system-wide.
+   Components that need to react can additionally check the matchMedia
+   value in JS (NowPlayingBar does) — this rule is the safety net. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

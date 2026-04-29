@@ -522,6 +522,13 @@ function App() {
   // tracks (the iTunes search runs async in the background) and
   // matches the panel's slide-in feel — playback starts as the
   // hero card finishes mounting.
+  //
+  // Dedup guard: keep a ref of the (buildingId, trackId) we last
+  // auto-played and skip if both match. Stops the "click same
+  // building twice → playPreview's toggle pauses the song"
+  // misfire and the "tagger group shuffles → fresh effect run →
+  // identical track restarts from 0:00" jank.
+  const lastAutoPlayRef = useRef<{ buildingId: string; trackId: string } | null>(null);
   useEffect(() => {
     if (!selectedBuilding) return;
     const id = selectedBuilding.id;
@@ -531,6 +538,9 @@ function App() {
       const tracks = getTracksByTagger(id, top.taggerId);
       const first = tracks.find((tr) => tr.previewUrl);
       if (!first) return;
+      const last = lastAutoPlayRef.current;
+      if (last && last.buildingId === id && last.trackId === first.id) return;
+      lastAutoPlayRef.current = { buildingId: id, trackId: first.id };
       playPreview(first.id, first.previewUrl, {
         title: first.trackName,
         artist: first.artistName,
