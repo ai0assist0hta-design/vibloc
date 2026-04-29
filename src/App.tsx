@@ -25,6 +25,7 @@ import { TopTaggerCard } from './components/ui/music/TopTaggerCard';
 import { FeaturedPlaylistHero } from './components/ui/music/FeaturedPlaylistHero';
 import { PopularTrackCard } from './components/ui/music/PopularTrackCard';
 import { NowPlayingBar } from './components/ui/music/NowPlayingBar';
+import { UpNextPanel } from './components/ui/music/UpNextPanel';
 import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
@@ -1746,6 +1747,13 @@ function App() {
                 }}/>
                 {t('panel.music')}
               </div>
+              {/* Apple Music macOS sidebar pattern: featured #1 hero
+                  on top (still the headline visual), then "Up Next"
+                  queue in the rail-row format (38 px artwork + title
+                  + artist) so the user can see and jump anywhere in
+                  the building's queue at a glance. The dense list
+                  replaces the old TopTaggerCard / BuildingPlaylist
+                  stack — those live in the main details panel. */}
               <FeaturedPlaylistHero
                 buildingId={selectedBuilding.id}
                 text={text}
@@ -1754,31 +1762,11 @@ function App() {
                 divider={divider}
                 onSelect={(id) => setDetailTaggerId(id)}
               />
-              <TopTaggerCard
-                buildingId={selectedBuilding.id}
+              <UpNextPanel
                 text={text}
                 text2={text2}
                 text3={text3}
                 divider={divider}
-                onSelect={(id) => setDetailTaggerId(id)}
-                limit={3}
-                medals
-              />
-              {/* MY PLAYLIST — compact summary card directly under
-                  TOP PLAYLISTS in the right floating panel so the
-                  user's own pins are always visible at a glance,
-                  without needing to scroll the main details panel.
-                  Shares the same `onOpenDetail` handler so clicking
-                  it opens the same PlaylistDetailView. */}
-              <BuildingPlaylist
-                buildingId={selectedBuilding.id}
-                cityVibe={getCityVibe(area)}
-                text={text}
-                text2={text2}
-                text3={text3}
-                divider={divider}
-                darkMode={darkMode}
-                onOpenDetail={(id) => setDetailTaggerId(id)}
               />
             </div>
           </div>

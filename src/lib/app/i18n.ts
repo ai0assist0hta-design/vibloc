@@ -363,6 +363,9 @@ const DICT: Record<string, Record<Lang, string>> = {
   'player.pause':          { en: 'Pause',                 ko: '일시정지',      ja: '一時停止' },
   'player.prev':           { en: 'Previous track',        ko: '이전 곡',       ja: '前の曲' },
   'player.next':           { en: 'Next track',            ko: '다음 곡',       ja: '次の曲' },
+
+  'queue.upNext':          { en: 'Up Next',               ko: '다음 재생',     ja: '次に再生' },
+  'queue.empty':           { en: 'Click a building to start a queue', ko: '빌딩을 클릭하면 큐가 시작됩니다', ja: '建物をクリックするとキューが始まります' },
   'player.shuffle':        { en: 'Shuffle',               ko: '랜덤재생',      ja: 'シャッフル' },
   'player.close':          { en: 'Close player',          ko: '플레이어 닫기', ja: 'プレーヤーを閉じる' },
   'player.appleMusic':     { en: 'Apple Music',           ko: 'Apple Music',   ja: 'Apple Music' },
