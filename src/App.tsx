@@ -54,6 +54,12 @@ const AREA_COUNTRY: Record<string, 'JP' | 'KR' | 'US'> = {
   manhattan: 'US',
   la: 'US',
 };
+
+/** Locked visible height of both floating panels (left + right) so
+ *  they always render at exactly the same vertical extent — content
+ *  scrolls inside whichever panel overflows. `min(…, 720px)` caps the
+ *  height on tall screens so the panel doesn't dwarf the building. */
+const PANEL_CONTENT_H = 'min(calc(100vh - 140px), 720px)';
 import './index.css';
 
 /**
@@ -1353,11 +1359,14 @@ function App() {
                 </div>
               );
             })()}
-            {/* Scrollable content layer — sits on top of the blur halo. */}
+            {/* Scrollable content layer — sits on top of the blur halo.
+                Height locked to PANEL_CONTENT_H so the left and right
+                floating panels always render at the SAME visible
+                height; whichever panel has overflow scrolls inside. */}
             <div
               style={{
                 position: 'relative',
-                maxHeight: 'calc(100vh - 120px)',
+                height: PANEL_CONTENT_H,
                 overflowY: 'auto',
                 padding: '4px 20px 4px 4px',
                 fontFamily: "'IBM Plex Mono', monospace",
@@ -1722,9 +1731,13 @@ function App() {
             })()}
 
             {/* Content — section header (mirrors leftPanel's PLACE
-                pill), #1 hero on top, then top-3 list with medals. */}
+                pill), #1 hero on top, then top-3 list with medals.
+                Height locked to PANEL_CONTENT_H so left and right
+                panels always render at the SAME visible height. */}
             <div style={{
               position: 'relative',
+              height: PANEL_CONTENT_H,
+              overflowY: 'auto',
               padding: '14px 18px 18px',
               display: 'flex', flexDirection: 'column', gap: 14,
             }}>
