@@ -1710,13 +1710,15 @@ function App() {
                   }
                 : {
                     top: 0,
-                    // Slide left by FixedQueueSidebar's width so the
-                    // main details panel doesn't park under the
-                    // viewport-fixed Up Next rail. Both surfaces
-                    // stay visible side by side.
-                    right: 280,
+                    // Tucked against FixedToolSidebar's right edge
+                    // (sidebar = 280 px). The two left rails read
+                    // as one continuous tool-and-music column,
+                    // mirroring the right side (chasing music +
+                    // FixedQueueSidebar). Both left rails always
+                    // visible per user request.
+                    left: 280,
                     bottom: 0,
-                    width: 440,
+                    width: 320,
                     borderLeft: `1px solid ${divider}`,
                     borderRight: `1px solid ${divider}`,
                   }),
