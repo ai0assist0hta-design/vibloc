@@ -24,7 +24,12 @@
 import { ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useT } from '../../../lib/app/i18n';
+import { getCityVibe } from '../../../lib/music/cityProfile';
+import type { CityAreaKey } from '../../../lib/geo/osmLoader';
 import { FONT } from '../../../lib/ui/tokens';
+import { BuildingPlaylist } from './BuildingPlaylist';
+import { FeaturedPlaylistHero } from './FeaturedPlaylistHero';
+import { TopTaggerCard } from './TopTaggerCard';
 import { UpNextPanel } from './UpNextPanel';
 import { usePlayerState } from './PreviewPlayer';
 
@@ -34,12 +39,23 @@ type Props = {
   text3: string;
   divider: string;
   darkMode: boolean;
+  /** Building currently selected in the 3D scene. When set, the rail
+   *  shows that building's music context (Featured / Top Playlists /
+   *  My Playlist) plus the Up Next queue. When null, only the queue
+   *  shows (or the whole rail hides if the queue is empty too). */
+  buildingId: string | null;
+  /** Area key — used to look up the city vibe for BuildingPlaylist. */
+  area: CityAreaKey;
+  /** Callback when a tagger row is clicked → opens PlaylistDetailView
+   *  in the main building details panel. */
+  onOpenDetail?: (taggerId: string) => void;
 };
 
 const SIDEBAR_W = 280;
 
 export function FixedQueueSidebar({
   text, text2, text3, divider, darkMode,
+  buildingId, area, onOpenDetail,
 }: Props) {
   const player = usePlayerState();
   const t = useT();
@@ -50,15 +66,21 @@ export function FixedQueueSidebar({
   const [open, setOpen] = useState(true);
 
   // Auto-open the rail whenever the queue ROOT changes (= a new
-  // building was selected). After that the user's manual collapse
-  // is respected until the next building swap.
+  // building was selected) OR a building is freshly selected.
+  // After that the user's manual collapse is respected until the
+  // next building swap.
   const hasQueue = player.queue.length > 0;
   const queueRootId = hasQueue ? player.queue[0].id : null;
   useEffect(() => {
     if (queueRootId) setOpen(true);
   }, [queueRootId]);
+  useEffect(() => {
+    if (buildingId) setOpen(true);
+  }, [buildingId]);
 
-  if (!hasQueue) return null;
+  // Hide the rail entirely when there's nothing to show — neither
+  // a selected building NOR a live queue.
+  if (!hasQueue && !buildingId) return null;
 
   // ── Closed state: thin tab handle on the right edge. Click → open.
   if (!open) {
@@ -149,15 +171,50 @@ export function FixedQueueSidebar({
         </button>
       </div>
 
-      {/* Scrollable queue body — same UpNextPanel used in the
-          building-anchored rail's earlier iteration; reusing it
-          keeps the row layout in sync between any future surfaces
-          that want to show the queue. */}
+      {/* Scrollable body. When a building is selected, we show its
+          music context FIRST (Featured #1 + Top Playlists + My
+          Playlist) — same content that used to live in the chasing
+          right panel — then the Up Next queue underneath. The
+          queue stays even after the user deselects a building so
+          they can keep scrubbing what's playing. */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '10px 12px 80px', // bottom padding clears NowPlayingBar
+        padding: '12px 14px 96px', // bottom clears NowPlayingBar
+        display: 'flex', flexDirection: 'column', gap: 14,
       }}>
+        {buildingId && (
+          <>
+            <FeaturedPlaylistHero
+              buildingId={buildingId}
+              text={text}
+              text2={text2}
+              text3={text3}
+              divider={divider}
+              onSelect={(id) => onOpenDetail?.(id)}
+            />
+            <TopTaggerCard
+              buildingId={buildingId}
+              text={text}
+              text2={text2}
+              text3={text3}
+              divider={divider}
+              onSelect={(id) => onOpenDetail?.(id)}
+              limit={3}
+              medals
+            />
+            <BuildingPlaylist
+              buildingId={buildingId}
+              cityVibe={getCityVibe(area)}
+              text={text}
+              text2={text2}
+              text3={text3}
+              divider={divider}
+              darkMode={darkMode}
+              onOpenDetail={(id) => onOpenDetail?.(id)}
+            />
+          </>
+        )}
         <UpNextPanel
           text={text}
           text2={text2}

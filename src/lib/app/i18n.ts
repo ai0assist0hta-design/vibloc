@@ -366,6 +366,17 @@ const DICT: Record<string, Record<Lang, string>> = {
 
   'queue.upNext':          { en: 'Up Next',               ko: '다음 재생',     ja: '次に再生' },
   'queue.empty':           { en: 'Click a building to start a queue', ko: '빌딩을 클릭하면 큐가 시작됩니다', ja: '建物をクリックするとキューが始まります' },
+
+  // Tool sidebar (left)
+  'tools.expand':       { en: 'Expand tools',   ko: '도구 펼치기',   ja: 'ツールを開く' },
+  'tools.collapse':     { en: 'Collapse tools', ko: '도구 접기',     ja: 'ツールを閉じる' },
+  'tools.navLabel':     { en: 'Tools',          ko: '도구',          ja: 'ツール' },
+  'tools.search':       { en: 'Search',         ko: '검색',          ja: '検索' },
+  'tools.profile':      { en: 'Profile',        ko: '프로필',        ja: 'プロフィール' },
+  'tools.cities':       { en: 'Cities',         ko: '도시',          ja: '都市' },
+  'tools.settings':     { en: 'Settings',       ko: '설정',          ja: '設定' },
+  'tools.darkMode':     { en: 'Dark mode',      ko: '다크 모드',     ja: 'ダークモード' },
+  'tools.lightMode':    { en: 'Light mode',     ko: '라이트 모드',   ja: 'ライトモード' },
   'player.shuffle':        { en: 'Shuffle',               ko: '랜덤재생',      ja: 'シャッフル' },
   'player.close':          { en: 'Close player',          ko: '플레이어 닫기', ja: 'プレーヤーを閉じる' },
   'player.appleMusic':     { en: 'Apple Music',           ko: 'Apple Music',   ja: 'Apple Music' },
