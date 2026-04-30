@@ -26,6 +26,7 @@ import { FeaturedPlaylistHero } from './components/ui/music/FeaturedPlaylistHero
 import { PopularTrackCard } from './components/ui/music/PopularTrackCard';
 import { NowPlayingBar } from './components/ui/music/NowPlayingBar';
 import { FixedQueueSidebar } from './components/ui/music/FixedQueueSidebar';
+import { FixedToolSidebar } from './components/ui/FixedToolSidebar';
 import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
@@ -815,11 +816,20 @@ function App() {
           playing. Mounted at the App root so it stays visible even
           when the user closes the building panel mid-track. */}
       <NowPlayingBar />
-      {/* FixedToolSidebar (left) was rolled back 2026-04-29 because
-          it collided with the chasing left PLACE panel (same screen
-          region). Tools stay in the existing bottom-LEFT dropdown
-          cluster. The left chasing panel keeps full ownership of
-          the left edge again. */}
+      {/* Symmetric viewport-fixed left rail — restored per user
+          request. Hosts the tool cluster (Search / Profile / Cities
+          / sticky-bottom Settings) so the corner-scattered chrome
+          collapses into a single Apple Music-style nav rail. */}
+      <FixedToolSidebar
+        area={area}
+        onSelectArea={(key) => {
+          setArea(key);
+          setSelectedBuilding(null);
+          setSanitizedCoord(null);
+        }}
+        darkMode={darkMode}
+        onToggleDarkMode={handleDarkModeToggle}
+      />
       {/* Pass buildingId={null} so the fixed queue rail shows ONLY
           the global Up Next queue. The building's music context
           (Featured / Top Playlists / My Playlist) lives in the
