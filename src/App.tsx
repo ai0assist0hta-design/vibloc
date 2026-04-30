@@ -820,13 +820,18 @@ function App() {
           region). Tools stay in the existing bottom-LEFT dropdown
           cluster. The left chasing panel keeps full ownership of
           the left edge again. */}
+      {/* Pass buildingId={null} so the fixed queue rail shows ONLY
+          the global Up Next queue. The building's music context
+          (Featured / Top Playlists / My Playlist) lives in the
+          restored chasing right panel — splitting the two avoids
+          duplicating the same content twice on the right edge. */}
       <FixedQueueSidebar
         text={darkMode ? '#f5f5f7' : '#1a1a2e'}
         text2={darkMode ? '#c7c7cc' : '#48484a'}
         text3={darkMode ? '#8e8e93' : '#6e6e73'}
         divider={darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'}
         darkMode={darkMode}
-        buildingId={selectedBuilding?.id ?? null}
+        buildingId={null}
         area={area}
         onOpenDetail={(id) => setDetailTaggerId(id)}
       />
@@ -1663,14 +1668,133 @@ function App() {
           </div>
         ) : null;
 
-        // ── RIGHT PLAYLISTS PANEL — DEPRECATED 2026-04-29 ──────────────
-        // The chasing right panel's content (FeaturedHero +
-        // TopTaggerCard + BuildingPlaylist) was moved into the new
-        // viewport-fixed FixedQueueSidebar at the App root. Setting
-        // it to null keeps the chase loop's optional read safe; the
-        // panel never renders.
-        const rightPanel: React.ReactNode = null;
-        // Legacy JSX (kept commented for code archaeology):
+        // ── RIGHT PLAYLISTS PANEL (desktop only) ──────────────────────
+        // Restored 2026-04-29 by user request. The chasing rail
+        // anchored to the building shows its music context
+        // (Featured / Top Playlists / My Playlist). The viewport-
+        // fixed FixedQueueSidebar at the App root holds the GLOBAL
+        // queue — they coexist without duplication because the
+        // sidebar shows building info only when its building prop
+        // is null'd here (see FixedQueueSidebar wiring below).
+        const rightPanel = !isMobile ? (
+          <div
+            ref={rightPanelRef}
+            style={{
+              position: 'fixed',
+              top: '38%',
+              left: 360,                   // overwritten by rAF tick
+              width: 320,
+              overflow: 'visible',
+              zIndex: 30,
+              transformOrigin: 'top left',
+              willChange: 'transform, top, left',
+            }}
+          >
+            {/* Progressive-blur halo (matches leftPanel) */}
+            {(() => {
+              const FEATHER = 100;
+              const featherFor = (px: number) => `transparent 0,
+                black ${px}px,
+                black calc(100% - ${px}px),
+                transparent 100%`;
+              const softMask = (px: number) =>
+                `linear-gradient(to bottom, ${featherFor(px)}),
+                 linear-gradient(to right,  ${featherFor(px)})`;
+              const maskCommon = {
+                maskComposite: 'intersect' as const,
+                WebkitMaskComposite: 'source-in' as const,
+              };
+              return (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    inset: `-${FEATHER}px`,
+                    borderRadius: 28,
+                    pointerEvents: 'none',
+                    zIndex: -1,
+                    backdropFilter: 'blur(3px)',
+                    WebkitBackdropFilter: 'blur(3px)',
+                    maskImage: softMask(FEATHER),
+                    WebkitMaskImage: softMask(FEATHER),
+                    ...maskCommon,
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    inset: `${FEATHER * 0.3}px`,
+                    backdropFilter: 'blur(7px)',
+                    WebkitBackdropFilter: 'blur(7px)',
+                    maskImage: softMask(70),
+                    WebkitMaskImage: softMask(70),
+                    ...maskCommon,
+                  }}>
+                    <div style={{
+                      position: 'absolute',
+                      inset: `${FEATHER * 0.5}px`,
+                      backdropFilter: 'blur(14px)',
+                      WebkitBackdropFilter: 'blur(14px)',
+                      maskImage: softMask(50),
+                      WebkitMaskImage: softMask(50),
+                      ...maskCommon,
+                    }} />
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div style={{
+              position: 'relative',
+              height: PANEL_CONTENT_H,
+              overflowY: 'auto',
+              padding: PANEL_INNER_PAD,
+              display: 'flex', flexDirection: 'column', gap: 14,
+            }}>
+              {/* MUSIC eyebrow — pairs with leftPanel's PLACE */}
+              <div style={{
+                fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
+                textTransform: 'uppercase', color: text3,
+                fontFamily: "'IBM Plex Mono', monospace",
+                display: 'flex', alignItems: 'center', gap: 7,
+              }}>
+                <span aria-hidden="true" style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: darkMode ? '#34d399' : '#10b981',
+                  flexShrink: 0,
+                }}/>
+                {t('panel.music')}
+              </div>
+              <FeaturedPlaylistHero
+                buildingId={selectedBuilding.id}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                onSelect={(id) => setDetailTaggerId(id)}
+              />
+              <TopTaggerCard
+                buildingId={selectedBuilding.id}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                onSelect={(id) => setDetailTaggerId(id)}
+                limit={3}
+                medals
+              />
+              <BuildingPlaylist
+                buildingId={selectedBuilding.id}
+                cityVibe={getCityVibe(area)}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                darkMode={darkMode}
+                onOpenDetail={(id) => setDetailTaggerId(id)}
+              />
+            </div>
+          </div>
+        ) : null;
 
         return (
           <>
