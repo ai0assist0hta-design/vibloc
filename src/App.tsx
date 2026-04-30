@@ -25,7 +25,7 @@ import { TopTaggerCard } from './components/ui/music/TopTaggerCard';
 import { FeaturedPlaylistHero } from './components/ui/music/FeaturedPlaylistHero';
 import { PopularTrackCard } from './components/ui/music/PopularTrackCard';
 import { NowPlayingBar } from './components/ui/music/NowPlayingBar';
-import { UpNextPanel } from './components/ui/music/UpNextPanel';
+import { FixedQueueSidebar } from './components/ui/music/FixedQueueSidebar';
 import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
@@ -815,6 +815,16 @@ function App() {
           playing. Mounted at the App root so it stays visible even
           when the user closes the building panel mid-track. */}
       <NowPlayingBar />
+      {/* Viewport-fixed Up Next sidebar — sits at right edge always
+          when there's a queue. Derives its theme tokens from
+          darkMode the same way the per-building panels do. */}
+      <FixedQueueSidebar
+        text={darkMode ? '#f5f5f7' : '#1a1a2e'}
+        text2={darkMode ? '#c7c7cc' : '#48484a'}
+        text3={darkMode ? '#8e8e93' : '#6e6e73'}
+        divider={darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'}
+        darkMode={darkMode}
+      />
 
       {/* Logo + Profile */}
       <div
@@ -1747,13 +1757,14 @@ function App() {
                 }}/>
                 {t('panel.music')}
               </div>
-              {/* Apple Music macOS sidebar pattern: featured #1 hero
-                  on top (still the headline visual), then "Up Next"
-                  queue in the rail-row format (38 px artwork + title
-                  + artist) so the user can see and jump anywhere in
-                  the building's queue at a glance. The dense list
-                  replaces the old TopTaggerCard / BuildingPlaylist
-                  stack — those live in the main details panel. */}
+              {/* Building-anchored music summary: Featured #1 + Top
+                  3 playlists with medals + MY PLAYLIST shortcut.
+                  This panel chases the building, so its content is
+                  building-specific. The Up Next queue lives in a
+                  separate viewport-fixed sidebar (FixedQueueSidebar)
+                  so the global "what's next" is always at the same
+                  screen position regardless of which building is
+                  selected. */}
               <FeaturedPlaylistHero
                 buildingId={selectedBuilding.id}
                 text={text}
@@ -1762,11 +1773,25 @@ function App() {
                 divider={divider}
                 onSelect={(id) => setDetailTaggerId(id)}
               />
-              <UpNextPanel
+              <TopTaggerCard
+                buildingId={selectedBuilding.id}
                 text={text}
                 text2={text2}
                 text3={text3}
                 divider={divider}
+                onSelect={(id) => setDetailTaggerId(id)}
+                limit={3}
+                medals
+              />
+              <BuildingPlaylist
+                buildingId={selectedBuilding.id}
+                cityVibe={getCityVibe(area)}
+                text={text}
+                text2={text2}
+                text3={text3}
+                divider={divider}
+                darkMode={darkMode}
+                onOpenDetail={(id) => setDetailTaggerId(id)}
               />
             </div>
           </div>
