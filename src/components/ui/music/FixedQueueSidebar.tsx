@@ -22,14 +22,9 @@
  */
 
 import { ChevronRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useT } from '../../../lib/app/i18n';
-import { getCityVibe } from '../../../lib/music/cityProfile';
-import type { CityAreaKey } from '../../../lib/geo/osmLoader';
 import { FONT } from '../../../lib/ui/tokens';
-import { BuildingPlaylist } from './BuildingPlaylist';
-import { FeaturedPlaylistHero } from './FeaturedPlaylistHero';
-import { TopTaggerCard } from './TopTaggerCard';
 import { UpNextPanel } from './UpNextPanel';
 import { usePlayerState } from './PreviewPlayer';
 
@@ -39,23 +34,21 @@ type Props = {
   text3: string;
   divider: string;
   darkMode: boolean;
-  /** Building currently selected in the 3D scene. When set, the rail
-   *  shows that building's music context (Featured / Top Playlists /
-   *  My Playlist) plus the Up Next queue. When null, only the queue
-   *  shows (or the whole rail hides if the queue is empty too). */
+  /** When set, auto-opens the rail (= a new building was selected).
+   *  No content rendering — visit `children` for the actual surface. */
   buildingId: string | null;
-  /** Area key — used to look up the city vibe for BuildingPlaylist. */
-  area: CityAreaKey;
-  /** Callback when a tagger row is clicked → opens PlaylistDetailView
-   *  in the main building details panel. */
-  onOpenDetail?: (taggerId: string) => void;
+  /** Slot for the building's music sections (CityVibe / Search /
+   *  TopPlaylists / TopPicks / MyPlaylist / AI 추천곡). Rendered
+   *  ABOVE the Up Next queue so the building context surfaces first
+   *  and the queue stays as a pinned bottom anchor. */
+  children?: ReactNode;
 };
 
 const SIDEBAR_W = 280;
 
 export function FixedQueueSidebar({
   text, text2, text3, divider, darkMode,
-  buildingId, area, onOpenDetail,
+  buildingId, children,
 }: Props) {
   const player = usePlayerState();
   const t = useT();
@@ -171,50 +164,18 @@ export function FixedQueueSidebar({
         </button>
       </div>
 
-      {/* Scrollable body. When a building is selected, we show its
-          music context FIRST (Featured #1 + Top Playlists + My
-          Playlist) — same content that used to live in the chasing
-          right panel — then the Up Next queue underneath. The
-          queue stays even after the user deselects a building so
-          they can keep scrubbing what's playing. */}
+      {/* Scrollable body. Children (the building's music sections —
+          CityVibe / Search / TopPlaylists / TopPicks / MyPlaylist /
+          AI 추천곡) render FIRST, then the Up Next queue stays as a
+          pinned bottom section. The queue persists across building
+          deselections so the user can keep scrubbing what's playing. */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
         padding: '12px 14px 96px', // bottom clears NowPlayingBar
         display: 'flex', flexDirection: 'column', gap: 14,
       }}>
-        {buildingId && (
-          <>
-            <FeaturedPlaylistHero
-              buildingId={buildingId}
-              text={text}
-              text2={text2}
-              text3={text3}
-              divider={divider}
-              onSelect={(id) => onOpenDetail?.(id)}
-            />
-            <TopTaggerCard
-              buildingId={buildingId}
-              text={text}
-              text2={text2}
-              text3={text3}
-              divider={divider}
-              onSelect={(id) => onOpenDetail?.(id)}
-              limit={3}
-              medals
-            />
-            <BuildingPlaylist
-              buildingId={buildingId}
-              cityVibe={getCityVibe(area)}
-              text={text}
-              text2={text2}
-              text3={text3}
-              divider={divider}
-              darkMode={darkMode}
-              onOpenDetail={(id) => onOpenDetail?.(id)}
-            />
-          </>
-        )}
+        {children}
         <UpNextPanel
           text={text}
           text2={text2}

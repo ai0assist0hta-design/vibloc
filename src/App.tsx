@@ -26,6 +26,7 @@ import { FeaturedPlaylistHero } from './components/ui/music/FeaturedPlaylistHero
 import { PopularTrackCard } from './components/ui/music/PopularTrackCard';
 import { NowPlayingBar } from './components/ui/music/NowPlayingBar';
 import { FixedQueueSidebar } from './components/ui/music/FixedQueueSidebar';
+import { UpNextPanel } from './components/ui/music/UpNextPanel';
 import { FixedToolSidebar } from './components/ui/FixedToolSidebar';
 import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
 import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
@@ -830,21 +831,21 @@ function App() {
         darkMode={darkMode}
         onToggleDarkMode={handleDarkModeToggle}
       />
-      {/* Pass buildingId={null} so the fixed queue rail shows ONLY
-          the global Up Next queue. The building's music context
-          (Featured / Top Playlists / My Playlist) lives in the
-          restored chasing right panel — splitting the two avoids
-          duplicating the same content twice on the right edge. */}
-      <FixedQueueSidebar
-        text={darkMode ? '#f5f5f7' : '#1a1a2e'}
-        text2={darkMode ? '#c7c7cc' : '#48484a'}
-        text3={darkMode ? '#8e8e93' : '#6e6e73'}
-        divider={darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'}
-        darkMode={darkMode}
-        buildingId={null}
-        area={area}
-        onOpenDetail={(id) => setDetailTaggerId(id)}
-      />
+      {/* Up Next queue rail — only mounts when there's NO building
+          selected. When a building IS selected, the main details
+          dialog dock at the right edge takes over the same slot AND
+          renders the queue inline at its bottom, so the user sees
+          the same queue without two panels stacking. */}
+      {!selectedBuilding && (
+        <FixedQueueSidebar
+          text={darkMode ? '#f5f5f7' : '#1a1a2e'}
+          text2={darkMode ? '#c7c7cc' : '#48484a'}
+          text3={darkMode ? '#8e8e93' : '#6e6e73'}
+          divider={darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'}
+          darkMode={darkMode}
+          buildingId={null}
+        />
+      )}
 
       {/* Scattered chrome consolidated into FixedToolSidebar (2026-04-29). chasing PLACE panel intentionally untouched. */}
 
@@ -1710,17 +1711,16 @@ function App() {
                   }
                 : {
                     top: 0,
-                    // Tucked against FixedToolSidebar's right edge
-                    // (sidebar = 280 px). The two left rails read
-                    // as one continuous tool-and-music column,
-                    // mirroring the right side (chasing music +
-                    // FixedQueueSidebar). Both left rails always
-                    // visible per user request.
-                    left: 280,
+                    // Docked at the right edge in the same slot as
+                    // FixedQueueSidebar (280 px). The dialog now
+                    // hosts ALL music sections (CityVibe / Search /
+                    // TopPlaylists / TopPicks / MyPlaylist / AI 추천)
+                    // PLUS the Up Next queue inline — single right-
+                    // edge column instead of two stacked panels.
+                    right: 0,
                     bottom: 0,
-                    width: 320,
+                    width: 280,
                     borderLeft: `1px solid ${divider}`,
-                    borderRight: `1px solid ${divider}`,
                   }),
               background: surface,
               // Very low opacity → rely more heavily on blur + saturation to keep
@@ -2294,6 +2294,21 @@ function App() {
                 text3={text3}
                 divider={divider}
               />
+
+              {/* Up Next queue — pinned at the bottom of this rail
+                  so the user always sees what's playing/next under
+                  the building details. Same panel, single column. */}
+              <div style={{
+                marginTop: 6, paddingTop: 14,
+                borderTop: `1px solid ${divider}`,
+              }}>
+                <UpNextPanel
+                  text={text}
+                  text2={text2}
+                  text3={text3}
+                  divider={divider}
+                />
+              </div>
               </>)}
 
               {/* Tenant list — on mobile stays here (no left panel),
