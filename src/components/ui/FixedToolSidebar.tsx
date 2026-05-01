@@ -16,12 +16,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Check, ChevronLeft, Globe, Moon, Search, Sun, User,
+  Check, ChevronLeft, Globe, ListMusic, Moon, Sun, User,
 } from 'lucide-react';
 import { useT, useI18nStore, type Lang } from '../../lib/app/i18n';
-import { CITY_AREAS, type CityAreaKey } from '../../lib/geo/osmLoader';
-import { FONT } from '../../lib/ui/tokens';
+import { CITY_AREAS, type CityAreaKey, type OSMBuilding } from '../../lib/geo/osmLoader';
+import { FONT, SPACE } from '../../lib/ui/tokens';
 import { useAuthStore } from '../../features/auth/useAuthStore';
+import { SearchBar } from './SearchBar';
+import {
+  getMyBuildings, subscribePlaylists, type MyBuildingShortcut,
+} from '../../lib/music/buildingPlaylist';
 
 const SIDEBAR_W = 280;
 
@@ -30,11 +34,14 @@ type Props = {
   onSelectArea: (key: CityAreaKey) => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
-  onSearchClick?: () => void;
+  buildings: OSMBuilding[];
+  onSelectBuilding: (b: OSMBuilding) => void;
+  onNavigate: (position: [number, number]) => void;
 };
 
 export function FixedToolSidebar({
-  area, onSelectArea, darkMode, onToggleDarkMode, onSearchClick,
+  area, onSelectArea, darkMode, onToggleDarkMode,
+  buildings, onSelectBuilding, onNavigate,
 }: Props) {
   const t = useT();
   const lang = useI18nStore((s) => s.lang);
@@ -42,16 +49,34 @@ export function FixedToolSidebar({
   const user = useAuthStore((s) => s.user);
   const [open, setOpen] = useState(true);
 
-  const ink     = darkMode ? '#e0e0e8' : '#1a1a2e';
-  const muted   = darkMode ? '#8e8e93' : '#6e6e73';
-  // Slightly more translucent than Apple Music's rail so the 3D
-  // city stays partially readable through the chrome. Edge highlight
-  // (`borderRight`) catches viewport light to outline the rail
-  // crisply without painting an opaque surface.
+  // "My playlists" shortcut list — buildings where the current user
+  // has pinned at least one track. Subscribes to playlist mutations
+  // so the rail updates the moment the user clicks `+` on the bar.
+  const [myBuildings, setMyBuildings] = useState<MyBuildingShortcut[]>(() => getMyBuildings());
+  useEffect(() => subscribePlaylists(() => setMyBuildings(getMyBuildings())), []);
+  // Re-read when the user identity changes (sign-in / sign-out).
+  useEffect(() => { setMyBuildings(getMyBuildings()); }, [user?.id]);
+
+  // Resolve a buildingId to an OSMBuilding — needed because the
+  // playlist store only knows ids, but `onSelectBuilding` expects
+  // the full building object (so the camera can zoom + the panels
+  // can hydrate). If the user is on a different city the building
+  // won't be in `buildings`; skip those entries with a guard.
+  function jumpToMyBuilding(buildingId: string) {
+    const b = buildings.find((x) => x.id === buildingId);
+    if (b) onSelectBuilding(b);
+  }
+
+  // High-contrast text + soft secondary, so even at smaller sizes
+  // the rail reads cleanly against the city tiles behind the glass.
+  const ink     = darkMode ? '#f5f5f7' : '#0e0e1a';
+  const muted   = darkMode ? '#a8a8b3' : '#5a5a66';
+  // Same translucent glass as the chasing panels — no border or edge
+  // highlight, just blur. Lines were removing themselves visually
+  // anyway behind the saturate boost.
   const surface = darkMode ? 'rgba(15,15,20,0.55)' : 'rgba(255,255,255,0.55)';
-  const border  = darkMode ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)';
-  const hover   = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
-  const accent  = darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(26,26,46,0.06)';
+  const hover   = darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)';
+  const accent  = darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(26,26,46,0.07)';
 
   // Sync collapse state into a body attribute so other fixed surfaces
   // (NowPlayingBar, FixedQueueSidebar) can adjust their margins
@@ -102,25 +127,22 @@ export function FixedToolSidebar({
         background: surface,
         backdropFilter: 'blur(24px) saturate(160%)',
         WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-        borderRight: `1px solid ${border}`,
-        // Right edge highlight — 1 px hairline of ambient light at the
-        // far edge so the rail reads as "pane with thickness" instead
-        // of a flat fill against the city.
-        boxShadow: `inset -1px 0 0 ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.45)'}, 12px 0 36px rgba(0,0,0,0.08)`,
+        // No edges. Pure glass against the city.
+        border: 'none',
+        boxShadow: 'none',
         display: 'flex', flexDirection: 'column',
         fontFamily: FONT.ui,
         color: ink,
       }}
     >
-      {/* Header — VIBLOC wordmark + collapse */}
+      {/* Header — VIBLOC wordmark + collapse. No bottom border. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 14px 12px',
-        borderBottom: `1px solid ${border}`,
+        padding: `${SPACE[4]}px ${SPACE[4]}px ${SPACE[3]}px`,
       }}>
         <div style={{
           fontFamily: FONT.mono,
-          fontSize: 13, fontWeight: 800, letterSpacing: 1.6,
+          fontSize: 14, fontWeight: 800, letterSpacing: 1.6,
         }}>
           VIBLOC
         </div>
@@ -129,7 +151,9 @@ export function FixedToolSidebar({
           onClick={() => setOpen(false)}
           aria-label={t('tools.collapse')}
           title={t('tools.collapse')}
-          style={btnIcon(ink, hover)}
+          style={btnIcon(ink)}
+          onMouseEnter={(e) => { e.currentTarget.style.background = hover; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
         >
           <ChevronLeft size={14} strokeWidth={2.4} />
         </button>
@@ -140,18 +164,22 @@ export function FixedToolSidebar({
           regardless of how long the cities list is. */}
       <div style={{
         flex: 1, overflowY: 'auto',
-        padding: '12px 10px 12px',
-        display: 'flex', flexDirection: 'column', gap: 18,
+        padding: `${SPACE[2]}px ${SPACE[3]}px ${SPACE[3]}px`,
+        display: 'flex', flexDirection: 'column', gap: SPACE[4],
       }}>
-        {/* ── Search ── */}
-        {onSearchClick && (
-          <RowButton
-            icon={<Search size={15} strokeWidth={2.2} />}
-            label={t('tools.search')}
-            onClick={onSearchClick}
-            ink={ink} hover={hover}
-          />
-        )}
+        {/* ── Search section with eyebrow for clarity ── */}
+        <Section label={t('tools.search')} muted={muted}>
+          <div style={{ padding: `0 ${SPACE[1]}px` }}>
+            <SearchBar
+              embedded
+              area={area}
+              buildings={buildings}
+              onSelectBuilding={onSelectBuilding}
+              onNavigate={onNavigate}
+              darkMode={darkMode}
+            />
+          </div>
+        </Section>
 
         {/* ── Profile ── */}
         <Link
@@ -163,14 +191,78 @@ export function FixedToolSidebar({
           onMouseEnter={(e) => { e.currentTarget.style.background = hover; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
         >
-          <span style={iconBox()}><User size={15} strokeWidth={2.2} /></span>
+          <span style={iconBox()}><User size={16} strokeWidth={2.2} /></span>
           <span style={{
-            flex: 1, fontSize: 13, fontWeight: 600,
+            flex: 1, fontSize: 14, fontWeight: 600,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {user?.displayName || user?.email || t('tools.profile')}
           </span>
         </Link>
+
+        {/* ── My playlists shortcut — buildings where the user has
+            pinned tracks. Click → camera zooms + selection sets so
+            the right rail re-syncs to that building's playlist. ── */}
+        {myBuildings.length > 0 && (
+          <Section label={t('tools.myPlaylists')} muted={muted}>
+            {myBuildings.map(({ buildingId, trackCount, latestTrack }) => {
+              const b = buildings.find((x) => x.id === buildingId);
+              const inThisCity = !!b;
+              const label = b?.name || latestTrack.trackName || buildingId;
+              return (
+                <button
+                  key={buildingId}
+                  type="button"
+                  onClick={() => jumpToMyBuilding(buildingId)}
+                  disabled={!inThisCity}
+                  title={inThisCity ? label : t('tools.notInThisCity')}
+                  style={{
+                    ...rowStyle(ink),
+                    cursor: inThisCity ? 'pointer' : 'not-allowed',
+                    opacity: inThisCity ? 1 : 0.4,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (inThisCity) e.currentTarget.style.background = hover;
+                  }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <span style={{
+                    width: 24, height: 24, flexShrink: 0,
+                    borderRadius: 4, overflow: 'hidden',
+                    background: darkMode ? '#2a2a35' : '#e5e5e7',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {latestTrack.artworkUrl ? (
+                      <img
+                        src={latestTrack.artworkUrl}
+                        alt=""
+                        width={24} height={24}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        referrerPolicy="no-referrer" decoding="async"
+                      />
+                    ) : (
+                      <ListMusic size={12} strokeWidth={2.2} style={{ opacity: 0.6 }} />
+                    )}
+                  </span>
+                  <span style={{
+                    flex: 1, minWidth: 0,
+                    fontSize: 14, fontWeight: 600,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {label}
+                  </span>
+                  <span style={{
+                    flexShrink: 0,
+                    fontFamily: FONT.mono, fontSize: 11, color: muted,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {trackCount}
+                  </span>
+                </button>
+              );
+            })}
+          </Section>
+        )}
 
         {/* ── Cities section ── */}
         <Section label={t('tools.cities')} muted={muted}>
@@ -195,10 +287,10 @@ export function FixedToolSidebar({
                 }}
               >
                 <span style={iconBox()}>
-                  <Check size={13} strokeWidth={2.6}
+                  <Check size={14} strokeWidth={2.6}
                     style={{ opacity: selected ? 1 : 0 }} />
                 </span>
-                <span style={{ flex: 1, fontSize: 13 }}>
+                <span style={{ flex: 1, fontSize: 14 }}>
                   {t(`city.${key}`)}
                 </span>
               </button>
@@ -208,28 +300,27 @@ export function FixedToolSidebar({
 
       </div>
 
-      {/* ── Settings footer (sticky bottom) ── */}
+      {/* ── Settings footer (sticky bottom) — no border, just spacing. */}
       <div style={{
-        borderTop: `1px solid ${border}`,
-        padding: '12px 10px 16px',
-        display: 'flex', flexDirection: 'column', gap: 6,
+        padding: `${SPACE[3]}px ${SPACE[3]}px ${SPACE[4]}px`,
+        display: 'flex', flexDirection: 'column', gap: SPACE[1],
       }}>
         <div style={{
           fontFamily: FONT.mono,
-          fontSize: 9.5, fontWeight: 800, letterSpacing: 1.4,
+          fontSize: 11, fontWeight: 800, letterSpacing: 1.4,
           textTransform: 'uppercase',
           color: muted,
-          padding: '0 10px 4px',
+          padding: `0 ${SPACE[3]}px ${SPACE[1]}px`,
         }}>
           {t('tools.settings')}
         </div>
 
         {/* Language toggle — segmented (3 chips) */}
-        <div style={{ ...rowStyle(ink), gap: 8 }}>
-          <span style={iconBox()}><Globe size={15} strokeWidth={2.2} /></span>
+        <div style={{ ...rowStyle(ink), gap: SPACE[2] }}>
+          <span style={iconBox()}><Globe size={16} strokeWidth={2.2} /></span>
           <div style={{
-            flex: 1, display: 'inline-flex', gap: 4,
-            padding: 2,
+            flex: 1, display: 'inline-flex', gap: SPACE[1],
+            padding: SPACE[1] / 2,
             borderRadius: 8,
             background: hover,
           }}>
@@ -241,16 +332,15 @@ export function FixedToolSidebar({
                 aria-pressed={lang === l}
                 style={{
                   flex: 1,
-                  padding: '4px 0',
+                  padding: `${SPACE[1]}px 0`,
                   borderRadius: 6,
                   border: 'none',
                   background: lang === l ? (darkMode ? '#2a2a35' : '#ffffff') : 'transparent',
                   color: ink,
                   fontFamily: FONT.mono,
-                  fontSize: 11, fontWeight: lang === l ? 700 : 500,
+                  fontSize: 12, fontWeight: lang === l ? 700 : 500,
                   cursor: 'pointer',
                   letterSpacing: 0.4,
-                  boxShadow: lang === l ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                   textTransform: 'uppercase',
                 }}
               >
@@ -261,7 +351,7 @@ export function FixedToolSidebar({
         </div>
 
         <RowButton
-          icon={darkMode ? <Sun size={15} strokeWidth={2.2} /> : <Moon size={15} strokeWidth={2.2} />}
+          icon={darkMode ? <Sun size={16} strokeWidth={2.2} /> : <Moon size={16} strokeWidth={2.2} />}
           label={darkMode ? t('tools.lightMode') : t('tools.darkMode')}
           onClick={onToggleDarkMode}
           ink={ink} hover={hover}
@@ -275,12 +365,12 @@ export function FixedToolSidebar({
 
 function rowStyle(ink: string): React.CSSProperties {
   return {
-    display: 'inline-flex', alignItems: 'center', gap: 8,
-    padding: '8px 10px', borderRadius: 8,
+    display: 'inline-flex', alignItems: 'center', gap: SPACE[2],
+    padding: `${SPACE[2]}px ${SPACE[3]}px`, borderRadius: 8,
     border: 'none', background: 'transparent',
     color: ink,
     fontFamily: FONT.ui,
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     width: '100%',
     textAlign: 'left',
@@ -289,33 +379,32 @@ function rowStyle(ink: string): React.CSSProperties {
 }
 function iconBox(): React.CSSProperties {
   return {
-    width: 22, display: 'inline-flex',
+    width: 24, display: 'inline-flex',
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   };
 }
-function btnIcon(ink: string, hover: string): React.CSSProperties {
+function btnIcon(ink: string): React.CSSProperties {
   return {
-    width: 26, height: 26, borderRadius: 6,
+    width: 28, height: 28, borderRadius: 6,
     border: 'none', background: 'transparent',
     color: ink, cursor: 'pointer',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     transition: 'background 120ms ease',
   };
-  void hover;
 }
 
 function Section({
   label, muted, children,
 }: { label: string; muted: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[1] }}>
       <div style={{
         fontFamily: FONT.mono,
-        fontSize: 9.5, fontWeight: 800, letterSpacing: 1.4,
+        fontSize: 11, fontWeight: 800, letterSpacing: 1.4,
         textTransform: 'uppercase',
         color: muted,
-        padding: '0 10px 6px',
+        padding: `0 ${SPACE[3]}px ${SPACE[1]}px`,
       }}>
         {label}
       </div>
@@ -336,7 +425,7 @@ function RowButton({
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >
       <span style={iconBox()}>{icon}</span>
-      <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{label}</span>
+      <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{label}</span>
     </button>
   );
 }

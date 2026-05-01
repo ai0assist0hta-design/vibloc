@@ -12,9 +12,10 @@
  * actionable surface for "what's next" intent.
  */
 
+import { useEffect, useRef } from 'react';
 import { Music2, Play } from 'lucide-react';
 import { useT } from '../../../lib/app/i18n';
-import { FONT } from '../../../lib/ui/tokens';
+import { FONT, SPACE } from '../../../lib/ui/tokens';
 import { playPreview, usePlayerState, type QueueEntry } from './PreviewPlayer';
 
 type Props = {
@@ -33,13 +34,13 @@ export function UpNextPanel({ text, text2, text3, divider }: Props) {
   if (queue.length === 0) {
     return (
       <div style={{
-        padding: '24px 8px',
-        fontSize: 11, color: text3,
+        padding: `${SPACE[6]}px ${SPACE[2]}px`,
+        fontSize: 12, color: text3,
         fontFamily: FONT.mono,
         textAlign: 'center',
         letterSpacing: 0.4,
       }}>
-        <Music2 size={24} strokeWidth={1.5} style={{ opacity: 0.4, marginBottom: 8 }} />
+        <Music2 size={24} strokeWidth={1.5} style={{ opacity: 0.4, marginBottom: SPACE[2] }} />
         <div>{t('queue.empty')}</div>
       </div>
     );
@@ -47,29 +48,10 @@ export function UpNextPanel({ text, text2, text3, divider }: Props) {
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', gap: 4,
+      display: 'flex', flexDirection: 'column', gap: SPACE[1],
     }}>
-      {/* Section header — matches PLACE / MUSIC eyebrow style. */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 8,
-      }}>
-        <div style={{
-          fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
-          textTransform: 'uppercase', color: text3,
-          fontFamily: FONT.mono,
-        }}>
-          {t('queue.upNext')}
-        </div>
-        <div style={{
-          fontSize: 10, color: text3, opacity: 0.7,
-          fontFamily: FONT.mono, letterSpacing: 0.3,
-        }}>
-          {queue.length}
-        </div>
-      </div>
-
-      {/* Queue rows */}
+      {/* Queue rows — header intentionally omitted per design;
+          the rail's outer "Up Next" eyebrow already labels this list. */}
       {queue.map((entry, idx) => (
         <QueueRow
           key={entry.id}
@@ -81,6 +63,8 @@ export function UpNextPanel({ text, text2, text3, divider }: Props) {
           divider={divider}
         />
       ))}
+      {/* Sentinel anchor — kept for parity but unused now; auto-scroll
+          targets the active row directly. */}
     </div>
   );
 }
@@ -95,14 +79,29 @@ function QueueRow({
   text2: string;
   divider: string;
 }) {
+  // When this row becomes the active track (auto-advance OR manual
+  // skip), pull it into view inside the scrolling rail. block:'center'
+  // lands the row at a stable midpoint so the eye isn't chasing a
+  // moving target through the queue.
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!isCurrent || !btnRef.current) return;
+    btnRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'nearest',
+    });
+  }, [isCurrent]);
+
   return (
     <button
+      ref={btnRef}
       type="button"
       onClick={() => playPreview(entry.id, entry.url, entry.meta)}
       aria-label={`Play ${entry.meta.title}`}
       style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '6px 6px',
+        display: 'flex', alignItems: 'center', gap: SPACE[3],
+        padding: `${SPACE[1]}px ${SPACE[2]}px`,
         borderRadius: 6,
         border: 'none',
         background: isCurrent ? 'rgba(26,26,46,0.06)' : 'transparent',
@@ -156,7 +155,7 @@ function QueueRow({
       <div style={{ minWidth: 0, flex: 1 }}>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: isCurrent ? 700 : 600,
             color: text,
             whiteSpace: 'nowrap',
@@ -170,13 +169,13 @@ function QueueRow({
         </div>
         <div
           style={{
-            fontSize: 10.5,
+            fontSize: 11,
             color: text2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             lineHeight: 1.3,
-            marginTop: 1,
+            marginTop: 2,
           }}
           title={entry.meta.artist}
         >

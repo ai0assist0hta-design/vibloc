@@ -105,3 +105,21 @@ export const SECTION_HEADER = {
 /** Floating-panel inner padding. Both leftPanel and rightPanel use
  *  this so their content columns line up edge-to-edge. */
 export const PANEL_PADDING = '14px 18px 18px';
+
+// ─── Spacing scale (8pt grid) ────────────────────────────────────────
+//
+// HIG + Material both rest on an 8pt grid; everything in VIBLOC's UI
+// chrome should use one of these stops. 4 is the sub-grid for tight
+// vertical rhythm (icon ↔ label gaps). Above 24 we double-up to 32 / 48
+// for hero spacing — never 28 / 36 / 40 (off-grid).
+//
+// Pattern: import SPACE; use SPACE[3] (= 12) instead of magic 12.
+export const SPACE = {
+  1: 4,
+  2: 8,
+  3: 12,
+  4: 16,
+  6: 24,
+  8: 32,
+  12: 48,
+} as const;

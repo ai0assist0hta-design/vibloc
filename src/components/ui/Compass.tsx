@@ -1,7 +1,14 @@
 import { useRef, useEffect } from 'react';
 import { getAzimuthDeg, resetToNorth } from '../canvas/PlateauScene';
+import { usePlayerState } from './music/PreviewPlayer';
 
 export function Compass({ darkMode = false }: { darkMode?: boolean }) {
+  // Couple visibility with the NowPlayingBar — when nothing is
+  // playing, the orphaned compass disc reads as floating chrome
+  // with no anchor. Both fade together, so the bottom cluster
+  // appears and disappears as one unit.
+  const player = usePlayerState();
+  const playing = !!player.currentId && !!player.meta;
   const needleRef = useRef<SVGGElement>(null);
   const rafRef = useRef<number>(0);
 
@@ -30,41 +37,46 @@ export function Compass({ darkMode = false }: { darkMode?: boolean }) {
     <div
       onClick={resetToNorth}
       style={{
-        // Mapbox/Apple Maps convention (H.1, 2024–2026): camera-control
-        // glyphs live in the top-right corner so they sit in the
-        // mouse's natural orbit-toward zone. Tucked just below the
-        // dark-mode pill so the two stack as a single chrome column.
-        position: 'absolute',
-        top: 76,
-        right: 24,
-        width: 56,
-        height: 56,
-        cursor: 'pointer',
-        zIndex: 10,
-        transition: 'opacity 0.4s ease',
+        // Tucked above the centered NowPlayingBar so it lives in the
+        // bottom thumb-zone alongside the playback chrome instead of
+        // floating in the top-right corner. Semi-transparent so the
+        // 3D city remains readable through the disc.
+        position: 'fixed',
+        bottom: 132,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 48,
+        height: 48,
+        cursor: playing ? 'pointer' : 'default',
+        zIndex: 50,
+        opacity: playing ? 0.62 : 0,
+        pointerEvents: playing ? 'auto' : 'none',
+        transition: 'opacity 240ms ease, transform 240ms ease',
       }}
+      onMouseEnter={(e) => { if (playing) e.currentTarget.style.opacity = '1'; }}
+      onMouseLeave={(e) => { if (playing) e.currentTarget.style.opacity = '0.62'; }}
       title="Reset to North"
     >
-      {/* Glass background */}
+      {/* Glass background — extra-translucent so the underlying city is visible. */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           borderRadius: '50%',
-          background: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          background: darkMode ? 'rgba(15,15,20,0.32)' : 'rgba(255,255,255,0.36)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
           boxShadow: darkMode
-            ? '0 2px 12px rgba(0,0,0,0.4)'
-            : '0 2px 12px rgba(0,0,0,0.06)',
+            ? '0 2px 10px rgba(0,0,0,0.35)'
+            : '0 2px 10px rgba(0,0,0,0.10)',
           border: `1px solid ${stroke}`,
           transition: 'all 0.4s ease',
         }}
       />
       <svg
         viewBox="0 0 56 56"
-        width={56}
-        height={56}
+        width={48}
+        height={48}
         style={{ position: 'relative', zIndex: 1 }}
       >
         {/* Tick marks at 45-degree intervals */}

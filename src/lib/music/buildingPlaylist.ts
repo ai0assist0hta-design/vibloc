@@ -177,6 +177,40 @@ export function isPinned(buildingId: string, trackId: string): boolean {
   return getEntry(buildingId).tracks.some((t) => t.id === trackId);
 }
 
+/** Buildings where the CURRENT USER has pinned at least one track,
+ *  newest-first by their most recent pin. Powers the "내 플레이리스트
+ *  바로가기" shortcut list in the left rail — clicking a row jumps
+ *  the camera + selection to that building. */
+export type MyBuildingShortcut = {
+  buildingId: string;
+  /** How many tracks I personally pinned in that building. */
+  trackCount: number;
+  /** Newest track I pinned there — used as the row's preview cover
+   *  + "Title — Artist" label. */
+  latestTrack: PinnedTrack;
+  /** Latest pinnedAt from my own tracks — sort key. */
+  latestPinnedAt: number;
+};
+
+export function getMyBuildings(): MyBuildingShortcut[] {
+  const me = _getUserIdentity?.();
+  if (!me?.id) return [];
+  const out: MyBuildingShortcut[] = [];
+  for (const [buildingId, entry] of Object.entries(store)) {
+    const mine = entry.tracks.filter((t) => t.taggerId === me.id);
+    if (mine.length === 0) continue;
+    const latest = mine.reduce((a, b) => (a.pinnedAt > b.pinnedAt ? a : b));
+    out.push({
+      buildingId,
+      trackCount: mine.length,
+      latestTrack: latest,
+      latestPinnedAt: latest.pinnedAt,
+    });
+  }
+  out.sort((a, b) => b.latestPinnedAt - a.latestPinnedAt);
+  return out;
+}
+
 /** Injected at app init — provides current user identity for tagger stamps. */
 let _getUserIdentity: (() => { id: string; name: string; avatarUrl?: string | null } | null) | null = null;
 

@@ -55,6 +55,12 @@ export type PlayerState = {
    *  render disabled. The current track index is derived from
    *  `queue.findIndex(t => t.id === currentId)`. */
   queue: QueueEntry[];
+  /** Apple Music-style playback modes. Affect prev / next routing
+   *  and auto-advance: shuffle picks a random unplayed track,
+   *  repeat:'one' restarts the current track, repeat:'all' wraps
+   *  the queue at both ends. */
+  shuffle: boolean;
+  repeat: 'off' | 'one' | 'all';
 };
 
 /** Trimmed track shape for queue nav — a queue entry needs the URL
@@ -68,6 +74,7 @@ export type QueueEntry = {
 let audioEl: HTMLAudioElement | null = null;
 let state: PlayerState = {
   currentId: null, isPlaying: false, meta: null, duration: 0, position: 0, queue: [],
+  shuffle: false, repeat: 'off',
 };
 const listeners = new Set<Listener>();
 
@@ -82,13 +89,30 @@ function ensureAudio(): HTMLAudioElement {
   audioEl.addEventListener('ended', () => {
     state = { ...state, isPlaying: false, position: 0 };
     notify();
-    // Auto-advance to the next queue entry if one exists. Mirrors
-    // Spotify / Apple Music behavior — the user expects continuous
-    // listening once a queue is set.
+    // Auto-advance with mode-aware routing. Repeat 'one' replays the
+    // same track; shuffle picks a random other entry; repeat 'all'
+    // wraps to the start of the queue when we hit the end. Default
+    // off → stop at the last track (existing behavior).
     const idx = state.queue.findIndex((q) => q.id === state.currentId);
-    if (idx >= 0 && idx < state.queue.length - 1) {
+    if (idx < 0) return;
+    if (state.repeat === 'one') {
+      const cur = state.queue[idx];
+      playPreview(cur.id, cur.url, cur.meta);
+      return;
+    }
+    if (state.shuffle && state.queue.length > 1) {
+      let r = idx;
+      while (r === idx) r = Math.floor(Math.random() * state.queue.length);
+      const next = state.queue[r];
+      playPreview(next.id, next.url, next.meta);
+      return;
+    }
+    if (idx < state.queue.length - 1) {
       const next = state.queue[idx + 1];
       playPreview(next.id, next.url, next.meta);
+    } else if (state.repeat === 'all' && state.queue.length > 0) {
+      const first = state.queue[0];
+      playPreview(first.id, first.url, first.meta);
     }
   });
   audioEl.addEventListener('pause', () => {
@@ -151,7 +175,7 @@ export function playPreview(id: string, url: string, meta?: TrackMeta): void {
     },
     () => {
       // Autoplay blocked or network failure. Reset.
-      state = { currentId: null, isPlaying: false, meta: null, duration: 0, position: 0, queue: [] };
+      state = { ...state, currentId: null, isPlaying: false, meta: null, duration: 0, position: 0 };
       notify();
     },
   );
@@ -166,13 +190,41 @@ export function setQueue(queue: QueueEntry[]): void {
   notify();
 }
 
-/** Skip forward to the next track in the queue. No-op when queue
- *  is empty or current track is the last one (no wrap). */
+/** Skip forward to the next track in the queue. Honors shuffle
+ *  (random) and repeat:'all' (wraps to start at the end). */
 export function nextTrack(): void {
   const idx = state.queue.findIndex((q) => q.id === state.currentId);
-  if (idx < 0 || idx >= state.queue.length - 1) return;
-  const next = state.queue[idx + 1];
-  playPreview(next.id, next.url, next.meta);
+  if (idx < 0) return;
+  if (state.shuffle && state.queue.length > 1) {
+    let r = idx;
+    while (r === idx) r = Math.floor(Math.random() * state.queue.length);
+    const next = state.queue[r];
+    playPreview(next.id, next.url, next.meta);
+    return;
+  }
+  if (idx < state.queue.length - 1) {
+    const next = state.queue[idx + 1];
+    playPreview(next.id, next.url, next.meta);
+    return;
+  }
+  if (state.repeat === 'all' && state.queue.length > 0) {
+    const first = state.queue[0];
+    playPreview(first.id, first.url, first.meta);
+  }
+}
+
+/** Toggle shuffle on / off. */
+export function toggleShuffle(): void {
+  state = { ...state, shuffle: !state.shuffle };
+  notify();
+}
+
+/** Cycle repeat: off → all → one → off. Matches Apple Music. */
+export function cycleRepeat(): void {
+  const next: PlayerState['repeat'] =
+    state.repeat === 'off' ? 'all' : state.repeat === 'all' ? 'one' : 'off';
+  state = { ...state, repeat: next };
+  notify();
 }
 
 /** Step back to the previous track. If the playhead is past the
@@ -219,7 +271,12 @@ export function stopPreview(): void {
   a.pause();
   a.currentTime = 0;
   // Wipe everything including the queue — close button = full reset.
-  state = { currentId: null, isPlaying: false, meta: null, duration: 0, position: 0, queue: [] };
+  state = {
+    currentId: null, isPlaying: false, meta: null, duration: 0, position: 0, queue: [],
+    // Preserve user's shuffle / repeat preference across stops so
+    // closing + reopening the bar doesn't clobber their toggles.
+    shuffle: state.shuffle, repeat: state.repeat,
+  };
   notify();
 }
 

@@ -12,6 +12,10 @@ type SearchBarProps = {
   onSelectBuilding: (b: OSMBuilding) => void;
   onNavigate: (position: [number, number]) => void;
   darkMode?: boolean;
+  /** When true, render inline (no absolute positioning, full-width) so
+   *  the bar can live inside the FixedToolSidebar instead of as a
+   *  separate floating widget. */
+  embedded?: boolean;
 };
 
 /**
@@ -22,7 +26,7 @@ type SearchBarProps = {
 const AUTOCOMPLETE_MAX = 6;
 const AUTOCOMPLETE_DEBOUNCE_MS = 120;
 
-export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkMode = false }: SearchBarProps) {
+export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkMode = false, embedded = false }: SearchBarProps) {
   const t = useT();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -141,28 +145,45 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        top: 24,
-        right: 76,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        alignItems: 'flex-end',
-      }}
+      style={embedded
+        ? {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            alignItems: 'stretch',
+            width: '100%',
+          }
+        : {
+            position: 'absolute',
+            top: 24,
+            right: 76,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            alignItems: 'flex-end',
+          }}
     >
       <div
-        style={{
-          display: 'flex',
-          gap: 6,
-          background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: 14,
-          padding: '6px 8px',
-          boxShadow: darkMode ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.08)',
-          transition: 'all 0.4s ease',
-        }}
+        style={embedded
+          ? {
+              display: 'flex',
+              gap: 6,
+              background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+              borderRadius: 10,
+              padding: '4px 6px',
+              transition: 'all 0.4s ease',
+            }
+          : {
+              display: 'flex',
+              gap: 6,
+              background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              borderRadius: 14,
+              padding: '6px 8px',
+              boxShadow: darkMode ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.08)',
+              transition: 'all 0.4s ease',
+            }}
       >
         <input
           ref={inputRef}
@@ -202,8 +223,10 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
           aria-controls="vibloc-search-suggestions"
           aria-activedescendant={highlight >= 0 ? `vibloc-sugg-${highlight}` : undefined}
           style={{
-            width: 200,
-            padding: '6px 12px',
+            width: embedded ? '100%' : 200,
+            flex: embedded ? 1 : undefined,
+            minWidth: 0,
+            padding: '6px 10px',
             border: 'none',
             background: 'transparent',
             fontFamily: "'IBM Plex Mono', monospace",
@@ -240,7 +263,7 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
             listStyle: 'none',
             margin: 0,
             padding: 4,
-            width: 320,
+            width: embedded ? '100%' : 320,
             maxHeight: 280,
             overflowY: 'auto',
             background: darkMode ? 'rgba(20,20,28,0.92)' : 'rgba(255,255,255,0.92)',

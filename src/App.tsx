@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { PlateauScene, type NavTarget, type BuildingScreenAnchor } from './components/canvas/PlateauScene';
-import { SearchBar } from './components/ui/SearchBar';
-import { Compass } from './components/ui/Compass';
 import { TimeSlider } from './components/ui/TimeSlider';
 import { LanguageToggle } from './components/ui/LanguageToggle';
 import { CityDropdown } from './components/ui/CityDropdown';
@@ -816,7 +814,7 @@ function App() {
       {/* Global "now playing" bar — fades in when a preview is
           playing. Mounted at the App root so it stays visible even
           when the user closes the building panel mid-track. */}
-      <NowPlayingBar />
+      <NowPlayingBar darkMode={darkMode} selectedBuildingId={selectedBuilding?.id ?? null} />
       {/* Symmetric viewport-fixed left rail — restored per user
           request. Hosts the tool cluster (Search / Profile / Cities
           / sticky-bottom Settings) so the corner-scattered chrome
@@ -830,28 +828,98 @@ function App() {
         }}
         darkMode={darkMode}
         onToggleDarkMode={handleDarkModeToggle}
+        buildings={buildings}
+        onSelectBuilding={handleSearchSelect}
+        onNavigate={handleNavigate}
       />
-      {/* Up Next queue rail — only mounts when there's NO building
-          selected. When a building IS selected, the main details
-          dialog dock at the right edge takes over the same slot AND
-          renders the queue inline at its bottom, so the user sees
-          the same queue without two panels stacking. */}
-      {!selectedBuilding && (
-        <FixedQueueSidebar
-          text={darkMode ? '#f5f5f7' : '#1a1a2e'}
-          text2={darkMode ? '#c7c7cc' : '#48484a'}
-          text3={darkMode ? '#8e8e93' : '#6e6e73'}
-          divider={darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'}
-          darkMode={darkMode}
-          buildingId={null}
-        />
-      )}
+      {/* SINGLE right rail. Always FixedQueueSidebar — when a
+          building is selected, its `children` slot renders the
+          music sections (CityVibe / Search / TopPlaylists /
+          TopPicks / MyPlaylist / AI 추천) above the Up Next queue.
+          When no building, just the queue (or an empty-state when
+          queue is also empty). One mount, one DOM node, no
+          conditional surface swap. */}
+      <FixedQueueSidebar
+        text={darkMode ? '#f5f5f7' : '#1a1a2e'}
+        text2={darkMode ? '#c7c7cc' : '#48484a'}
+        text3={darkMode ? '#8e8e93' : '#6e6e73'}
+        divider={darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'}
+        darkMode={darkMode}
+        buildingId={selectedBuilding?.id ?? null}
+      >
+        {selectedBuilding && (() => {
+          // Inline-derived locals so the music sections can render
+          // outside the IIFE that owns most building state. lat/lon
+          // and the simple "real name" check are enough — anything
+          // more nuanced is still handled by the chasing left panel.
+          const cfg = CITY_AREAS[area];
+          const _lat = sanitizedCoord?.lat
+            ?? metersToLatLon(selectedBuilding.center[0], selectedBuilding.center[1], cfg.refLat, cfg.refLon).lat;
+          const _lon = sanitizedCoord?.lon
+            ?? metersToLatLon(selectedBuilding.center[0], selectedBuilding.center[1], cfg.refLat, cfg.refLon).lon;
+          const _rawName = (geocodedInfo?.name || selectedBuilding.name || '').trim();
+          const _hasRealName = !!_rawName && _rawName !== 'Building';
+          const _text  = darkMode ? '#f5f5f7' : '#1a1a2e';
+          const _text2 = darkMode ? '#c7c7cc' : '#48484a';
+          const _text3 = darkMode ? '#8e8e93' : '#6e6e73';
+          const _divider = darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
+          // When a playlist is opened, the rail SYNCS to that playlist:
+          // we swap the multi-section building view for the dedicated
+          // PlaylistDetailView (curator profile + name + full track
+          // list + Play / Shuffle). Back button returns to the
+          // building's music sections.
+          if (detailTaggerId) {
+            return (
+              <PlaylistDetailView
+                buildingId={selectedBuilding.id}
+                taggerId={detailTaggerId}
+                text={_text} text2={_text2} text3={_text3} divider={_divider}
+                onBack={() => setDetailTaggerId(null)}
+              />
+            );
+          }
+          return (
+            <>
+              <CityVibeBlock
+                vibe={getCityVibe(area)}
+                text={_text} text2={_text2} text3={_text3}
+                divider={_divider} darkMode={darkMode}
+              />
+              <AddTrackComposer
+                buildingId={selectedBuilding.id}
+                vibe={getCityVibe(area)}
+                text={_text} text2={_text2} text3={_text3} divider={_divider}
+              />
+              <TopTaggerCard
+                buildingId={selectedBuilding.id}
+                text={_text} text2={_text2} text3={_text3} divider={_divider}
+                onSelect={(id) => setDetailTaggerId(id)}
+              />
+              <PopularTrackCard
+                buildingId={selectedBuilding.id}
+                text={_text} text2={_text2} text3={_text3} divider={_divider}
+              />
+              <BuildingPlaylist
+                buildingId={selectedBuilding.id}
+                cityVibe={getCityVibe(area)}
+                text={_text} text2={_text2} text3={_text3} divider={_divider}
+                darkMode={darkMode}
+                onOpenDetail={(id) => setDetailTaggerId(id)}
+              />
+              <RecommendedList
+                area={area}
+                lat={_lat} lon={_lon}
+                buildingName={_hasRealName ? _rawName : null}
+                buildingId={selectedBuilding.id}
+                buildingTags={selectedBuilding.tags}
+                text={_text} text2={_text2} text3={_text3} divider={_divider}
+              />
+            </>
+          );
+        })()}
+      </FixedQueueSidebar>
 
       {/* Scattered chrome consolidated into FixedToolSidebar (2026-04-29). chasing PLACE panel intentionally untouched. */}
-
-      <SearchBar area={area} buildings={buildings} onSelectBuilding={handleSearchSelect} onNavigate={handleNavigate} darkMode={darkMode} />
-
-      <Compass darkMode={darkMode} />
 
       <CanvasTour darkMode={darkMode} />
 
@@ -1685,731 +1753,6 @@ function App() {
           <>
           {leftPanel}
           {rightPanel}
-          <div
-            role="dialog"
-            aria-modal="false"
-            aria-labelledby={titleId}
-            style={{
-              position: 'fixed',
-              ...(isMobile
-                ? {
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    top: 'auto',
-                    width: 'auto',
-                    height:
-                      sheetSnap === 'full'
-                        ? '92vh'
-                        : sheetSnap === 'half'
-                        ? '60vh'
-                        : '22vh',
-                    borderTopLeftRadius: 22,
-                    borderTopRightRadius: 22,
-                    borderTop: `1px solid ${divider}`,
-                    borderLeft: 'none',
-                  }
-                : {
-                    top: 0,
-                    // Docked at the right edge in the same slot as
-                    // FixedQueueSidebar (280 px). The dialog now
-                    // hosts ALL music sections (CityVibe / Search /
-                    // TopPlaylists / TopPicks / MyPlaylist / AI 추천)
-                    // PLUS the Up Next queue inline — single right-
-                    // edge column instead of two stacked panels.
-                    right: 0,
-                    bottom: 0,
-                    width: 280,
-                    borderLeft: `1px solid ${divider}`,
-                  }),
-              background: surface,
-              // Very low opacity → rely more heavily on blur + saturation to keep
-              // text legible against any map background.
-              backdropFilter: opaque ? undefined : 'blur(32px) saturate(170%)',
-              WebkitBackdropFilter: opaque ? undefined : 'blur(32px) saturate(170%)',
-              boxShadow: darkMode
-                ? (isMobile ? '0 -16px 50px rgba(0,0,0,0.55)' : '-16px 0 50px rgba(0,0,0,0.55)')
-                : (isMobile ? '0 -16px 50px rgba(15,23,42,0.12)' : '-16px 0 50px rgba(15,23,42,0.12)'),
-              fontFamily: "'IBM Plex Mono', monospace",
-              color: text,
-              display: 'flex',
-              flexDirection: 'column',
-              zIndex: 30,
-              transition: reducedMotion
-                ? 'none'
-                : `background ${transitionMs}ms ease, height 320ms cubic-bezier(0.22,1,0.36,1)`,
-              overflow: 'hidden', // contain the gradient glow
-            }}
-          >
-            {isMobile && (
-              <button
-                type="button"
-                onClick={() =>
-                  setSheetSnap((s) =>
-                    s === 'peek' ? 'half' : s === 'half' ? 'full' : 'peek',
-                  )
-                }
-                aria-label="Adjust sheet height"
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 60,
-                  height: 22,
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 5,
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 38,
-                    height: 4,
-                    borderRadius: 2,
-                    background: divider,
-                  }}
-                />
-              </button>
-            )}
-            {/* Soft corner gradient glow — inspired by the Active Tasks reference.
-                Kept subtle, low-contrast, and NEVER behind body text (sits in the header
-                area only). Hidden when user prefers reduced transparency. */}
-            {!opaque && (
-              <>
-                <div
-                  aria-hidden="true"
-                  style={{
-                    position: 'absolute',
-                    top: -120,
-                    right: -120,
-                    width: 320,
-                    height: 320,
-                    borderRadius: '50%',
-                    background: darkMode
-                      ? 'radial-gradient(circle, rgba(236,72,153,0.18), rgba(236,72,153,0) 70%)'
-                      : 'radial-gradient(circle, rgba(236,72,153,0.10), rgba(236,72,153,0) 70%)',
-                    pointerEvents: 'none',
-                    filter: 'blur(20px)',
-                  }}
-                />
-                <div
-                  aria-hidden="true"
-                  style={{
-                    position: 'absolute',
-                    top: -80,
-                    left: -100,
-                    width: 260,
-                    height: 260,
-                    borderRadius: '50%',
-                    background: darkMode
-                      ? 'radial-gradient(circle, rgba(96,165,250,0.14), rgba(96,165,250,0) 70%)'
-                      : 'radial-gradient(circle, rgba(96,165,250,0.08), rgba(96,165,250,0) 70%)',
-                    pointerEvents: 'none',
-                    filter: 'blur(20px)',
-                  }}
-                />
-              </>
-            )}
-            {/* Header — sticky title bar */}
-            <div
-              style={{
-                padding: '28px 26px 22px',
-                borderBottom: `1px solid ${divider}`,
-                position: 'relative',
-                zIndex: 1, // sit above the gradient glow
-                // Apple Music iOS 26.4 paired-color tint (#10): a
-                // very subtle wash derived from the top pinned
-                // track's artwork. Sits behind the title only —
-                // never behind body text, where it would risk
-                // contrast. Falls through to neutral when no
-                // playlist exists yet.
-                background: headerTint
-                  ? `linear-gradient(180deg, ${headerTint}33 0%, transparent 100%)`
-                  : undefined,
-                transition: reducedMotion ? 'none' : 'background 600ms ease',
-              }}
-            >
-              <button
-                onClick={() => setSelectedBuilding(null)}
-                aria-label="Close building details"
-                style={{
-                  position: 'absolute',
-                  top: 18,
-                  right: 18,
-                  width: 34,              // ≥24×24 recommended target (axesslab mentions WCAG 2.5.8)
-                  height: 34,
-                  borderRadius: 17,
-                  background: cardSub,
-                  border: `1px solid ${divider}`, // Visible edge — don't rely on fill alone
-                  color: text,             // Full-contrast ink (≥14:1)
-                  fontSize: 18,
-                  lineHeight: 1,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontFamily: 'inherit',
-                  transition: reducedMotion ? 'none' : 'background 0.15s ease, outline 0.1s ease',
-                  outline: 'none',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = divider)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = cardSub)}
-                onFocus={(e) => (e.currentTarget.style.outline = `2px solid ${focusRing}`)}
-                onBlur={(e) => (e.currentTarget.style.outline = 'none')}
-              >
-                ×
-              </button>
-
-              {/* Desktop: building info lives in the LEFT panel (see below).
-                  Mobile: keep everything in this bottom sheet — not enough
-                  room for two panels. */}
-              {isMobile && (<>
-              {/* Overline with status dot (references: "• Backlog", "• In Progress") */}
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: 1.6,
-                  textTransform: 'uppercase',
-                  color: text3,
-                  marginBottom: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: darkMode ? '#ec4899' : '#db2777',
-                    boxShadow: darkMode ? '0 0 10px rgba(236,72,153,0.6)' : 'none',
-                    flexShrink: 0,
-                  }}
-                />
-                {t('panel.place')}
-              </div>
-              {kicker ? (
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: text2,
-                    marginBottom: 4,
-                    letterSpacing: 0.2,
-                    textTransform: 'none',
-                    paddingRight: 44,
-                    lineHeight: 1.3,
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {kicker}
-                </div>
-              ) : null}
-              <div
-                id={titleId}
-                style={{
-                  // Address is the headline. Slightly smaller than before so
-                  // long Japanese / Korean lines fit without truncation.
-                  fontSize: kicker ? 18 : 22,
-                  fontWeight: 700,
-                  lineHeight: 1.3,
-                  paddingRight: kicker ? 0 : 44,
-                  letterSpacing: -0.3,
-                  color: text,
-                  wordBreak: 'break-word',
-                }}
-              >
-                {title}
-              </div>
-              {(selectedBuilding.height > 0 || selectedBuilding.levels > 0 || isSkyscraper) ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginTop: 6,
-                  }}
-                >
-                  {(selectedBuilding.height > 0 || selectedBuilding.levels > 0) ? (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: text2,
-                        fontWeight: 600,
-                        letterSpacing: 0.4,
-                        textTransform: 'uppercase',
-                        opacity: 0.75,
-                      }}
-                    >
-                      {selectedBuilding.height > 0 ? `${Math.round(selectedBuilding.height)} m` : ''}
-                      {selectedBuilding.height > 0 && selectedBuilding.levels > 0 ? ' · ' : ''}
-                      {selectedBuilding.levels > 0 ? `${selectedBuilding.levels} F` : ''}
-                    </span>
-                  ) : null}
-                  {isSkyscraper ? (
-                    <span
-                      title={t('panel.skyscraper')}
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: 999,
-                        background: darkMode
-                          ? 'rgba(129,140,248,0.18)'
-                          : 'rgba(99,102,241,0.12)',
-                        color: darkMode ? '#a5b4fc' : '#4f46e5',
-                        fontSize: 9.5,
-                        fontWeight: 800,
-                        letterSpacing: 0.6,
-                        textTransform: 'uppercase',
-                        border: darkMode
-                          ? '1px solid rgba(165,180,252,0.25)'
-                          : '1px solid rgba(99,102,241,0.25)',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {t('panel.skyscraper')}
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
-              {geocoding && !kicker ? (
-                <div style={{ fontSize: 12, color: text2, marginTop: 10 }} aria-live="polite">
-                  {t('panel.loadingAddr')}
-                </div>
-              ) : null}
-              {/* Plus Code + open-in-maps links.
-                  The displayed address is composed from OSM tags and may not
-                  match Google's canonical format for that exact building.
-                  These deeplinks bypass the address text entirely — they
-                  send Google Maps / Apple Maps to the BUILDING'S CENTER
-                  COORDINATES, so the pin always lands on the right spot.
-                  The Plus Code is shown next to them as a copy-pasteable
-                  global identifier that also resolves in both apps. */}
-              {(() => {
-                const config = CITY_AREAS[area];
-                // Prefer the OSM `entrance=*` node when available — it's the
-                // pedestrian-walkable doorway, not the geometric centroid.
-                // Falls back to the footprint centroid for buildings without
-                // any tagged entrance node.
-                const [px, pz] = selectedBuilding.entry ?? selectedBuilding.center;
-                const { lat: rawLat, lon: rawLon } = metersToLatLon(
-                  px,
-                  pz,
-                  config.refLat,
-                  config.refLon,
-                );
-                // The StreetViewBox runs an OSM-based subway/station
-                // sanitizer (Overpass) and reports the shifted lat/lon
-                // back via `onSanitizedCoord`. We feed THAT into the
-                // Google/Apple/locale deeplinks so when the user
-                // clicks "Google Maps ↗" they land on a corrected
-                // outdoor coordinate — not on top of a subway exit
-                // that would open Street View into the concourse.
-                // Until the sanitizer resolves we use the raw entry
-                // coord; the deeplinks live-update the moment the
-                // Overpass query lands.
-                const lat = sanitizedCoord?.lat ?? rawLat;
-                const lon = sanitizedCoord?.lon ?? rawLon;
-                const gURL = googleMapsLink(lat, lon);
-                const aURL = appleMapsLink(lat, lon, addr || rawName || 'Building');
-                // Locale-aware secondary deeplinks. Naver/Kakao for KR users,
-                // Yahoo Japan for JP users — these are the maps people in
-                // those countries actually open. All free, no API.
-                // Country-specific deeplinks ONLY render in their home
-                // country — Naver/Kakao for KR, Yahoo!Japan for JP, Bing for
-                // US. Everything else (Street View link, OSM, Directions,
-                // geohash) was removed at the user's request to keep the
-                // deeplink row minimal: Google + Apple + locale apps only.
-                const country = AREA_COUNTRY[area];
-                const naverURL = country === 'KR' ? naverMapLink(lat, lon, rawName || 'Building') : null;
-                const kakaoURL = country === 'KR' ? kakaoMapLink(lat, lon) : null;
-                const yahooURL = country === 'JP' ? yahooJapanMapLink(lat, lon) : null;
-                const bingURL = country === 'US' ? bingMapsLink(lat, lon) : null;
-                return (
-                  <>
-                    {/* Inline Google Street View preview. Chrome (address
-                        bar + zoom controls) is hidden via overlay clipping
-                        — wheel-on-hover handles zoom natively.
-
-                        We DON'T reuse the entry/center point here: Google
-                        snaps to the closest pano, which for mid-block
-                        towers often resolves to an interior arcade pano.
-                        Instead we pick an "outside viewpoint" — a point
-                        just past the closest wall — and aim the camera
-                        back at the building. */}
-                    {streetViewExpanded ? (() => {
-                      // Two-stage strategy: pick a viewpoint just
-                      // outside the footprint, snap to the nearest
-                      // drivable road, fall back to the seed if no
-                      // road is within 60m.
-                      const seed = pickOutsideViewpoint(selectedBuilding);
-                      const snapped = snapToNearestRoad(
-                        seed.x,
-                        seed.z,
-                        selectedBuilding.center,
-                        roads,
-                      );
-                      const vp = snapped ?? seed;
-                      const { lat: svLat, lon: svLon } = metersToLatLon(
-                        vp.x,
-                        vp.z,
-                        config.refLat,
-                        config.refLon,
-                      );
-                      return (
-                        <StreetViewBox
-                          lat={svLat}
-                          lon={svLon}
-                          headingDeg={vp.headingDeg}
-                          buildingName={rawName || null}
-                          divider={divider}
-                          darkMode={darkMode}
-                          onSanitizedCoord={(slat, slon) =>
-                            setSanitizedCoord({ lat: slat, lon: slon })
-                          }
-                        />
-                      );
-                    })() : (
-                      <button
-                        type="button"
-                        onClick={() => setStreetViewExpanded(true)}
-                        style={{
-                          marginTop: 12,
-                          width: '100%',
-                          padding: '10px 14px',
-                          borderRadius: 12,
-                          border: `1px dashed ${divider}`,
-                          background: 'transparent',
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          letterSpacing: 0.6,
-                          textTransform: 'uppercase',
-                          color: text2,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 8,
-                        }}
-                        aria-expanded={false}
-                      >
-                        Open Street View
-                      </button>
-                    )}
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 6,
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      marginTop: 12,
-                    }}
-                  >
-                    <a
-                      href={gURL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: 0.4,
-                        padding: '4px 10px',
-                        borderRadius: 8,
-                        textDecoration: 'none',
-                        color: darkMode ? '#0a0a0f' : '#fff',
-                        background: darkMode ? '#e0e0e8' : '#1a1a2e',
-                      }}
-                    >
-                      Google Maps ↗
-                    </a>
-                    <a
-                      href={aURL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: 0.4,
-                        padding: '4px 10px',
-                        borderRadius: 8,
-                        textDecoration: 'none',
-                        color: text,
-                        background: 'transparent',
-                        border: `1px solid ${divider}`,
-                      }}
-                    >
-                      Apple Maps ↗
-                    </a>
-                    {/* Country-specific map apps — only render in their
-                        home country so JP users get Yahoo!地図, KR users
-                        get 네이버/카카오, US users get Bing. */}
-                    {(() => {
-                      const ghostBtn: React.CSSProperties = {
-                        fontFamily: "'IBM Plex Mono', monospace",
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: 0.4,
-                        padding: '4px 10px',
-                        borderRadius: 8,
-                        textDecoration: 'none',
-                        color: text,
-                        background: 'transparent',
-                        border: `1px solid ${divider}`,
-                        whiteSpace: 'nowrap',
-                      };
-                      const localeUrls: { label: string; href: string }[] = [];
-                      if (naverURL) localeUrls.push({ label: '네이버맵', href: naverURL });
-                      if (kakaoURL) localeUrls.push({ label: '카카오맵', href: kakaoURL });
-                      if (yahooURL) localeUrls.push({ label: 'Yahoo!地図', href: yahooURL });
-                      if (bingURL) localeUrls.push({ label: 'Bing', href: bingURL });
-                      return <LocaleDeeplinks urls={localeUrls} ghostBtn={ghostBtn} lang={lang} />;
-                    })()}
-                  </div>
-                  </>
-                );
-              })()}
-              </>)}
-
-            </div>
-
-            {/* Scrollable body */}
-            <div
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                padding: '18px 20px 32px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 14,
-                position: 'relative',
-                zIndex: 1, // above gradient glow
-              }}
-            >
-              {/* Music sections — actions-first ordering per Google
-                    Place Card convention (verbs above the fold) and
-                    the 2026 UI/UX research synthesis (#1 priority):
-                      1. Tag a Track — primary verb, always above the
-                         fold so the user knows what this app is for.
-                      2. AI Top Pick — single recommendation visible
-                         immediately, "Show 4 more" reveals the rest
-                         (progressive disclosure).
-                      3. My Playlist — what the user has already
-                         curated for this building.
-                      4. City Vibe — ambient context, lowest priority. */}
-              {detailTaggerId ? (
-                <PlaylistDetailView
-                  buildingId={selectedBuilding.id}
-                  taggerId={detailTaggerId}
-                  text={text}
-                  text2={text2}
-                  text3={text3}
-                  divider={divider}
-                  onBack={() => setDetailTaggerId(null)}
-                />
-              ) : (<>
-              {/* Order per latest user request:
-                    1. CITY VIBE     — ambient context for the building
-                    2. SEARCH        — composer between vibe and ranking
-                    3. TOP PLAYLISTS — ranked curators 1~3 (heart-clickable)
-                    4. TOP PICKS     — most-popular individual track
-                    5. MY PLAYLIST   — user's curation surfaces right
-                                       under what's popular here, so they
-                                       can see their pins without scrolling
-                                       past the AI list (req: 2026-04-28)
-                    6. AI 추천곡      — full list, no progressive disclosure */}
-              <CityVibeBlock
-                vibe={getCityVibe(area)}
-                text={text}
-                text2={text2}
-                text3={text3}
-                divider={divider}
-                darkMode={darkMode}
-              />
-
-              <AddTrackComposer
-                buildingId={selectedBuilding.id}
-                vibe={getCityVibe(area)}
-                text={text}
-                text2={text2}
-                text3={text3}
-                divider={divider}
-              />
-
-              {/* Top 1~3 playlists by likes — row click opens detail,
-                  heart pill (stopPropagation) toggles a playlist-level like. */}
-              <TopTaggerCard
-                buildingId={selectedBuilding.id}
-                text={text}
-                text2={text2}
-                text3={text3}
-                divider={divider}
-                onSelect={(id) => setDetailTaggerId(id)}
-              />
-
-              {/* Most popular TRACK — placed below the playlist ranking.
-                  Falls back to nearby buildings when this one has no pins. */}
-              <PopularTrackCard
-                buildingId={selectedBuilding.id}
-                text={text}
-                text2={text2}
-                text3={text3}
-                divider={divider}
-              />
-
-              {/* MY PLAYLIST — moved here (was below AI list) so the
-                  user's own pins appear right under what's popular,
-                  not buried at the bottom. */}
-              <BuildingPlaylist
-                buildingId={selectedBuilding.id}
-                cityVibe={getCityVibe(area)}
-                text={text}
-                text2={text2}
-                text3={text3}
-                divider={divider}
-                darkMode={darkMode}
-                onOpenDetail={(id) => setDetailTaggerId(id)}
-              />
-
-              <RecommendedList
-                area={area}
-                lat={buildingLat}
-                lon={buildingLon}
-                buildingName={hasRealName ? rawName : null}
-                buildingId={selectedBuilding.id}
-                buildingTags={selectedBuilding.tags}
-                text={text}
-                text2={text2}
-                text3={text3}
-                divider={divider}
-              />
-
-              {/* Up Next queue — pinned at the bottom of this rail
-                  so the user always sees what's playing/next under
-                  the building details. Same panel, single column. */}
-              <div style={{
-                marginTop: 6, paddingTop: 14,
-                borderTop: `1px solid ${divider}`,
-              }}>
-                <UpNextPanel
-                  text={text}
-                  text2={text2}
-                  text3={text3}
-                  divider={divider}
-                />
-              </div>
-              </>)}
-
-              {/* Tenant list — on mobile stays here (no left panel),
-                  on desktop lives in the left panel */}
-              {isMobile && allTenantsList.length > 0 && (
-                <div style={{ marginTop: 4, paddingTop: 12, borderTop: `1px solid ${divider}` }}>
-                  <div style={{
-                    fontSize: 9.5, fontWeight: 800, letterSpacing: 0.8,
-                    textTransform: 'uppercase', color: text3,
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    marginBottom: 8,
-                  }}>
-                    {t('panel.tenants') || '입점 정보'}
-                  </div>
-                  <div
-                    role="list"
-                    aria-label="Tenants"
-                    style={{
-                      display: 'flex', flexDirection: 'column', gap: 2,
-                      maxHeight: allTenantsList.length > TENANT_SCROLL_AFTER
-                        ? TENANT_SCROLL_MAX_PX : undefined,
-                      overflowY: allTenantsList.length > TENANT_SCROLL_AFTER
-                        ? 'auto' : undefined,
-                      paddingRight: allTenantsList.length > TENANT_SCROLL_AFTER ? 4 : 0,
-                      maskImage: allTenantsList.length > TENANT_SCROLL_AFTER
-                        ? 'linear-gradient(to bottom, black 92%, transparent)' : undefined,
-                      WebkitMaskImage: allTenantsList.length > TENANT_SCROLL_AFTER
-                        ? 'linear-gradient(to bottom, black 92%, transparent)' : undefined,
-                    }}
-                  >
-                    {allTenantsList.map((tenant, i) => {
-                      const s = swatch(tenant.category);
-                      // Brand logos dropped (mobile mirror of desktop).
-                      const gURL = tenantClickUrl(tenant, buildingLat, buildingLon);
-                      return (
-                        <a
-                          key={`m-${tenant.category}-${tenant.name}-${i}`}
-                          role="listitem"
-                          href={gURL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`Open ${tenant.name} in Google Maps`}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            padding: '8px 12px', borderRadius: 12,
-                            background: card, border: `1px solid ${divider}`,
-                            textDecoration: 'none', color: 'inherit',
-                            transition: reducedMotion ? 'none' : 'background 150ms ease',
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = cardSub; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = card; }}
-                        >
-                          <div style={{
-                            width: 44, height: 44, borderRadius: 10,
-                            background: s.fill,
-                            border: `1px solid ${darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0, overflow: 'hidden',
-                            position: 'relative',
-                          }}>
-                            {(() => {
-                              const Icon = CATEGORY_ICON[tenant.category] ?? MapPin;
-                              return (
-                                <span style={{
-                                  display: 'flex',
-                                  alignItems: 'center', justifyContent: 'center',
-                                  color: s.icon,
-                                }}>
-                                  <Icon size={20} strokeWidth={2.2} />
-                                </span>
-                              );
-                            })()}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            {(() => {
-                              const translated = translateTagLabel(tenant.label, lang);
-                              const isGeneric = tenant.name.trim().toLowerCase()
-                                              === tenant.label.trim().toLowerCase();
-                              const title = isGeneric ? translated : tenant.name;
-                              return (
-                                <>
-                                  <div title={tenant.name} style={{
-                                    fontSize: 13, fontWeight: 600, color: text, lineHeight: 1.3,
-                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                  }}>{title}</div>
-                                  <div style={{
-                                    fontSize: 10.5, fontWeight: 600, color: text3, marginTop: 1,
-                                    letterSpacing: 0.3, textTransform: 'uppercase',
-                                  }}>{translated}</div>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              </div>
-          </div>
           </>
         );
       })()}

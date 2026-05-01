@@ -366,6 +366,7 @@ const DICT: Record<string, Record<Lang, string>> = {
 
   'queue.upNext':          { en: 'Up Next',               ko: '다음 재생',     ja: '次に再生' },
   'queue.empty':           { en: 'Click a building to start a queue', ko: '빌딩을 클릭하면 큐가 시작됩니다', ja: '建物をクリックするとキューが始まります' },
+  'queue.clear':           { en: 'Clear',                 ko: '비우기',        ja: 'クリア' },
 
   // Tool sidebar (left)
   'tools.expand':       { en: 'Expand tools',   ko: '도구 펼치기',   ja: 'ツールを開く' },
@@ -375,13 +376,23 @@ const DICT: Record<string, Record<Lang, string>> = {
   'tools.profile':      { en: 'Profile',        ko: '프로필',        ja: 'プロフィール' },
   'tools.cities':       { en: 'Cities',         ko: '도시',          ja: '都市' },
   'tools.settings':     { en: 'Settings',       ko: '설정',          ja: '設定' },
+  'tools.myPlaylists':  { en: 'My playlists',   ko: '내 플레이리스트', ja: 'マイプレイリスト' },
+  'tools.notInThisCity':{ en: 'Switch city to open',  ko: '다른 도시의 빌딩 — 도시를 전환해 주세요', ja: '別の都市の建物 — 都市を切り替えてください' },
   'tools.darkMode':     { en: 'Dark mode',      ko: '다크 모드',     ja: 'ダークモード' },
   'tools.lightMode':    { en: 'Light mode',     ko: '라이트 모드',   ja: 'ライトモード' },
   'player.shuffle':        { en: 'Shuffle',               ko: '랜덤재생',      ja: 'シャッフル' },
+  'player.repeat':         { en: 'Repeat',                ko: '반복',          ja: 'リピート' },
+  'player.add':            { en: 'Add to my playlist',    ko: '내 플레이리스트에 추가', ja: 'マイプレイリストに追加' },
+  'player.added':          { en: 'Added',                 ko: '추가됨',        ja: '追加済み' },
   'player.close':          { en: 'Close player',          ko: '플레이어 닫기', ja: 'プレーヤーを閉じる' },
   'player.appleMusic':     { en: 'Apple Music',           ko: 'Apple Music',   ja: 'Apple Music' },
   'player.openAppleMusic': { en: 'Open in Apple Music',   ko: 'Apple Music에서 열기', ja: 'Apple Musicで開く' },
   'player.nowPlaying':     { en: 'Now playing',           ko: '재생 중',       ja: '再生中' },
+  'player.menu.more':      { en: 'More',                  ko: '더보기',        ja: 'その他' },
+  'player.menu.info':      { en: 'Track info',            ko: '곡 정보',       ja: '曲情報' },
+  'player.menu.share':     { en: 'Share',                 ko: '공유',          ja: '共有' },
+  'player.menu.copy':      { en: 'Copy track info',       ko: '곡 정보 복사',  ja: '曲情報をコピー' },
+  'player.menu.copied':    { en: 'Copied',                ko: '복사됨',        ja: 'コピーしました' },
 
   'detail.back':           { en: 'BACK',                  ko: '뒤로',          ja: '戻る' },
   'detail.song':           { en: 'Song',                  ko: '곡',            ja: '曲' },

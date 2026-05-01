@@ -21,12 +21,14 @@
  * before the user starts playing.
  */
 
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Music2, Repeat, Repeat1, Shuffle } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useT } from '../../../lib/app/i18n';
-import { FONT } from '../../../lib/ui/tokens';
+import { FONT, SPACE } from '../../../lib/ui/tokens';
 import { UpNextPanel } from './UpNextPanel';
-import { usePlayerState } from './PreviewPlayer';
+import {
+  cycleRepeat, setQueue, stopPreview, toggleShuffle, usePlayerState,
+} from './PreviewPlayer';
 
 type Props = {
   text: string;
@@ -71,9 +73,12 @@ export function FixedQueueSidebar({
     if (buildingId) setOpen(true);
   }, [buildingId]);
 
-  // Hide the rail entirely when there's nothing to show — neither
-  // a selected building NOR a live queue.
-  if (!hasQueue && !buildingId) return null;
+  // Always mount — even with no queue + no selection, the rail
+  // renders a placeholder so the left/right symmetry holds. Apple
+  // Music does the same (right rail always present, content swaps
+  // between Continue Playing and "Pick a song to start"). Symmetric
+  // chrome > sometimes-empty void on one side.
+  const showPlaceholder = !hasQueue && !buildingId;
 
   // ── Closed state: thin tab handle on the right edge. Click → open.
   if (!open) {
@@ -108,6 +113,8 @@ export function FixedQueueSidebar({
   }
 
   // ── Open state: rail at right edge.
+  const ink     = darkMode ? '#f5f5f7' : '#0e0e1a';
+  const muted   = darkMode ? '#a8a8b3' : '#5a5a66';
   return (
     <aside
       role="complementary"
@@ -117,28 +124,78 @@ export function FixedQueueSidebar({
         right: 0, top: 0, bottom: 0,
         width: SIDEBAR_W,
         zIndex: 40,
-        background: darkMode ? 'rgba(15,15,20,0.78)' : 'rgba(255,255,255,0.78)',
-        backdropFilter: 'blur(20px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-        borderLeft: `1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-        boxShadow: '-12px 0 36px rgba(0,0,0,0.10)',
+        background: darkMode ? 'rgba(15,15,20,0.55)' : 'rgba(255,255,255,0.55)',
+        backdropFilter: 'blur(24px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+        // No edges. Symmetric to FixedToolSidebar.
+        border: 'none',
+        boxShadow: 'none',
         display: 'flex', flexDirection: 'column',
         fontFamily: FONT.ui,
+        color: ink,
       }}
     >
-      {/* Header bar with collapse button */}
+      {/* Header — Apple Music macOS pattern: shuffle / repeat /
+          (clear) action chips on the LEFT, collapse on the RIGHT.
+          Visible only when there's an actual queue to act on. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 14px',
-        borderBottom: `1px solid ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}`,
+        padding: `${SPACE[3]}px ${SPACE[3]}px ${SPACE[1]}px`,
+        gap: SPACE[2],
       }}>
-        <div style={{
-          fontSize: 11, fontWeight: 800, letterSpacing: 1.4,
-          textTransform: 'uppercase',
-          color: darkMode ? '#e0e0e8' : '#1a1a2e',
-          fontFamily: FONT.mono,
-        }}>
-          {t('queue.upNext')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[1] }}>
+          {hasQueue && (
+            <>
+              <RailIconBtn
+                onClick={toggleShuffle}
+                ariaLabel={t('player.shuffle')}
+                active={player.shuffle}
+                ink={ink} muted={muted} darkMode={darkMode}
+              >
+                <Shuffle size={14} strokeWidth={2.2} />
+              </RailIconBtn>
+              <RailIconBtn
+                onClick={cycleRepeat}
+                ariaLabel={t('player.repeat')}
+                active={player.repeat !== 'off'}
+                ink={ink} muted={muted} darkMode={darkMode}
+              >
+                {player.repeat === 'one'
+                  ? <Repeat1 size={14} strokeWidth={2.2} />
+                  : <Repeat  size={14} strokeWidth={2.2} />}
+              </RailIconBtn>
+              <button
+                type="button"
+                onClick={() => { setQueue([]); stopPreview(); }}
+                title={t('queue.clear')}
+                aria-label={t('queue.clear')}
+                style={{
+                  marginLeft: SPACE[1],
+                  border: 'none', background: 'transparent',
+                  color: muted,
+                  fontFamily: FONT.mono,
+                  fontSize: 11, fontWeight: 700, letterSpacing: 1.2,
+                  textTransform: 'uppercase',
+                  padding: `${SPACE[1]}px ${SPACE[2]}px`,
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  transition: 'background 120ms ease, color 120ms ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = ink;
+                  e.currentTarget.style.background = darkMode
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'rgba(0,0,0,0.04)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = muted;
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                {t('queue.clear')}
+              </button>
+            </>
+          )}
         </div>
         <button
           type="button"
@@ -146,17 +203,18 @@ export function FixedQueueSidebar({
           aria-label="Collapse queue"
           title="Collapse"
           style={{
-            width: 24, height: 24, borderRadius: 6,
+            width: 28, height: 28, borderRadius: 6,
             border: 'none',
             background: 'transparent',
-            color: darkMode ? 'rgba(224,224,232,0.7)' : 'rgba(26,26,46,0.6)',
+            color: muted,
             cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 120ms ease',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = darkMode
-              ? 'rgba(255,255,255,0.06)'
-              : 'rgba(0,0,0,0.04)';
+              ? 'rgba(255,255,255,0.08)'
+              : 'rgba(0,0,0,0.05)';
           }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
         >
@@ -164,25 +222,87 @@ export function FixedQueueSidebar({
         </button>
       </div>
 
-      {/* Scrollable body. Children (the building's music sections —
-          CityVibe / Search / TopPlaylists / TopPicks / MyPlaylist /
-          AI 추천곡) render FIRST, then the Up Next queue stays as a
-          pinned bottom section. The queue persists across building
-          deselections so the user can keep scrubbing what's playing. */}
+      {/* Scrollable body. */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '12px 14px 96px', // bottom clears NowPlayingBar
-        display: 'flex', flexDirection: 'column', gap: 14,
+        padding: `${SPACE[2]}px ${SPACE[4]}px ${SPACE[12]}px`,
+        display: 'flex', flexDirection: 'column', gap: SPACE[4],
       }}>
-        {children}
-        <UpNextPanel
-          text={text}
-          text2={text2}
-          text3={text3}
-          divider={divider}
-        />
+        {showPlaceholder ? (
+          <div style={{
+            marginTop: SPACE[8],
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: SPACE[3], textAlign: 'center', color: muted,
+            padding: `0 ${SPACE[4]}px`,
+          }}>
+            <Music2 size={32} strokeWidth={1.4} style={{ opacity: 0.5 }} />
+            <div style={{
+              fontFamily: FONT.mono,
+              fontSize: 11, fontWeight: 800, letterSpacing: 1.4,
+              textTransform: 'uppercase',
+            }}>
+              {t('queue.upNext')}
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.5, maxWidth: 220 }}>
+              {t('queue.empty')}
+            </div>
+          </div>
+        ) : (
+          <>
+            {children}
+            <UpNextPanel
+              text={text}
+              text2={text2}
+              text3={text3}
+              divider={divider}
+            />
+          </>
+        )}
       </div>
     </aside>
+  );
+}
+
+/** Small pill-shaped icon button for the queue rail header. Apple
+ *  Music macOS uses red-tinted toggles here; we use the theme's ink
+ *  with a subtle hover/active fill so it harmonizes with the rest of
+ *  the rail's chrome rather than introducing a third accent color. */
+function RailIconBtn({
+  onClick, ariaLabel, active, ink, muted, darkMode, children,
+}: {
+  onClick: () => void;
+  ariaLabel: string;
+  active: boolean;
+  ink: string;
+  muted: string;
+  darkMode: boolean;
+  children: React.ReactNode;
+}) {
+  const hover = darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={ariaLabel}
+      aria-label={ariaLabel}
+      aria-pressed={active}
+      style={{
+        width: 26, height: 26, borderRadius: 999,
+        border: 'none',
+        background: active ? hover : 'transparent',
+        color: active ? ink : muted,
+        cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 120ms ease, color 120ms ease',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = hover; e.currentTarget.style.color = ink; }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = active ? hover : 'transparent';
+        e.currentTarget.style.color = active ? ink : muted;
+      }}
+    >
+      {children}
+    </button>
   );
 }
