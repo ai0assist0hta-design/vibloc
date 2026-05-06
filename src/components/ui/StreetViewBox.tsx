@@ -348,7 +348,7 @@ export function StreetViewBox({
   void mapLon;
   const shimmerBase = darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
   const shimmerHi   = darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
-  const dot         = darkMode ? '#ffffff' : '#1a1a2e';
+  const dot         = darkMode ? '#ffffff' : '#0e0e1a';
   return (
     <div
       style={{
@@ -393,12 +393,12 @@ export function StreetViewBox({
       </div>
       <div
         style={{
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
           fontSize: 10,
           fontWeight: 700,
           letterSpacing: 1.4,
           textTransform: 'uppercase',
-          color: darkMode ? 'rgba(255,255,255,0.55)' : 'rgba(26,26,46,0.55)',
+          color: darkMode ? 'rgba(255,255,255,0.55)' : 'rgba(14,14,26,0.55)',
         }}
       >
         Loading Street View

@@ -1,9 +1,14 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { FONT, SECTION_HEADER } from './lib/ui/tokens';
+import { useDarkModeStore } from './lib/app/useDarkMode';
 import { PlateauScene, type NavTarget, type BuildingScreenAnchor } from './components/canvas/PlateauScene';
 import { TimeSlider } from './components/ui/TimeSlider';
+import { WeatherDevToggle } from './components/ui/WeatherDevToggle';
 import { LanguageToggle } from './components/ui/LanguageToggle';
 import { CityDropdown } from './components/ui/CityDropdown';
 import { CanvasTour } from './components/ui/CanvasTour';
+import { OnboardingCoachmark } from './components/ui/OnboardingCoachmark';
 import { LocalePrompt } from './components/ui/LocalePrompt';
 import { useT, translateTagLabel, useI18nStore } from './lib/app/i18n';
 import { CITY_AREAS, type CityAreaKey, type OSMBuilding, type OSMRoad, type BuildingTag, metersToLatLon, reverseGeocode, fetchOSMTerrain } from './lib/geo/osmLoader';
@@ -26,8 +31,8 @@ import { NowPlayingBar } from './components/ui/music/NowPlayingBar';
 import { FixedQueueSidebar } from './components/ui/music/FixedQueueSidebar';
 import { UpNextPanel } from './components/ui/music/UpNextPanel';
 import { FixedToolSidebar } from './components/ui/FixedToolSidebar';
+import { ToastHost } from './components/ui/ToastHost';
 import { PlaylistDetailView } from './components/ui/music/PlaylistDetailView';
-import { CityVibeBlock } from './components/ui/music/CityVibeBlock';
 import { getCityVibe } from './lib/music/cityProfile';
 import { getTenantLogoUrl, CATEGORY_ICON } from './lib/geo/tenantLogo';
 import { tenantClickUrl } from './lib/geo/tenantClickUrl';
@@ -36,7 +41,8 @@ import { pickOutsideViewpoint, snapToNearestRoad } from './lib/streetview/street
 import { loadAppleGenreColors } from './lib/music/genreColorSource';
 import { useArtworkTint } from './lib/music/headerTint';
 import { getTopTaggers, getTracksByTagger, usePlaylist } from './lib/music/buildingPlaylist';
-import { playPreview, setQueue } from './components/ui/music/PreviewPlayer';
+import { getPlayerStateSnapshot, playPreview, preloadPreview, restoreContinuePlaying, setQueue } from './components/ui/music/PreviewPlayer';
+import { subscribeAuthSync } from './features/auth/supabaseAuth';
 import { STATIC_GENRE_COLORS } from './data/genres';
 import { useWeatherStore } from './stores/useWeatherStore';
 import { useAuthStore } from './features/auth/useAuthStore';
@@ -212,14 +218,40 @@ function App() {
 
   const t = useT();
   const lang = useI18nStore((s) => s.lang);
-  const [area, setArea] = useState<CityAreaKey>('shinjuku');
+
+  // ── URL deep-link params ──
+  // `?area=shinjuku` opens the map straight on a city.
+  // `?building=way/123` auto-selects that building once OSM data
+  // for the matching city has loaded. Both are produced by the
+  // landing chips and the MyPage playlist "바로가기" button.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialAreaParam = searchParams.get('area');
+  const initialArea: CityAreaKey =
+    initialAreaParam && initialAreaParam in CITY_AREAS
+      ? (initialAreaParam as CityAreaKey)
+      : 'shinjuku';
+  const pendingBuildingId = searchParams.get('building');
+
+  const [area, setArea] = useState<CityAreaKey>(initialArea);
   // Navigation target: world (x, z) plus optional height and footprint.
   // The footprint lets CameraNavigator orient the fly-to along the building's
   // actual long axis (OBB), so long Manhattan slabs and rotated towers get a
   // proper 3/4 view instead of an edge-on shot from a hard-coded SE diagonal.
   const [navigateTarget, setNavigateTarget] = useState<NavTarget | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
-  const [liveTimeEnabled, setLiveTimeEnabled] = useState(false);
+  // Dark mode lives in a global zustand store (persisted to
+  // localStorage) so the user's choice carries across every route —
+  // map → mypage → playlist → auth → landing all flip together until
+  // the user toggles it back. The auto-flip from sun position (LIVE
+  // mode) writes through this same setter, so manual + automatic
+  // sources stay in sync. Initial value hydrates synchronously from
+  // localStorage on first render → no light-then-dark flash.
+  const darkMode = useDarkModeStore((s) => s.darkMode);
+  const setDarkMode = useDarkModeStore((s) => s.setDarkMode);
+  // Live mode defaults ON — design pass: real-time sun/weather is
+  // the canonical experience, manual override is the exception.
+  // Sidebar toggle still flips this off for users who explicitly
+  // want a static scene.
+  const [liveTimeEnabled, setLiveTimeEnabled] = useState(true);
   const [sunLightPos, setSunLightPos] = useState<[number, number, number] | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<OSMBuilding | null>(null);
   // Tenant list cap — once the list exceeds this many rows it is
@@ -241,6 +273,20 @@ function App() {
   // tagger's playlist instead of the default building sections.
   const [detailTaggerId, setDetailTaggerId] = useState<string | null>(null);
   useEffect(() => { setDetailTaggerId(null); }, [selectedBuilding?.id]);
+
+  // Boot: restore the user's last-played track + queue from localStorage
+  // so the NowPlayingBar lands on a "Continue Playing" state instead
+  // of empty. Track stays paused until the first user gesture
+  // (browser autoplay policy).
+  useEffect(() => {
+    restoreContinuePlaying();
+    // Wire Supabase's auth state into our zustand store. Returns
+    // an unsubscribe; React handles the cleanup. Safe no-op when
+    // VITE_SUPABASE_URL is not configured.
+    return subscribeAuthSync();
+  }, []);
+
+  const restoredBuildingRef = useRef(false);
   // ── Smooth panel motion (zero-render, rAF-driven) ──
   // The previous implementation used React state for the building's
   // projected screen anchor — which fired setState every frame the
@@ -529,6 +575,45 @@ function App() {
   const headerTint = useArtworkTint(_topPinnedArtwork);
   const [buildings, setBuildings] = useState<OSMBuilding[]>([]);
 
+  // After the building list loads, re-select the building the
+  // restored snapshot was anchored to. Without this, prev/next on
+  // the bar still works (queue is restored) but the right rail
+  // shows the empty state until the user clicks something — and
+  // the + pin button on the bar reads "Select a building first"
+  // even though the restored track came FROM a building. We honor
+  // the snapshot only when the user hasn't already selected a
+  // different building this session.
+  useEffect(() => {
+    if (restoredBuildingRef.current) return;
+    if (selectedBuilding) { restoredBuildingRef.current = true; return; }
+    if (buildings.length === 0) return;
+    const snap = getPlayerStateSnapshot();
+    if (!snap.currentBuildingId) { restoredBuildingRef.current = true; return; }
+    const match = buildings.find((b) => b.id === snap.currentBuildingId);
+    if (match) setSelectedBuilding(match);
+    restoredBuildingRef.current = true;
+  }, [buildings, selectedBuilding]);
+
+  // ── Deep-link auto-select ──
+  // When the page is opened with `?building=way/123`, wait for the
+  // OSM buildings of the resolved area to load, then look up the
+  // matching building and run the same selection path the click
+  // handler uses. Strip the param afterwards so a refresh or a
+  // manual close-then-reselect doesn't re-trigger the jump.
+  const pendingHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!pendingBuildingId) return;
+    if (pendingHandledRef.current === pendingBuildingId) return;
+    if (buildings.length === 0) return;
+    const target = buildings.find((b) => b.id === pendingBuildingId);
+    if (!target) return;
+    pendingHandledRef.current = pendingBuildingId;
+    handleBuildingSelect(target);
+    // Drop the URL params so the user lands on a clean `/map`.
+    setSearchParams({}, { replace: true });
+    // handleBuildingSelect is stable via useCallback; safe to depend on.
+  }, [pendingBuildingId, buildings]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-play the building's #1 playlist's first preview-able track
   // when the user selects a building. Slight delay (250 ms) gives
   // the seed enricher time to populate previewUrl on the seed
@@ -542,10 +627,47 @@ function App() {
   // misfire and the "tagger group shuffles → fresh effect run →
   // identical track restarts from 0:00" jank.
   const lastAutoPlayRef = useRef<{ buildingId: string; trackId: string } | null>(null);
+
+  // Shared helper: load `taggerId`'s pinned tracks for `buildingId`
+  // into the player queue and start playback from track 0. Used by
+  // both the building-select auto-play effect and the rank-row click
+  // handler in TopTaggerCard so the two paths stay in lockstep
+  // (same queue shape → next/prev keep working when the user pivots
+  // from auto-played #1 to a manually-clicked #2 / #3).
+  const playTaggerPlaylist = (buildingId: string, taggerId: string): void => {
+    const tracks = getTracksByTagger(buildingId, taggerId);
+    const queue = tracks
+      .filter((tr) => tr.previewUrl)
+      .map((tr) => ({
+        id: tr.id,
+        url: tr.previewUrl,
+        meta: {
+          title: tr.trackName,
+          artist: tr.artistName,
+          artworkUrl: tr.artworkUrl || undefined,
+          appleUrl: tr.trackViewUrl || undefined,
+        },
+      }));
+    if (queue.length === 0) return;
+    setQueue(queue, buildingId);
+    const first = queue[0];
+    lastAutoPlayRef.current = { buildingId, trackId: first.id };
+    playPreview(first.id, first.url, first.meta, { force: true });
+  };
+
   useEffect(() => {
     if (!selectedBuilding) return;
     const id = selectedBuilding.id;
     const t = setTimeout(() => {
+      // Honor any explicit play already in-flight for this building
+      // (e.g. user clicked a "My Music" item in the left rail, which
+      // synchronously called playPreview before this 250 ms timer
+      // fired). Don't clobber their queue or restart their track —
+      // the rail already loaded what they wanted.
+      const snap = getPlayerStateSnapshot();
+      if (snap.currentBuildingId === id && snap.currentId && snap.queue.length > 0) {
+        return;
+      }
       const top = getTopTaggers(id, 1)[0];
       if (!top) return;
       const tracks = getTracksByTagger(id, top.taggerId);
@@ -563,11 +685,23 @@ function App() {
             artist: tr.artistName,
             artworkUrl: tr.artworkUrl || undefined,
             appleUrl: tr.trackViewUrl || undefined,
+            genre: tr.genre,
           },
         }));
-      setQueue(queue);
+      setQueue(queue, id);
       const first = queue[0];
       if (!first) return;
+      // Building click is itself a user gesture, so the browser
+      // permits audio to start within the activation window
+      // (~1 s). Always try playPreview — if the browser still
+      // rejects (rare: page restored from bf-cache without a fresh
+      // gesture), the catch handler in playPreview now keeps the
+      // track preloaded in paused state so the bar still shows up
+      // and the user just clicks Play. Top playlist plays on
+      // EVERY building select — that's the primary engagement
+      // hook. We always preload first so the bar appears
+      // instantly even before the audio promise settles.
+      preloadPreview(first.id, first.url, first.meta);
       const last = lastAutoPlayRef.current;
       if (last && last.buildingId === id && last.trackId === first.id) return;
       lastAutoPlayRef.current = { buildingId: id, trackId: first.id };
@@ -743,6 +877,19 @@ function App() {
     handleBuildingSelect(b);
   }, [handleBuildingSelect]);
 
+  // Forced reselect — used by the left rail "My Music" rows. Even
+  // when the same building is already current, we want the full
+  // selection cycle (camera animation, panel re-mount, queue reset)
+  // to re-fire. setSelectedBuilding(null) → next tick → re-select
+  // gives React two distinct commits so all dependent effects run.
+  const handleForceReselect = useCallback((b: OSMBuilding) => {
+    setSelectedBuilding(null);
+    setSanitizedCoord(null);
+    window.setTimeout(() => {
+      handleBuildingSelect(b);
+    }, 0);
+  }, [handleBuildingSelect]);
+
   const handleSunUpdate = useCallback((lightPos: [number, number, number], isDark: boolean) => {
     setSunLightPos(lightPos);
     // Auto-switch dark/light mode based on sun
@@ -752,16 +899,20 @@ function App() {
   }, []);
 
   const handleDarkModeToggle = useCallback(() => {
+    // Zustand setter takes a value (no functional updater form), so
+    // we read the current snapshot from the store rather than relying
+    // on stale closure state.
+    const next = !useDarkModeStore.getState().darkMode;
     if (liveTimeEnabled) {
       // In live mode, manual toggle overrides auto — toggle it off on next sun change
       manualDarkRef.current = true;
-      setDarkMode(v => !v);
+      setDarkMode(next);
       // Reset manual override after 3 seconds — let sun take over again
       setTimeout(() => { manualDarkRef.current = false; }, 3000);
     } else {
-      setDarkMode(v => !v);
+      setDarkMode(next);
     }
-  }, [liveTimeEnabled]);
+  }, [liveTimeEnabled, setDarkMode]);
 
   const handleLiveTimeToggle = useCallback((enabled: boolean) => {
     setLiveTimeEnabled(enabled);
@@ -809,12 +960,42 @@ function App() {
         }
       }}
     >
+      {/* 3D scene stays pinned to the viewport edges. Earlier this
+          was wrapped in a translateX to "follow" the rail-aware
+          center, but the canvas's own background got dragged off
+          the viewport on one side, exposing a black/white strip
+          where the body bg showed through. The rails / panels do
+          all the centering work; the city itself never moves. */}
       <PlateauScene area={area} navigateTarget={navigateTarget} darkMode={darkMode} sunLightPos={sunLightPos} selectedBuilding={selectedBuilding} onBuildingSelect={handleBuildingSelect} onBuildingsLoaded={setBuildings} onSelectedAnchor={onSelectedAnchor} />
 
       {/* Global "now playing" bar — fades in when a preview is
           playing. Mounted at the App root so it stays visible even
           when the user closes the building panel mid-track. */}
-      <NowPlayingBar darkMode={darkMode} selectedBuildingId={selectedBuilding?.id ?? null} />
+      <NowPlayingBar
+        darkMode={darkMode}
+        selectedBuildingId={selectedBuilding?.id ?? null}
+        selectedBuildingName={selectedBuilding?.name ?? null}
+      />
+      {/* Live-time slider — drives sun position + auto dark/light
+          mode + city weather glyph. Was implemented + handlers
+          wired but the component itself was never mounted, leaving
+          the landing page's "real-time sun / weather / charts"
+          claim un-fulfilled. Re-mounted 2026-05-05 so the feature
+          users were promised actually appears. */}
+      <TimeSlider
+        area={area}
+        enabled={liveTimeEnabled}
+        onToggle={handleLiveTimeToggle}
+        onSunUpdate={handleSunUpdate}
+        darkMode={darkMode}
+      />
+      {/* WeatherDevToggle hidden from the user-facing UI — it was
+          a dev/preview affordance for synthesising rain/snow without
+          waiting on Open-Meteo. Live weather pipeline now drives the
+          real category, so the manual cycle button is no longer
+          surfaced. Kept in the import for quick re-mounting during
+          dev work; toggle the JSX comment below to bring it back. */}
+      {/* <WeatherDevToggle /> */}
       {/* Symmetric viewport-fixed left rail — restored per user
           request. Hosts the tool cluster (Search / Profile / Cities
           / sticky-bottom Settings) so the corner-scattered chrome
@@ -828,9 +1009,13 @@ function App() {
         }}
         darkMode={darkMode}
         onToggleDarkMode={handleDarkModeToggle}
+        liveMode={liveTimeEnabled}
+        onToggleLiveMode={handleLiveTimeToggle}
         buildings={buildings}
         onSelectBuilding={handleSearchSelect}
         onNavigate={handleNavigate}
+        onForceReselect={handleForceReselect}
+        onOpenMyDetail={(userId) => setDetailTaggerId(userId)}
       />
       {/* SINGLE right rail. Always FixedQueueSidebar — when a
           building is selected, its `children` slot renders the
@@ -840,9 +1025,9 @@ function App() {
           queue is also empty). One mount, one DOM node, no
           conditional surface swap. */}
       <FixedQueueSidebar
-        text={darkMode ? '#f5f5f7' : '#1a1a2e'}
-        text2={darkMode ? '#c7c7cc' : '#48484a'}
-        text3={darkMode ? '#8e8e93' : '#6e6e73'}
+        text={darkMode ? '#f5f5f7' : '#0e0e1a'}
+        text2={darkMode ? '#c7c7cc' : '#2e2e38'}
+        text3={darkMode ? '#8e8e93' : '#5a5a66'}
         divider={darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)'}
         darkMode={darkMode}
         buildingId={selectedBuilding?.id ?? null}
@@ -859,9 +1044,9 @@ function App() {
             ?? metersToLatLon(selectedBuilding.center[0], selectedBuilding.center[1], cfg.refLat, cfg.refLon).lon;
           const _rawName = (geocodedInfo?.name || selectedBuilding.name || '').trim();
           const _hasRealName = !!_rawName && _rawName !== 'Building';
-          const _text  = darkMode ? '#f5f5f7' : '#1a1a2e';
-          const _text2 = darkMode ? '#c7c7cc' : '#48484a';
-          const _text3 = darkMode ? '#8e8e93' : '#6e6e73';
+          const _text  = darkMode ? '#f5f5f7' : '#0e0e1a';
+          const _text2 = darkMode ? '#c7c7cc' : '#2e2e38';
+          const _text3 = darkMode ? '#8e8e93' : '#5a5a66';
           const _divider = darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
           // When a playlist is opened, the rail SYNCS to that playlist:
           // we swap the multi-section building view for the dedicated
@@ -880,24 +1065,23 @@ function App() {
           }
           return (
             <>
-              <CityVibeBlock
-                vibe={getCityVibe(area)}
-                text={_text} text2={_text2} text3={_text3}
-                divider={_divider} darkMode={darkMode}
-              />
+              {/* Right-rail order — design pass 2026-05-06:
+                    1. AddTrackComposer  — search to add new pins
+                    2. MY PLAYLIST       — promoted to the top so the
+                                           user's own list reads as
+                                           the primary surface
+                    3. TOP PLAYLISTS     — curator list (taggers)
+                    4. TOP PICKS         — popular tracks here
+                    5. AI 추천곡         — recommendations
+                  Was MY PLAYLIST sitting between TOP PICKS and
+                  RecommendedList — buried below two community-
+                  scope sections. Surfacing it first matches the
+                  "my space first, community second" hierarchy. */}
               <AddTrackComposer
                 buildingId={selectedBuilding.id}
                 vibe={getCityVibe(area)}
                 text={_text} text2={_text2} text3={_text3} divider={_divider}
-              />
-              <TopTaggerCard
-                buildingId={selectedBuilding.id}
-                text={_text} text2={_text2} text3={_text3} divider={_divider}
-                onSelect={(id) => setDetailTaggerId(id)}
-              />
-              <PopularTrackCard
-                buildingId={selectedBuilding.id}
-                text={_text} text2={_text2} text3={_text3} divider={_divider}
+                onOpenPlaylist={(id) => setDetailTaggerId(id)}
               />
               <BuildingPlaylist
                 buildingId={selectedBuilding.id}
@@ -905,6 +1089,16 @@ function App() {
                 text={_text} text2={_text2} text3={_text3} divider={_divider}
                 darkMode={darkMode}
                 onOpenDetail={(id) => setDetailTaggerId(id)}
+              />
+              <TopTaggerCard
+                buildingId={selectedBuilding.id}
+                text={_text} text2={_text2} text3={_text3} divider={_divider}
+                onSelect={(id) => setDetailTaggerId(id)}
+                onPlay={(id) => playTaggerPlaylist(selectedBuilding.id, id)}
+              />
+              <PopularTrackCard
+                buildingId={selectedBuilding.id}
+                text={_text} text2={_text2} text3={_text3} divider={_divider}
               />
               <RecommendedList
                 area={area}
@@ -922,6 +1116,7 @@ function App() {
       {/* Scattered chrome consolidated into FixedToolSidebar (2026-04-29). chasing PLACE panel intentionally untouched. */}
 
       <CanvasTour darkMode={darkMode} />
+      <OnboardingCoachmark darkMode={darkMode} />
 
       <div
         style={{
@@ -932,7 +1127,7 @@ function App() {
           borderRadius: 12,
           background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.6)',
           backdropFilter: 'blur(20px)',
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: FONT.mono,
           fontSize: 11,
           color: darkMode ? '#666' : '#666',
           transition: 'all 0.4s ease',
@@ -961,8 +1156,8 @@ function App() {
         //   • Text colors meet WCAG 2.2: body ≥4.5:1, large/bold ≥3:1.
         //     Dark: #f5f5f7 on #15151a ≈ 15.7:1 (body), #c7c7cc on #15151a ≈ 10.1:1 (secondary),
         //           #8e8e93 on #15151a ≈ 5.2:1 (tertiary — used only on ≥14px bold).
-        //     Light: #1a1a2e on #f5f5f7 ≈ 14.3:1, #48484a on #f5f5f7 ≈ 8.3:1,
-        //           #6e6e73 on #f5f5f7 ≈ 5.7:1.
+        //     Light: #0e0e1a on #f5f5f7 ≈ 14.3:1, #2e2e38 on #f5f5f7 ≈ 8.3:1,
+        //           #5a5a66 on #f5f5f7 ≈ 5.7:1.
         const opaque = reducedTransparency;
         // More glassy. Surface is quite see-through; cards are a touch more solid
         // to keep text legible. When prefers-reduced-transparency is set we snap
@@ -974,9 +1169,9 @@ function App() {
           ? (darkMode ? '#1f1f24' : '#ffffff')
           : (darkMode ? 'rgba(28,28,34,0.48)' : 'rgba(255,255,255,0.50)');
         const cardSub = darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)';
-        const text    = darkMode ? '#f5f5f7' : '#1a1a2e';   // ≥14:1 — body & headlines
-        const text2   = darkMode ? '#c7c7cc' : '#48484a';   // ≥8:1 — secondary body
-        const text3   = darkMode ? '#8e8e93' : '#6e6e73';   // ≥5:1 — only used at ≥12px bold
+        const text    = darkMode ? '#f5f5f7' : '#0e0e1a';   // ≥14:1 — body & headlines
+        const text2   = darkMode ? '#c7c7cc' : '#2e2e38';   // ≥8:1 — secondary body
+        const text3   = darkMode ? '#8e8e93' : '#5a5a66';   // ≥5:1 — only used at ≥12px bold
         const divider = darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
         const focusRing = darkMode ? '#60a5fa' : '#2563eb';
 
@@ -1221,7 +1416,17 @@ function App() {
               // Initial fallback — overwritten on first rAF tick.
               top: '38%',
               left: 360,
-              width: 320,
+              // 320 px target, but never wider than 40 % of the
+              // space remaining between the two rails so the panel
+              // doesn't get pushed offscreen when the user drags a
+              // rail wider. Scales DOWN proportionally; the rAF
+              // anchor logic handles X position.
+              width: 'min(320px, calc((100vw - var(--vbk-left-rail-w, 280px) - var(--vbk-right-rail-w, 280px)) * 0.45))',
+              // Floating panels stay anchored to their building via
+              // the rAF projection. They don't shift with rail width
+              // because the 3D scene also doesn't shift; otherwise
+              // the panel would drift off its anchor.
+              transition: 'width 160ms ease',
               // Outer wrapper does NOT clip — the soft blur child below
               // extends past the visible panel on purpose so the mask
               // can fade outside the content area.
@@ -1352,7 +1557,11 @@ function App() {
                 height: PANEL_CONTENT_H,
                 overflowY: 'auto',
                 padding: PANEL_INNER_PAD,
-                fontFamily: "'IBM Plex Mono', monospace",
+                // Body uses sans-serif (FONT.ui) to match the rail
+                // panels' design vocabulary. Mono is reserved for
+                // technical metadata (height "m", floors "F", OSM
+                // attribution) where tabular alignment matters.
+                fontFamily: FONT.ui,
                 color: text,
                 display: 'flex',
                 flexDirection: 'column',
@@ -1362,8 +1571,7 @@ function App() {
               }}
             >
             <div style={{
-              fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
-              textTransform: 'uppercase', color: text3, marginBottom: 8,
+              ...SECTION_HEADER, color: text3, marginBottom: 8,
               display: 'flex', alignItems: 'center', gap: 7,
             }}>
               <span aria-hidden="true" style={{
@@ -1373,24 +1581,38 @@ function App() {
               {t('panel.place')}
             </div>
 
+            {/* Kicker — Apple "Subhead" spec (15/600/-0.014em). Was
+                13/600 with raw 0.1px tracking; bumped one step so it
+                reads as the structured prefix to the headline below. */}
             {kicker ? (
               <div style={{
-                fontSize: 13, fontWeight: 600, color: text2, marginBottom: 4,
-                letterSpacing: 0.1, lineHeight: 1.35, wordBreak: 'break-word',
+                fontSize: 15, fontWeight: 600, letterSpacing: '-0.014em',
+                color: text2, marginBottom: 4, lineHeight: 1.33,
+                wordBreak: 'break-word',
               }}>{kicker}</div>
             ) : null}
 
+            {/* Headline — Apple Title 2 spec (22/700/-0.005em/1.16).
+                Was 17 or 20 with raw -0.3 px tracking. Title 2 is
+                Apple's standard for "primary content title" in a
+                detail panel (e.g. Maps Place Card title). */}
             <div style={{
-              fontSize: kicker ? 17 : 20, fontWeight: 700, lineHeight: 1.25,
-              letterSpacing: -0.3, color: text, wordBreak: 'break-word',
+              fontSize: kicker ? 19 : 22, fontWeight: 700,
+              letterSpacing: '-0.005em', lineHeight: 1.16,
+              color: text, wordBreak: 'break-word',
             }}>{title}</div>
 
+            {/* Building stats row — height + floors + skyscraper
+                badge. All elements share the same 11/600/0.06em
+                eyebrow spec for typographic alignment with the
+                rest of the rail's small-caps labels. */}
             {(selectedBuilding.height > 0 || selectedBuilding.levels > 0 || isSkyscraper) ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 {(selectedBuilding.height > 0 || selectedBuilding.levels > 0) ? (
                   <span style={{
-                    fontSize: 12, color: text2, fontWeight: 600,
-                    letterSpacing: 0.4, textTransform: 'uppercase', opacity: 0.85,
+                    fontSize: 11, color: text2, fontWeight: 600,
+                    letterSpacing: '0.06em', textTransform: 'uppercase',
+                    fontFamily: FONT.mono,
                   }}>
                     {selectedBuilding.height > 0 ? `${Math.round(selectedBuilding.height)} m` : ''}
                     {selectedBuilding.height > 0 && selectedBuilding.levels > 0 ? ' · ' : ''}
@@ -1399,10 +1621,12 @@ function App() {
                 ) : null}
                 {isSkyscraper ? (
                   <span style={{
-                    padding: '2px 8px', borderRadius: 999,
+                    padding: '3px 10px', borderRadius: 999,
                     background: darkMode ? 'rgba(129,140,248,0.18)' : 'rgba(99,102,241,0.12)',
                     color: darkMode ? '#a5b4fc' : '#4f46e5',
-                    fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
+                    fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    fontFamily: FONT.mono,
                     border: darkMode ? '1px solid rgba(165,180,252,0.25)' : '1px solid rgba(99,102,241,0.25)',
                     textShadow: 'none',
                   }}>{t('panel.skyscraper')}</span>
@@ -1411,23 +1635,28 @@ function App() {
             ) : null}
 
             {geocoding && !kicker ? (
-              <div style={{ fontSize: 12, color: text2, marginTop: 10 }} aria-live="polite">
+              <div style={{
+                fontSize: 13, color: text2, marginTop: 10,
+                letterSpacing: '-0.01em',
+              }} aria-live="polite">
                 {t('panel.loadingAddr')}
               </div>
             ) : null}
 
             {/* Map deeplinks — single unified Maps toggle.
-                Click → fans the destinations sideways. No colored
-                Google button; every option uses the same ghost pill. */}
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: 12 }}>
+                Click → fans the destinations sideways. Apple body
+                caption spec (12 / 500 / -0.01em) replaces the
+                heavier mono 11/700/0.4px so the pills sit on the
+                same baseline as the rest of the rail's body text. */}
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: 16 }}>
               {(() => {
                 const ghostBtn: React.CSSProperties = {
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: 0.4,
-                  padding: '5px 11px',
-                  borderRadius: 8,
+                  fontFamily: FONT.ui,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  letterSpacing: '-0.01em',
+                  padding: '6px 12px',
+                  borderRadius: 999,
                   textDecoration: 'none',
                   color: text,
                   background: darkMode ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.5)',
@@ -1448,18 +1677,23 @@ function App() {
               })()}
             </div>
 
-            {/* Street View — compact launcher */}
+            {/* Street View — compact launcher.
+                Apple Caption 1 spec (12 / 500 / -0.01em). Was a
+                heavier mono uppercase chip (12/700/0.6px) that
+                visually dominated the rail; toned down so it reads
+                as a secondary affordance. Pill radius (999) matches
+                the Maps deeplinks above for consistency. */}
             {!streetViewExpanded ? (
               <button
                 type="button"
                 onClick={() => setStreetViewExpanded(true)}
                 style={{
                   marginTop: 12, width: '100%', padding: '11px 14px',
-                  borderRadius: 12, border: `1px dashed ${divider}`,
+                  borderRadius: 999, border: `1px dashed ${divider}`,
                   background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)',
                   backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-                  fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, fontWeight: 700,
-                  letterSpacing: 0.6, textTransform: 'uppercase', color: text2,
+                  fontFamily: FONT.ui, fontSize: 12, fontWeight: 500,
+                  letterSpacing: '-0.01em', color: text2,
                   cursor: 'pointer', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', gap: 8, textShadow: 'none',
                 }}
@@ -1488,21 +1722,19 @@ function App() {
               );
             })()}
 
-            {/* ── Tenant list (moved from right panel) ── */}
+            {/* ── Tenant list (moved from right panel) ──
+                Hairline removed; gap-only separation matches the
+                rest of the panels (Apple Settings / Music modern
+                borderless stack). */}
             {allTenantsList.length > 0 && (
               <div style={{
-                marginTop: 16,
-                borderTop: `1px solid ${divider}`,
-                paddingTop: 12,
+                marginTop: 24,
               }}>
                 <div style={{
-                  // Standardized SECTION_HEADER spec — matches
-                  // TopTaggerCard's "TOP PLAYLISTS" header so both
-                  // panels share the same in-section rhythm.
-                  fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
-                  textTransform: 'uppercase', color: text3,
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  marginBottom: 8,
+                  // SECTION_HEADER token — single source of small
+                  // caps so this header always tracks the rest of
+                  // the rail when the spec evolves.
+                  ...SECTION_HEADER, color: text3, marginBottom: 8,
                 }}>
                   {t('panel.tenants') || '입점 정보'}
                 </div>
@@ -1599,13 +1831,26 @@ function App() {
                             const title = isGeneric ? translated : tenant.name;
                             return (
                               <>
+                                {/* Tenant name — Apple body row spec:
+                                    13 / 600 / -0.01em / line 1.3.
+                                    Tracks letter-spacing with the
+                                    rest of the rail's row body. */}
                                 <div title={tenant.name} style={{
-                                  fontSize: 13, fontWeight: 600, color: text, lineHeight: 1.3,
+                                  fontSize: 13, fontWeight: 600,
+                                  letterSpacing: '-0.01em', color: text,
+                                  lineHeight: 1.3,
                                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                 }}>{title}</div>
+                                {/* Category subtitle — Apple Caption 2
+                                    spec (11 / 400 / -0.01em). Was an
+                                    aggressive uppercase 10/600/0.3 px
+                                    label that competed with the row's
+                                    primary text. */}
                                 <div style={{
-                                  fontSize: 10, fontWeight: 600, color: text3, marginTop: 1,
-                                  letterSpacing: 0.3, textTransform: 'uppercase',
+                                  fontSize: 11, fontWeight: 400,
+                                  letterSpacing: '-0.01em',
+                                  color: text3, marginTop: 2,
+                                  lineHeight: 1.3,
                                 }}>{translated}</div>
                               </>
                             );
@@ -1636,7 +1881,16 @@ function App() {
               position: 'fixed',
               top: '38%',
               left: 360,                   // overwritten by rAF tick
-              width: 320,
+              // Same scale-with-rails clamp as leftPanel — width
+              // shrinks proportionally as either rail grows so the
+              // floating panel never gets clipped behind a wider
+              // sidebar.
+              width: 'min(320px, calc((100vw - var(--vbk-left-rail-w, 280px) - var(--vbk-right-rail-w, 280px)) * 0.45))',
+              // Floating panels stay anchored to their building via
+              // the rAF projection. They don't shift with rail width
+              // because the 3D scene also doesn't shift; otherwise
+              // the panel would drift off its anchor.
+              transition: 'width 160ms ease',
               overflow: 'visible',
               zIndex: 30,
               transformOrigin: 'top left',
@@ -1703,11 +1957,11 @@ function App() {
               padding: PANEL_INNER_PAD,
               display: 'flex', flexDirection: 'column', gap: 14,
             }}>
-              {/* MUSIC eyebrow — pairs with leftPanel's PLACE */}
+              {/* MUSIC eyebrow — pairs with leftPanel's PLACE.
+                  SECTION_HEADER token keeps it in sync with every
+                  other small-caps header on the rail. */}
               <div style={{
-                fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
-                textTransform: 'uppercase', color: text3,
-                fontFamily: "'IBM Plex Mono', monospace",
+                ...SECTION_HEADER, color: text3,
                 display: 'flex', alignItems: 'center', gap: 7,
               }}>
                 <span aria-hidden="true" style={{
@@ -1732,6 +1986,7 @@ function App() {
                 text3={text3}
                 divider={divider}
                 onSelect={(id) => setDetailTaggerId(id)}
+                onPlay={(id) => playTaggerPlaylist(selectedBuilding.id, id)}
                 limit={3}
                 medals
               />
@@ -1749,6 +2004,11 @@ function App() {
           </div>
         ) : null;
 
+        // Both panels render — chasing PLACE (left, building info:
+        // address / tenants / Street View) + chasing rightPanel
+        // (TOP PLAYLISTS medal callout). They share the building
+        // anchor with the right FixedQueueSidebar but the content is
+        // disjoint (place vs music), so all three coexist.
         return (
           <>
           {leftPanel}
@@ -1756,6 +2016,10 @@ function App() {
           </>
         );
       })()}
+      {/* Toast host — bottom-center HUD for status messages like
+          "Already in your playlist". Mounts once at the app root so
+          toasts are global and never get clipped by sidebar overflow. */}
+      <ToastHost />
     </div>
   );
 }

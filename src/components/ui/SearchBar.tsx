@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { Search } from 'lucide-react';
 import { geocodeAddress, geoToLocalMeters } from '../../lib/geo/geocoder';
 import { CITY_AREAS, type CityAreaKey, type OSMBuilding } from '../../lib/geo/osmLoader';
 import { resolveJPBuilding } from '../../lib/geo/jpAddressResolver';
@@ -54,9 +55,27 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
       return;
     }
     const handle = window.setTimeout(() => {
-      const ranked = rankBuildings(q, index, { limit: AUTOCOMPLETE_MAX });
-      setSuggestions(ranked);
-      setHighlight(ranked.length > 0 ? 0 : -1);
+      const ranked = rankBuildings(q, index, { limit: AUTOCOMPLETE_MAX * 4 });
+      // Dedupe by display name + address — OSM splits big buildings
+      // (Shinjuku Park Tower etc.) into multiple polygons under the
+      // same name, so the raw list shows the same tower 3-5 times
+      // with different floor counts. Keep the largest polygon
+      // (highest floor count, then height) per name. Falls back to
+      // address-based grouping when name is empty.
+      const byKey = new Map<string, RankedResult>();
+      for (const r of ranked) {
+        const b = r.building;
+        const key = (b.name || b.address || b.id).toLowerCase().trim();
+        const existing = byKey.get(key);
+        if (!existing) { byKey.set(key, r); continue; }
+        const cur = existing.building;
+        const score = (b.levels ?? 0) * 1000 + (b.height ?? 0);
+        const prevScore = (cur.levels ?? 0) * 1000 + (cur.height ?? 0);
+        if (score > prevScore) byKey.set(key, r);
+      }
+      const deduped = Array.from(byKey.values()).slice(0, AUTOCOMPLETE_MAX);
+      setSuggestions(deduped);
+      setHighlight(deduped.length > 0 ? 0 : -1);
     }, AUTOCOMPLETE_DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
   }, [query, index]);
@@ -229,30 +248,59 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
             padding: '6px 10px',
             border: 'none',
             background: 'transparent',
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 12,
-            color: darkMode ? '#e0e0e8' : '#1a1a2e',
+            // Embedded uses the rail's UI font + 13 px to match the
+            // surrounding rail rows. Standalone (legacy) keeps the
+            // tighter mono 12 it always had.
+            fontFamily: embedded
+              ? "'Inter', 'Pretendard', system-ui, sans-serif"
+              : "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
+            fontSize: embedded ? 13 : 12,
+            color: darkMode ? '#e0e0e8' : '#0e0e1a',
             outline: 'none',
           }}
         />
         <button
           onClick={handleSearch}
           disabled={loading}
+          aria-label={t('search.go')}
+          title={t('search.go')}
           style={{
-            padding: '6px 14px',
-            borderRadius: 10,
+            // Embedded: square icon button matching row geometry.
+            // Standalone: legacy text pill kept for the floating bar.
+            width: embedded ? 28 : undefined,
+            height: embedded ? 28 : undefined,
+            padding: embedded ? 0 : '6px 14px',
+            borderRadius: embedded ? 6 : 10,
             border: 'none',
-            background: darkMode ? '#e0e0e8' : '#1a1a2e',
-            color: darkMode ? '#0a0a0f' : '#fff',
-            fontFamily: "'IBM Plex Mono', monospace",
+            background: embedded
+              ? 'transparent'
+              : (darkMode ? '#e0e0e8' : '#0e0e1a'),
+            color: embedded
+              ? (darkMode ? '#e0e0e8' : '#0e0e1a')
+              : (darkMode ? '#0a0a0f' : '#fff'),
+            fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
             fontSize: 11,
             fontWeight: 600,
             cursor: loading ? 'wait' : 'pointer',
             opacity: loading ? 0.6 : 1,
-            transition: 'all 0.4s ease',
+            display: embedded ? 'inline-flex' : undefined,
+            alignItems: embedded ? 'center' : undefined,
+            justifyContent: embedded ? 'center' : undefined,
+            transition: 'background 160ms ease, opacity 160ms ease',
           }}
+          onMouseEnter={embedded ? (e) => {
+            if (loading) return;
+            e.currentTarget.style.background = darkMode
+              ? 'rgba(255,255,255,0.10)'
+              : 'rgba(0,0,0,0.06)';
+          } : undefined}
+          onMouseLeave={embedded ? (e) => {
+            e.currentTarget.style.background = 'transparent';
+          } : undefined}
         >
-          {loading ? '...' : t('search.go')}
+          {embedded
+            ? <Search size={15} strokeWidth={2.2} />
+            : (loading ? '...' : t('search.go'))}
         </button>
       </div>
       {open && suggestions.length > 0 && (
@@ -274,7 +322,7 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
               ? '0 12px 32px rgba(0,0,0,0.45)'
               : '0 12px 32px rgba(15,23,42,0.14)',
             border: darkMode ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.06)',
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
           }}
         >
           {suggestions.map((s, i) => {
@@ -300,7 +348,7 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
                   borderRadius: 8,
                   cursor: 'pointer',
                   background: isActive
-                    ? (darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(26,26,46,0.08)')
+                    ? (darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(14,14,26,0.08)')
                     : 'transparent',
                   display: 'flex',
                   flexDirection: 'column',
@@ -312,7 +360,7 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
                   style={{
                     fontSize: 12,
                     fontWeight: 600,
-                    color: darkMode ? '#e0e0e8' : '#1a1a2e',
+                    color: darkMode ? '#e0e0e8' : '#0e0e1a',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -358,7 +406,7 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
             borderRadius: 8,
             background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.6)',
             backdropFilter: 'blur(10px)',
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
             fontSize: 10,
             color: '#666',
             maxWidth: 280,

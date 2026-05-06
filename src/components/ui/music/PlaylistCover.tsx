@@ -53,6 +53,15 @@ export function PlaylistCover({
   const useCustom = !!customUrl && !customBroken;
   const usableLive = singleBroken ? usable.slice(1) : usable;
 
+  // Tile chrome scales with size:
+  //   • small (≤ 48 px row thumb)  → borderless, no shadow. Matches
+  //     the rail's other 36-px artwork tiles (TrackRow / PopularRow)
+  //     which sit clean inside their hover row backgrounds.
+  //   • large (> 48 px hero cover) → keep the 12 px drop shadow so
+  //     the hero reads as a lifted "art object" against the panel.
+  //     Border still removed — the shadow alone delineates the edge,
+  //     same as Apple Music's playlist hero artwork.
+  const isLarge = size > 48;
   return (
     <div
       style={{
@@ -61,8 +70,7 @@ export function PlaylistCover({
         flexShrink: 0,
         borderRadius: radius,
         overflow: 'hidden',
-        border: `1px solid ${divider}`,
-        boxShadow: '0 12px 28px rgba(0,0,0,0.16)',
+        boxShadow: isLarge ? '0 12px 28px rgba(0,0,0,0.16)' : 'none',
         background: divider,
         ...style,
       }}
@@ -128,7 +136,7 @@ function Monogram({ text, text2 }: { text: string; text2: string }) {
       width: '100%', height: '100%',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       color: text2,
-      fontFamily: "'IBM Plex Mono', monospace",
+      fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
       fontSize: 40, fontWeight: 800,
     }}>
       {(text.trim().charAt(0) || '?').toUpperCase()}

@@ -24,6 +24,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import {
   recommendForBuilding,
   type RecommendationResult,
@@ -31,7 +32,9 @@ import {
 import type { BuildingTag, CityAreaKey } from '../../../lib/geo/osmLoader';
 import { TrackRow } from './TrackRow';
 import { usePlaylist } from '../../../lib/music/buildingPlaylist';
+import { SECTION_HEADER } from '../../../lib/ui/tokens';
 import { useT } from '../../../lib/app/i18n';
+import { showToast } from '../../../lib/ui/toast';
 
 type Props = {
   area: CityAreaKey;
@@ -98,35 +101,38 @@ export function RecommendedList({
   return (
     <div
       style={{
-        marginTop: 4,
-        paddingTop: 12,
-        borderTop: `1px solid ${divider}`,
+        // Inter-section spacing handled by parent FixedQueueSidebar
+        // (gap 16). marginTop: 20 was double-counting that gap; left
+        // RecommendedList sitting 36 px below MY PLAYLIST while every
+        // other section pair was 16 px apart.
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
       }}
     >
       {/* Static section header — Top Pick is always visible per
-          progressive-disclosure pattern. Refresh re-rolls the picks. */}
+          progressive-disclosure pattern. Refresh re-rolls the picks.
+          Right padding 6 px so the ⟳ button's right edge aligns
+          with every TrackRow's trailing action below — both end at
+          panel-right − 22 ( = body padding 16 + this 6 ). Removes
+          the misalignment where the refresh button sat 6 px right
+          of the +/✓/✕ column under it. */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          gap: 6,
+          gap: 8,
+          paddingRight: 12,
         }}
       >
         <span
           style={{
-            fontSize: 12,
-            fontWeight: 800,
-            letterSpacing: 1.0,
-            textTransform: 'uppercase',
+            ...SECTION_HEADER,
             color: text2,
-            fontFamily: "'IBM Plex Mono', monospace",
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
             minWidth: 0,
             flex: 1,
             textAlign: 'left',
@@ -142,32 +148,45 @@ export function RecommendedList({
           aria-label="Refresh recommendations"
           title={t('music.refreshVibe')}
           style={{
+            // Icon-only button: no border, no fill — pure glyph that
+            // matches the row trailing actions (TrackRow + button).
+            // The 28×28 hit area lines up with the action column so
+            // the refresh icon sits on the same right-edge axis.
             background: 'transparent',
-            border: `1px solid ${divider}`,
-            borderRadius: 8,
-            padding: '2px 8px',
-            fontSize: 10,
-            fontWeight: 700,
+            border: 'none',
+            borderRadius: '50%',
+            padding: 0,
+            width: 32, height: 32,
             color: text2,
             cursor: loading ? 'wait' : 'pointer',
-            fontFamily: "'IBM Plex Mono', monospace",
             display: 'inline-flex',
             alignItems: 'center',
+            justifyContent: 'center',
             userSelect: 'none',
+            transition: 'background 120ms ease, color 120ms ease, transform 600ms ease',
+            transform: loading ? 'rotate(360deg)' : 'rotate(0deg)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(14,14,26,0.06)';
+            e.currentTarget.style.color = text;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = text2;
           }}
         >
-          ⟳
+          <RefreshCw size={16} strokeWidth={2.2} />
         </button>
       </div>
 
       {loading && (
-        <div style={{ fontSize: 11, color: text3, padding: '4px 0' }}>
+        <div style={{ fontSize: 12, color: text3, padding: '4px 0' }}>
           {t('music.loadingPlaylist')}
         </div>
       )}
 
       {!loading && data && data.tracks.length === 0 && (
-        <div style={{ fontSize: 11, color: text3, padding: '4px 0' }}>
+        <div style={{ fontSize: 12, color: text3, padding: '4px 0' }}>
           {t('music.noPreview')}
         </div>
       )}
@@ -182,8 +201,14 @@ export function RecommendedList({
             text2={text2}
             divider={divider}
             rightAction={pinned ? 'pinned' : 'add'}
+            // Already-pinned tap → quiet toast instead of unpin so a
+            // single-click accidental removal can't happen on a
+            // discovery surface (AI 추천곡). The user can still unpin
+            // explicitly from MY PLAYLIST detail.
             onRightAction={() =>
-              pinned ? playlist.unpin(tr.id) : playlist.pin(tr)
+              pinned
+                ? showToast(t('track.toast.alreadyAdded'))
+                : playlist.pin(tr)
             }
           />
         );

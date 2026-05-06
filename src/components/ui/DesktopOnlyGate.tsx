@@ -73,31 +73,41 @@ export function DesktopOnlyGate({ children }: { children: ReactNode }) {
         VIBLOC
       </div>
 
-      {/* Headline */}
+      {/* Headline — `keep-all` prevents Korean from splitting at the
+          last syllable + period (orphan "요." on its own line was
+          ugly with maxWidth 320). Slightly wider cap (360) gives
+          English ("VIBLOC is a desktop experience.") a single line
+          on common viewports. */}
       <h1 style={{
         margin: 0, fontSize: 22, fontWeight: 800,
-        lineHeight: 1.25, letterSpacing: -0.3,
-        maxWidth: 320,
+        lineHeight: 1.35, letterSpacing: -0.3,
+        maxWidth: 360,
+        wordBreak: 'keep-all',
       }}>
         {t('gate.headline')}
       </h1>
 
       {/* Body — explanation */}
       <p style={{
-        margin: 0, fontSize: 14, lineHeight: 1.55,
-        color: MUTED, maxWidth: 320,
+        margin: 0, fontSize: 14, lineHeight: 1.6,
+        color: MUTED, maxWidth: 360,
+        wordBreak: 'keep-all',
       }}>
         {t('gate.body')}
       </p>
 
-      {/* Hint chip */}
+      {/* Hint chip — UI font (not mono) for KO/JA fluency; mono +
+          letter-spacing was inserting visual double-spaces between
+          한글 어절. Numeric "1280px" stays in tabular-nums via the
+          inherited Inter feature setting. */}
       <div style={{
         marginTop: 8,
         padding: '8px 14px',
         borderRadius: 10,
-        border: '1px dashed rgba(26,26,46,0.20)',
-        fontFamily: FONT.mono,
-        fontSize: 11, color: MUTED, letterSpacing: 0.4,
+        border: '1px dashed rgba(14,14,26,0.20)',
+        fontFamily: FONT.ui,
+        fontSize: 12, color: MUTED,
+        fontVariantNumeric: 'tabular-nums',
       }}>
         {t('gate.hint')}
       </div>

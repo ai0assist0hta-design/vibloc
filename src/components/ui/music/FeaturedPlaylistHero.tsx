@@ -16,6 +16,7 @@ import {
   getTracksByTagger,
 } from '../../../lib/music/buildingPlaylist';
 import { PlaylistCover } from './PlaylistCover';
+import { FONT } from '../../../lib/ui/tokens';
 
 // Modal pulls in lz-string + its own UI. Defer until the user clicks
 // share so it never loads on the city map's initial paint.
@@ -97,34 +98,9 @@ export function FeaturedPlaylistHero({
           floating panel already carries a green "● MUSIC" section
           header (mirrors the left panel's "● PLACE"); a second
           headline inside the hero was redundant. */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-        alignSelf: 'stretch', marginBottom: 2,
-      }}>
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setShareOpen(true); }}
-          aria-label="Share playlist link"
-          title="Share link"
-          style={{
-            padding: 6, borderRadius: 8,
-            border: 'none', background: 'transparent',
-            color: text2, cursor: 'pointer',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'background 120ms ease, color 120ms ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(26,26,46,0.06)';
-            e.currentTarget.style.color = text;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = text2;
-          }}
-        >
-          <Share2 size={16} strokeWidth={2} />
-        </button>
-      </div>
+      {/* Share button row removed per design pass — was a noisy
+          trailing icon that competed with the cover hero. Sharing
+          can return as a row-level menu item if needed. */}
 
       {/* Square cover — custom image when set, else 2×2 mosaic of
           the playlist's top track artworks (Apple Music / Spotify
@@ -141,7 +117,7 @@ export function FeaturedPlaylistHero({
 
       {/* Title */}
       <div style={{
-        fontSize: 17, fontWeight: 800, color: text,
+        fontSize: 16, fontWeight: 800, color: text,
         letterSpacing: -0.2, lineHeight: 1.2,
         textAlign: 'center',
         maxWidth: 240,
@@ -152,8 +128,8 @@ export function FeaturedPlaylistHero({
 
       {/* Curator + track count + estimated total time */}
       <div style={{
-        fontFamily: "'IBM Plex Mono', monospace",
-        fontSize: 11, fontWeight: 600, color: text2,
+        fontFamily: FONT.ui,
+        fontSize: 12, fontWeight: 600, color: text2,
         letterSpacing: 0.4,
         display: 'flex', alignItems: 'center', gap: 8,
       }}>

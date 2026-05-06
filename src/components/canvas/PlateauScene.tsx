@@ -5,7 +5,9 @@ import { EffectComposer, Vignette } from '@react-three/postprocessing';
 import { wrapEffect } from '@react-three/postprocessing';
 import { Vector3, Spherical, HalfFloatType, VSMShadowMap, DirectionalLight } from 'three';
 import { OSMCity } from './OSMCity';
+import { WeatherFX } from './WeatherFX';
 import { GradientFogEffect } from './effects';
+import { useWeatherStore } from '../../stores/useWeatherStore';
 import type { CityAreaKey, OSMBuilding } from '../../lib/geo/osmLoader';
 
 // Wrap custom postprocessing effects for R3F
@@ -75,6 +77,121 @@ function ShadowFollower() {
       _lightOffset.y,
       target.z + _lightOffset.z
     );
+  });
+  return null;
+}
+
+/** Pans the camera's projection frustum horizontally so the visible
+ *  scene center stays aligned with the midpoint between the two side
+ *  rails. Reads `--vbk-left-rail-w` / `--vbk-right-rail-w` (set by
+ *  FixedToolSidebar / FixedQueueSidebar) on every frame and applies
+ *  the asymmetry as a pixel offset via `camera.setViewOffset`.
+ *
+ *  Why setViewOffset and not camera.position: setViewOffset only
+ *  affects the projection matrix, leaving the camera's transform +
+ *  OrbitControls target untouched. The user can still orbit/zoom
+ *  normally; the visual pan is purely a render-time crop.
+ *
+ *  Sign convention: NowPlayingBar center sits at
+ *    centerX = leftW + (vw - leftW - rightW) / 2
+ *  which is `(leftW - rightW) / 2` pixels to the RIGHT of vw/2.
+ *  Three.js `setViewOffset(fullW, fullH, x, y, viewW, viewH)` renders
+ *  a viewW × viewH window starting at (x, y) of a fullW × fullH
+ *  virtual frustum — a POSITIVE x shifts the camera's central ray
+ *  visually LEFT in the canvas. To pull the visible center RIGHT
+ *  (matching the NowPlayingBar center), we pass a NEGATIVE x —
+ *  i.e. -(leftW - rightW)/2 = (rightW - leftW) / 2. */
+function CameraViewOffsetSync() {
+  const { camera, size } = useThree();
+  const lastOffsetRef = useRef(0);
+  useFrame(() => {
+    const root = document.documentElement;
+    const cs = getComputedStyle(root);
+    const leftW = parseFloat(cs.getPropertyValue('--vbk-left-rail-w')) || 280;
+    const rightW = parseFloat(cs.getPropertyValue('--vbk-right-rail-w')) || 280;
+    // Smooth toward the target offset so quick rail drags glide
+    // instead of jumping per frame. tau ≈ 80 ms (alpha 0.2 at 60 fps).
+    // Flipped sign: leftW wider → negative offset → content visually
+    // moves RIGHT, landing under the NowPlayingBar's new center.
+    const target = (rightW - leftW) / 2;
+    const next = lastOffsetRef.current + (target - lastOffsetRef.current) * 0.2;
+    if (Math.abs(next - target) < 0.05) lastOffsetRef.current = target;
+    else lastOffsetRef.current = next;
+    const dx = lastOffsetRef.current;
+    if (Math.abs(dx) < 0.5) {
+      // PerspectiveCamera.clearViewOffset exists; defensive runtime
+      // check in case a different camera type is ever used.
+      const anyCam = camera as unknown as { clearViewOffset?: () => void };
+      anyCam.clearViewOffset?.();
+    } else {
+      const anyCam = camera as unknown as {
+        setViewOffset?: (fw: number, fh: number, x: number, y: number, w: number, h: number) => void;
+      };
+      anyCam.setViewOffset?.(size.width, size.height, dx, 0, size.width, size.height);
+    }
+  });
+  return null;
+}
+
+/** One-shot landing-hero intro: camera starts high above (top-down
+ *  silhouette) and zooms down to the cinematic 35° angle while
+ *  rotating ~25° in yaw. 3.5 s ease-out cubic. Suspends OrbitControls'
+ *  internal target tracking by writing camera.position + lookAt
+ *  directly each frame, then releases when t reaches 1. */
+function IntroCameraAnimation({ enabled }: { enabled: boolean }) {
+  const { camera } = useThree();
+  const startedRef = useRef(false);
+  const tStartRef = useRef(0);
+  const finished = useRef(false);
+  // Stratospheric start — high enough that the entire Manhattan
+  // grid fits in view. At y=12000 with FOV 35°, vertical coverage
+  // ≈ 2 · 12000 · tan(17.5°) ≈ 7570 units (≈ ~7.5 km, comfortably
+  // larger than the visible Manhattan footprint). Camera plunges
+  // to the cinematic 35° angle in ~2.4 s.
+  const start = useMemo(() => new Vector3(0, 7000, 500), []);
+  const end = useMemo(() => new Vector3(0, 600, 1000), []);
+  const target = useMemo(() => new Vector3(0, 0, 0), []);
+  useFrame(() => {
+    if (!enabled || finished.current) return;
+    if (!startedRef.current) {
+      startedRef.current = true;
+      tStartRef.current = performance.now();
+    }
+    const dur = 2400;
+    const t = Math.min(1, (performance.now() - tStartRef.current) / dur);
+    // Ease-out cubic — slow settle at end matches the CSS blur fade-in.
+    const e = 1 - Math.pow(1 - t, 3);
+    const pos = start.clone().lerp(end, e);
+    // Slight yaw rotation: starts ~25° offset, settles to 0 at end.
+    const yaw = (1 - e) * 0.45;
+    pos.applyAxisAngle(new Vector3(0, 1, 0), yaw);
+    camera.position.copy(pos);
+    camera.lookAt(target);
+    camera.updateProjectionMatrix();
+    if (t >= 1) finished.current = true;
+  });
+  return null;
+}
+
+/** Sets the camera to a fixed position + lookAt once on mount,
+ *  then leaves OrbitControls / interactions alone. Used for decorative
+ *  static views (landing-page light backdrop) that want a specific
+ *  viewpoint without the default cinematic angle. */
+function StaticCameraView({
+  position, target,
+}: {
+  position: [number, number, number];
+  target?: [number, number, number];
+}) {
+  const { camera } = useThree();
+  const appliedRef = useRef(false);
+  useFrame(() => {
+    if (appliedRef.current) return;
+    camera.position.set(position[0], position[1], position[2]);
+    const t = target ?? [0, 0, 0];
+    camera.lookAt(t[0], t[1], t[2]);
+    camera.updateProjectionMatrix();
+    appliedRef.current = true;
   });
   return null;
 }
@@ -288,7 +405,7 @@ export type NavTarget = {
   footprint?: [number, number][];
 };
 
-function CameraNavigator({ target }: { target: NavTarget | null }) {
+function CameraNavigator({ target, interactive = true }: { target: NavTarget | null; interactive?: boolean }) {
   const { camera } = useThree();
   const controlsRef = useRef<OrbitControlsRef | null>(null);
   const animating = useRef(false);
@@ -410,6 +527,15 @@ function CameraNavigator({ target }: { target: NavTarget | null }) {
       enableDamping
       dampingFactor={0.05}
       target={[0, 0, 0]}
+      // When interactive=false (e.g. landing-page hero where the
+      // city is decorative), disable ALL user input — wheel zoom,
+      // pan, rotate — so wheel events fall through to the document
+      // and the page scrolls normally. Programmatic camera moves
+      // (CameraNavigator) still work since they bypass user input.
+      enabled={interactive}
+      enableZoom={interactive}
+      enableRotate={interactive}
+      enablePan={interactive}
     />
   );
 }
@@ -423,6 +549,9 @@ export function PlateauScene({
   onBuildingSelect,
   onBuildingsLoaded,
   onSelectedAnchor,
+  interactive = true,
+  introAnimation = false,
+  staticCameraView,
 }: {
   area?: CityAreaKey;
   navigateTarget?: NavTarget | null;
@@ -435,6 +564,24 @@ export function PlateauScene({
    *  frame the camera/building changes. Lets the parent attach the
    *  side panel to the building's silhouette without overlapping it. */
   onSelectedAnchor?: (a: BuildingScreenAnchor | null) => void;
+  /** When false, the camera is purely decorative — orbit controls
+   *  are disabled (wheel zoom / pan / rotate all off) so wheel
+   *  events fall through to the document and page scrolling works.
+   *  Used by the landing-page hero. */
+  interactive?: boolean;
+  /** When true, the camera plays a one-shot zoom-in + slight yaw
+   *  rotation on mount: high-altitude → cinematic angle. Used by
+   *  the landing-page hero so the city reveals itself behind the
+   *  marketing copy. */
+  introAnimation?: boolean;
+  /** One-shot camera placement applied on mount only. Use for
+   *  decorative landing surfaces (e.g. light-mode Manhattan
+   *  backdrop) that need a different viewpoint from the default
+   *  35° cinematic angle without animating. */
+  staticCameraView?: {
+    position: [number, number, number];
+    target?: [number, number, number];
+  };
 }) {
   const fogEffect = useMemo(() => {
     const e = new GradientFogEffect({
@@ -444,29 +591,83 @@ export function PlateauScene({
     return e;
   }, []);
 
-  // Update fog color + density when dark mode changes
+  // Subscribe to the weather store so the fog responds to live or
+  // dev-toggled precipitation. Reading the category + precipitation
+  // here keeps the fog reactive without touching the GradientFog
+  // effect class itself.
+  const weatherSnap = useWeatherStore((s) => s.snapshot);
+
+  // Update fog color + density on dark-mode change AND when the
+  // weather flips. Rain / snow / fog scenarios pull the near plane
+  // closer and shift the tint cool — so the city visibly "sits in"
+  // the weather.
   useEffect(() => {
     if (!fogEffect) return;
     const uColor = fogEffect.uniforms.get('uFogColor');
     const uNear = fogEffect.uniforms.get('uFogNear');
     const uFar = fogEffect.uniforms.get('uFogFar');
     const uExp = fogEffect.uniforms.get('uFogExponent');
-    if (uColor) {
-      if (darkMode) {
-        uColor.value.set(0.04, 0.04, 0.06);
-        // Night: denser fog — closer start, heavier falloff
-        if (uNear) uNear.value = 900;
-        if (uFar) uFar.value = 3000;
-        if (uExp) uExp.value = 1.6;
-      } else {
-        uColor.value.set(1, 1, 1);
-        // Day: lighter fog
-        if (uNear) uNear.value = 1200;
-        if (uFar) uFar.value = 4000;
-        if (uExp) uExp.value = 1.2;
-      }
+    if (!uColor) return;
+
+    // ── Base palette (driven by dark mode) ──────────────────────
+    // Light mode: warm white fog, light density.
+    // Dark mode:  cool near-black fog, heavily dense — the city
+    // dissolves into the void at mid-distance for a moody Apple
+    // Vision-style atmosphere. Near pulled in (900→400) and far
+    // tightened (3000→2000) so even mid-range buildings get hazed.
+    const base = darkMode
+      ? { r: 0.04, g: 0.04, b: 0.06, near: 400,  far: 2000, exp: 1.8 }
+      : { r: 1.00, g: 1.00, b: 1.00, near: 1200, far: 4000, exp: 1.2 };
+
+    // ── Weather modifier ───────────────────────────────────────
+    // Each precipitation category defines:
+    //   • a 0..1 intensity floor (how close fog hugs the camera)
+    //   • a tint vector mixed onto the base color (cool blue-grey
+    //     for rain, slightly warmer pale for snow, neutral for fog)
+    const cat = weatherSnap?.category;
+    // log curve same as the rain visual (consistent perception).
+    const mm = weatherSnap?.precipitationMm ?? 0;
+    const i = Math.min(1, Math.log1p(mm) / Math.log1p(20));
+    type Mod = { intensity: number; tint: { r: number; g: number; b: number } };
+    let mod: Mod | null = null;
+    if (cat === 'rain') {
+      mod = { intensity: 0.35 + 0.55 * i, tint: { r: 0.55, g: 0.62, b: 0.70 } };
+    } else if (cat === 'thunder') {
+      mod = { intensity: 0.85, tint: { r: 0.40, g: 0.44, b: 0.52 } };
+    } else if (cat === 'snow') {
+      mod = { intensity: 0.45 + 0.45 * i, tint: { r: 0.86, g: 0.88, b: 0.92 } };
+    } else if (cat === 'fog') {
+      mod = { intensity: 0.95, tint: { r: 0.78, g: 0.80, b: 0.82 } };
     }
-  }, [darkMode, fogEffect]);
+
+    if (mod) {
+      // Pull the fog volume in toward the camera proportional to
+      // intensity. At i=1 (heavy rain / fog) near collapses ~55 %
+      // and far ~50 % — visibility halves, classic precipitation feel.
+      const k = mod.intensity;
+      const near = base.near * (1 - 0.55 * k);
+      const far  = base.far  * (1 - 0.50 * k);
+      const exp  = base.exp + 0.6 * k;
+      // Mix base color toward tint by the intensity. In dark mode
+      // the tint barely shifts the near-black fog — it's mostly the
+      // density change that sells the weather. In light mode the
+      // cool tint visibly desaturates the warm white.
+      const mix = 0.55 * k;
+      uColor.value.set(
+        base.r * (1 - mix) + mod.tint.r * mix,
+        base.g * (1 - mix) + mod.tint.g * mix,
+        base.b * (1 - mix) + mod.tint.b * mix,
+      );
+      if (uNear) uNear.value = near;
+      if (uFar) uFar.value = far;
+      if (uExp) uExp.value = exp;
+    } else {
+      uColor.value.set(base.r, base.g, base.b);
+      if (uNear) uNear.value = base.near;
+      if (uFar) uFar.value = base.far;
+      if (uExp) uExp.value = base.exp;
+    }
+  }, [darkMode, fogEffect, weatherSnap]);
 
   const bg = darkMode ? '#0a0a0f' : '#ffffff';
 
@@ -481,8 +682,24 @@ export function PlateauScene({
   return (
     <Canvas
       shadows={{ type: VSMShadowMap }}
-      camera={{ position: [0, 600, 1000], fov: 35, near: 10, far: 6000 }}
-      gl={{ antialias: true, alpha: false }}
+      camera={{ position: [0, 600, 1000], fov: 35, near: 10, far: 20000 }}
+      // Render at full retina pixel ratio (capped at 3× for true
+      // 3× displays / iPhone Pro Max) so the landing canvas reads
+      // as sharp as the static UI around it. The cap matters: on
+      // some 4K monitors devicePixelRatio can hit 2.5–3, and a
+      // pinned ratio caused visible aliasing on building edges +
+      // tenant text in the floating panels.
+      dpr={[1, 3]}
+      gl={{
+        antialias: true,
+        alpha: false,
+        // Discrete GPU on laptops with hybrid graphics — keeps the
+        // Manhattan canvas at 60 fps even with shadows + fog.
+        powerPreference: 'high-performance',
+        // Reduces z-fighting at long view distances (relevant
+        // since the landing hero sets `far: 20000`).
+        logarithmicDepthBuffer: true,
+      }}
       style={{ background: bg, width: '100%', height: '100%' }}
     >
       <color attach="background" args={[bg]} />
@@ -555,15 +772,27 @@ export function PlateauScene({
         <OSMCity area={area} darkMode={darkMode} selectedBuilding={selectedBuilding} onBuildingSelect={onBuildingSelect} onBuildingsLoaded={onBuildingsLoaded} />
       </Suspense>
 
-      <CameraNavigator target={navigateTarget ?? null} />
+      <CameraNavigator target={navigateTarget ?? null} interactive={interactive} />
+      <IntroCameraAnimation enabled={introAnimation} />
+      {staticCameraView && (
+        <StaticCameraView
+          position={staticCameraView.position}
+          target={staticCameraView.target}
+        />
+      )}
       <ShadowFollower />
       <CameraFogSync />
+      <CameraViewOffsetSync />
       {onSelectedAnchor && (
         <BuildingScreenProjector
           building={selectedBuilding}
           onAnchor={onSelectedAnchor}
         />
       )}
+
+      {/* Weather precipitation overlay — renders rain / snow particles
+          when WeatherSnapshot.category matches. No-op on clear days. */}
+      <WeatherFX />
 
       <EffectComposer frameBufferType={HalfFloatType}>
         <primitive object={fogEffect} />

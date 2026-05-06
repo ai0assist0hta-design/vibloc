@@ -1,61 +1,117 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signupRequest } from './api';
 import { GoogleAuthButton } from './GoogleAuthButton';
-import { useAuthStore } from './useAuthStore';
-import { getApiUrl, getGoogleClientId } from '@/lib/config';
-import { ApiError } from '@/lib/api/client';
-import { PH } from '@/content/placeholders';
+import { signUpWithEmail } from './supabaseAuth';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { useT } from '@/lib/app/i18n';
+import { useDarkMode } from '@/lib/app/useDarkMode';
 
-const inputClass =
-  'w-full rounded-xl border border-[#1a1a2e]/12 bg-white/90 px-3.5 py-3 text-[#1a1a2e] outline-none transition-shadow placeholder:text-[#1a1a2e]/35 focus:border-[#1a1a2e]/35 focus:ring-2 focus:ring-[#1a1a2e]/10';
+const C_LIGHT = {
+  primary: '#1d1d1f',
+  secondary: '#6e6e73',
+  blue: '#0e0e1a',
+  blueHover: '#2a2a35',
+  ctaText: '#ffffff',
+  border: 'rgba(0,0,0,0.12)',
+  inputBg: '#ffffff',
+  surface: '#fbfbfd',
+  cardBg: '#ffffff',
+  divider: 'rgba(0,0,0,0.10)',
+  errorBg: '#fff1f1',
+  errorText: '#a8261b',
+  errorBorder: '#f7caca',
+} as const;
+// Same dark stops as LoginForm — see notes there.
+const C_DARK = {
+  primary: '#f5f5f7',
+  secondary: 'rgba(235,235,245,0.65)',
+  blue: '#f5f5f7',
+  blueHover: '#e0e0e8',
+  ctaText: '#0e0e1a',
+  border: 'rgba(255,255,255,0.22)',
+  inputBg: 'rgba(255,255,255,0.08)',
+  surface: 'rgba(255,255,255,0.05)',
+  cardBg: '#2c2c2e',
+  divider: 'rgba(255,255,255,0.14)',
+  errorBg: 'rgba(255,105,97,0.12)',
+  errorText: '#ff8b85',
+  errorBorder: 'rgba(255,105,97,0.35)',
+} as const;
+type C = { [K in keyof typeof C_LIGHT]: string };
+
+const T = {
+  body: { fontSize: 17, fontWeight: 400, letterSpacing: '-0.022em', lineHeight: 1.47 } as const,
+  label: { fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.385 } as const,
+  helper: { fontSize: 11, fontWeight: 400, letterSpacing: '-0.01em', lineHeight: 1.27 } as const,
+  caption: { fontSize: 14, fontWeight: 400, letterSpacing: '-0.016em', lineHeight: 1.286 } as const,
+} as const;
+
+function inputStyleOf(C: C): React.CSSProperties {
+  return {
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: 12,
+    border: `1px solid ${C.border}`,
+    background: C.inputBg,
+    fontSize: 17,
+    fontWeight: 400,
+    letterSpacing: '-0.022em',
+    lineHeight: 1.47,
+    color: C.primary,
+    outline: 'none',
+    transition: 'border-color 120ms ease, box-shadow 120ms ease',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+  };
+}
+function makeFocusBlur(C: C) {
+  return {
+    focus: (e: React.FocusEvent<HTMLInputElement>) => {
+      e.currentTarget.style.borderColor = C.blue;
+      e.currentTarget.style.boxShadow = '0 0 0 4px rgba(0,113,227,0.15)';
+    },
+    blur: (e: React.FocusEvent<HTMLInputElement>) => {
+      e.currentTarget.style.borderColor = C.border;
+      e.currentTarget.style.boxShadow = 'none';
+    },
+  };
+}
 
 export function SignupForm() {
   const navigate = useNavigate();
-  const setSession = useAuthStore((s) => s.setSession);
+  const t = useT();
+  const dark = useDarkMode();
+  const C: C = dark ? C_DARK : C_LIGHT;
+  const inputStyle = inputStyleOf(C);
+  const { focus: focusInput, blur: blurInput } = makeFocusBlur(C);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const hasGoogle = Boolean(getGoogleClientId());
+  const hasGoogle = isSupabaseConfigured();
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!getApiUrl()) {
-      setError('`.env.local`에 VITE_API_URL을 넣고 프론트를 다시 실행해 주세요.');
+    if (!isSupabaseConfigured()) {
+      setError('Supabase가 설정되지 않았습니다. .env.local을 확인해 주세요.');
       return;
     }
     if (password.length < 8) {
-      setError('비밀번호는 8자 이상으로 해 주세요.');
+      setError(t('auth.error.passwordTooShort'));
       return;
     }
     setLoading(true);
     try {
-      const res = await signupRequest(
-        email.trim(),
-        password,
-        displayName.trim() || undefined,
-      );
-      const token = res.accessToken ?? res.token ?? '';
-      if (!token) {
-        setError('서버 응답에 토큰이 없습니다. API 스키마를 확인해 주세요.');
-        return;
-      }
-      setSession(token, res.user);
+      // Session sync via App-level onAuthStateChange listener.
+      await signUpWithEmail(email.trim(), password, displayName.trim() || undefined);
       navigate('/map');
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(
-          err.status === 404
-            ? '회원가입 API를 찾을 수 없습니다. 백엔드를 실행했는지 확인해 주세요.'
-            : err.message,
-        );
-      } else if (err instanceof Error) {
+      if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('회원가입에 실패했습니다.');
+        setError(t('auth.error.signupFailed'));
       }
     } finally {
       setLoading(false);
@@ -63,11 +119,19 @@ export function SignupForm() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-0">
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {error ? (
         <p
-          className="mb-5 rounded-xl border border-rose-200/80 bg-rose-50/95 px-3.5 py-2.5 text-sm text-rose-900"
           role="alert"
+          style={{
+            marginBottom: 16,
+            padding: '10px 14px',
+            borderRadius: 12,
+            border: `1px solid ${C.errorBorder}`,
+            background: C.errorBg,
+            color: C.errorText,
+            ...T.caption,
+          }}
         >
           {error}
         </p>
@@ -76,68 +140,130 @@ export function SignupForm() {
       {hasGoogle ? (
         <GoogleAuthButton onError={setError} />
       ) : (
-        <p className="rounded-xl border border-dashed border-[#1a1a2e]/14 bg-[#1a1a2e]/[0.03] px-3 py-3 text-center text-[12px] leading-relaxed text-[#48484a]">
-          {PH.authForm.googleUnsetHint}
+        <p
+          style={{
+            padding: '14px 16px',
+            borderRadius: 12,
+            border: `1px dashed ${C.border}`,
+            background: C.surface,
+            ...T.caption,
+            color: C.secondary,
+            textAlign: 'center',
+            margin: 0,
+          }}
+        >
+          {t('auth.googleUnsetHint')}
         </p>
       )}
 
-      <div className="relative my-7">
-        <div className="absolute inset-0 flex items-center" aria-hidden>
-          <div className="w-full border-t border-[#1a1a2e]/10" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-[rgba(255,255,255,0.92)] px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6e6e73]">
-            {PH.authForm.dividerSignup}
-          </span>
-        </div>
+      <div style={{ position: 'relative', margin: '24px 0', textAlign: 'center' }}>
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: '50%',
+            height: 1,
+            background: C.divider,
+          }}
+        />
+        <span
+          style={{
+            position: 'relative',
+            padding: '0 12px',
+            background: C.cardBg,
+            fontSize: 12,
+            fontWeight: 600,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            color: C.secondary,
+          }}
+        >
+          {t('auth.divider.or')}
+        </span>
       </div>
 
-      <form onSubmit={onSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5 text-left text-[13px] font-semibold text-[#1a1a2e]">
-          표시 이름 <span className="text-[11px] font-normal text-[#6e6e73]">(선택)</span>
+      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ ...T.label, color: C.primary, display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
+            {t('auth.displayName')}
+            <span style={{ ...T.helper, color: C.secondary, fontWeight: 400 }}>{t('auth.optional')}</span>
+          </span>
           <input
             type="text"
             autoComplete="nickname"
             value={displayName}
             onChange={(ev) => setDisplayName(ev.target.value)}
-            className={inputClass}
-            placeholder="맵에서 보일 이름"
+            placeholder={t('auth.placeholder.displayName')}
+            style={inputStyle}
+            onFocus={focusInput}
+            onBlur={blurInput}
           />
         </label>
-        <label className="flex flex-col gap-1.5 text-left text-[13px] font-semibold text-[#1a1a2e]">
-          이메일
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ ...T.label, color: C.primary }}>{t('auth.email')}</span>
           <input
             type="email"
             autoComplete="email"
             required
             value={email}
             onChange={(ev) => setEmail(ev.target.value)}
-            className={inputClass}
             placeholder="you@example.com"
+            style={inputStyle}
+            onFocus={focusInput}
+            onBlur={blurInput}
           />
         </label>
-        <label className="flex flex-col gap-1.5 text-left text-[13px] font-semibold text-[#1a1a2e]">
-          비밀번호 <span className="text-[11px] font-normal text-[#6e6e73]">(8자 이상)</span>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ ...T.label, color: C.primary, display: 'inline-flex', alignItems: 'baseline', gap: 6 }}>
+            {t('auth.password')}
+            <span style={{ ...T.helper, color: C.secondary, fontWeight: 400 }}>{t('auth.passwordHint')}</span>
+          </span>
           <input
             type="password"
             autoComplete="new-password"
             required
             value={password}
             onChange={(ev) => setPassword(ev.target.value)}
-            className={inputClass}
+            style={inputStyle}
+            onFocus={focusInput}
+            onBlur={blurInput}
           />
         </label>
         <button
           type="submit"
           disabled={loading}
-          className="mt-1 rounded-xl bg-[#1a1a2e] px-4 py-3.5 text-sm font-semibold text-[#faf9f6] shadow-md shadow-[#1a1a2e]/15 transition-opacity disabled:opacity-50"
+          style={{
+            marginTop: 8,
+            padding: '12px 22px',
+            borderRadius: 980,
+            background: C.blue,
+            color: C.ctaText,
+            ...T.body,
+            lineHeight: 1.176,
+            border: 'none',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.6 : 1,
+            transition: 'background 120ms ease',
+            fontFamily: 'inherit',
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) e.currentTarget.style.background = C.blueHover;
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) e.currentTarget.style.background = C.blue;
+          }}
         >
-          {loading ? '처리 중…' : '이메일로 가입하기'}
+          {loading ? t('auth.cta.processing') : t('auth.cta.signup')}
         </button>
-        <p className="pt-1 text-center text-[12px] text-[#48484a]">
-          이미 계정이 있나요?{' '}
-          <Link to="/login" className="font-semibold text-[#1a1a2e] underline-offset-2 hover:underline">
-            로그인
+        <p style={{ marginTop: 8, textAlign: 'center', ...T.caption, color: C.secondary }}>
+          {t('auth.footer.haveAccount')}{' '}
+          <Link
+            to="/login"
+            style={{ color: C.blue, textDecoration: 'none', fontWeight: 600 }}
+          >
+            {t('nav.login')}
           </Link>
         </p>
       </form>

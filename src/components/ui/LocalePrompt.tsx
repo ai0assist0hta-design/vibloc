@@ -103,8 +103,8 @@ export function LocalePrompt({
         backdropFilter: 'blur(20px) saturate(160%)',
         WebkitBackdropFilter: 'blur(20px) saturate(160%)',
         boxShadow: darkMode ? '0 12px 40px rgba(0,0,0,0.55)' : '0 12px 40px rgba(15,23,42,0.18)',
-        fontFamily: "'IBM Plex Mono', monospace",
-        color: darkMode ? '#f5f5f7' : '#1a1a2e',
+        fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
+        color: darkMode ? '#f5f5f7' : '#0e0e1a',
         display: 'flex',
         alignItems: 'center',
         gap: 12,
@@ -114,7 +114,7 @@ export function LocalePrompt({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 0.3 }}>{copy.headline}</div>
         {copy.sub && (
-          <div style={{ fontSize: 10.5, opacity: 0.7, marginTop: 2 }}>{copy.sub}</div>
+          <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{copy.sub}</div>
         )}
       </div>
       <button
@@ -124,7 +124,7 @@ export function LocalePrompt({
           padding: '6px 12px',
           borderRadius: 10,
           border: 'none',
-          background: darkMode ? '#f5f5f7' : '#1a1a2e',
+          background: darkMode ? '#f5f5f7' : '#0e0e1a',
           color: darkMode ? '#0a0a0f' : '#fff',
           fontSize: 11,
           fontWeight: 800,
@@ -144,7 +144,7 @@ export function LocalePrompt({
           border: `1px solid ${darkMode ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.10)'}`,
           background: 'transparent',
           color: 'inherit',
-          fontSize: 10.5,
+          fontSize: 11,
           fontWeight: 700,
           cursor: 'pointer',
           fontFamily: 'inherit',

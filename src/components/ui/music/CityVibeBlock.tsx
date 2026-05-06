@@ -17,6 +17,7 @@ import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
 import { useT } from '../../../lib/app/i18n';
 import { contrastColor } from '../../../lib/ui/contrastColor';
+import { FONT } from '../../../lib/ui/tokens';
 
 type Props = {
   vibe: CityVibe;
@@ -42,9 +43,9 @@ export function CityVibeBlock({
   return (
     <div
       style={{
-        marginTop: 4,
-        paddingTop: 12,
-        borderTop: `1px solid ${divider}`,
+        // Hairline removed — gap-only separation. Matches the rest
+        // of the right rail (modern Apple borderless stack pattern).
+        marginTop: 20,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
@@ -52,12 +53,14 @@ export function CityVibeBlock({
     >
       <div
         style={{
+          // SECTION_HEADER spec — synced with TOP PLAYLISTS / TENANTS /
+          // MY PLAYLIST / MUSIC headers across the rail.
           fontSize: 12,
-          fontWeight: 800,
-          letterSpacing: 1.0,
+          fontWeight: 600,
+          letterSpacing: '0.06em',
           textTransform: 'uppercase',
           color: eyebrow,
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: FONT.ui,
           marginBottom: 4,
         }}
       >
@@ -73,15 +76,15 @@ export function CityVibeBlock({
       >
         <span
           style={{
-            fontSize: 13,
+            fontSize: 16,
             fontWeight: 700,
             color: text,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: FONT.ui,
           }}
         >
           {vibe.city}
         </span>
-        <span style={{ fontSize: 11, color: text3 }}>·</span>
+        <span style={{ fontSize: 12, color: text3 }}>·</span>
         {vibe.topGenres.slice(0, 4).map((g) => {
           // 7-family collapse + glyph (UI/UX research #6): the chip
           // is colored by genre FAMILY (not literal genre) so the
@@ -89,29 +92,47 @@ export function CityVibeBlock({
           // adds a non-color cue per WCAG 1.4.1.
           const fam = getFamily(g);
           const short = GENRE_COLORS[g].label.split('/')[0].trim();
+          // Click → open Apple Music's genre browse page (zero-cost
+          // outbound link, no backend). Gives the chip a real
+          // affordance instead of looking like a passive label.
+          const href = `https://music.apple.com/search?term=${encodeURIComponent(`${vibe.city} ${short}`)}`;
           return (
-            <span
+            <a
               key={g}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
               title={`${short} · ${fam.label}`}
               style={{
                 padding: '3px 9px',
                 borderRadius: 999,
                 background: fam.color + '22',
                 color: contrastColor(fam.color, mode),
-                fontSize: 10.5,
+                fontSize: 12,
                 fontWeight: 700,
                 letterSpacing: 0.4,
                 textTransform: 'uppercase',
                 border: `1px solid ${fam.color}44`,
-                fontFamily: "'IBM Plex Mono', monospace",
+                fontFamily: FONT.ui,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 5,
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'transform 120ms ease, background 160ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = fam.color + '33';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = fam.color + '22';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              <span aria-hidden="true" style={{ fontSize: 9 }}>{fam.glyph}</span>
+              <span aria-hidden="true" style={{ fontSize: 12 }}>{fam.glyph}</span>
               {short}
-            </span>
+            </a>
           );
         })}
       </div>

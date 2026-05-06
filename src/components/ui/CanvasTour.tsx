@@ -96,8 +96,8 @@ export function CanvasTour({ darkMode }: Props) {
         boxShadow: darkMode
           ? '0 12px 40px rgba(0,0,0,0.55)'
           : '0 12px 40px rgba(15,23,42,0.18)',
-        fontFamily: "'IBM Plex Mono', monospace",
-        color: darkMode ? '#f5f5f7' : '#1a1a2e',
+        fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
+        color: darkMode ? '#f5f5f7' : '#0e0e1a',
         display: 'flex',
         alignItems: 'center',
         gap: 14,
@@ -124,7 +124,7 @@ export function CanvasTour({ darkMode }: Props) {
                 height: 6,
                 borderRadius: '50%',
                 background: i === step
-                  ? (darkMode ? '#f5f5f7' : '#1a1a2e')
+                  ? (darkMode ? '#f5f5f7' : '#0e0e1a')
                   : (darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)'),
               }}
             />
@@ -137,7 +137,7 @@ export function CanvasTour({ darkMode }: Props) {
             padding: '6px 12px',
             borderRadius: 10,
             border: 'none',
-            background: darkMode ? '#f5f5f7' : '#1a1a2e',
+            background: darkMode ? '#f5f5f7' : '#0e0e1a',
             color: darkMode ? '#0a0a0f' : '#fff',
             fontSize: 11,
             fontWeight: 800,

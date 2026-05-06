@@ -18,7 +18,7 @@ export function UserAvatar({ user, size = 32, className = '', alt }: Props) {
       alt={altText}
       width={size}
       height={size}
-      className={`rounded-full object-cover ring-1 ring-[#1a1a2e]/10 ${className}`}
+      className={`rounded-full object-cover ring-1 ring-[#0e0e1a]/10 ${className}`}
       style={{ width: size, height: size }}
       loading="lazy"
       decoding="async"

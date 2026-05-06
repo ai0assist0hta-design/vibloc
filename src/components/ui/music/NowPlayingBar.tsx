@@ -21,8 +21,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Copy, Info, MoreHorizontal, Pause, Play, Plus, Repeat, Repeat1,
-  Share2, Shuffle, SkipBack, SkipForward, X,
+  Info, MoreHorizontal, Pause, Play, Plus, Repeat, Repeat1,
+  Share2, Shuffle, SkipBack, SkipForward, Volume1, Volume2, VolumeX,
 } from 'lucide-react';
 import { useT } from '../../../lib/app/i18n';
 import { openAppleMusic } from '../../../lib/share/openAppleMusic';
@@ -30,7 +30,7 @@ import {
   isPinned, pinTrack, subscribePlaylists,
 } from '../../../lib/music/buildingPlaylist';
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
-import { FONT, INK, PAPER, SPACE } from '../../../lib/ui/tokens';
+import { APPLE_RED, FONT, INK, PAPER, SPACE } from '../../../lib/ui/tokens';
 import {
   cycleRepeat,
   nextTrack,
@@ -38,7 +38,8 @@ import {
   prevTrack,
   resumePreview,
   seekPreview,
-  stopPreview,
+  setVolume,
+  toggleMute,
   toggleShuffle,
   usePlayerState,
 } from './PreviewPlayer';
@@ -57,13 +58,16 @@ if (typeof document !== 'undefined' && !document.getElementById('pb-anim-styles'
   const s = document.createElement('style');
   s.id = 'pb-anim-styles';
   s.textContent = `
-    @keyframes pb-slide-up   { from { transform: translateY(22px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
-    @keyframes pb-slide-down { from { transform: translateY(-22px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+    /* Track-change slide: 18 px (was 22) so motion is felt without
+       overshooting; Apple Music macOS uses ~16-20 px here. The
+       opacity fade is paired but slightly delayed via cubic-bezier
+       (handled inline on the animation container). */
+    @keyframes pb-slide-up   { from { transform: translateY(18px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+    @keyframes pb-slide-down { from { transform: translateY(-18px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
     /* Hologram halo — a faint chromatic gradient halo travels through
        the title/artist on track change, then fades. Driven by
        background-position sweep + a fade-to-zero opacity tail so the
-       glyph itself stays its original colour after the effect ends.
-       Pseudo: applied via inline style with a gradient text-clip layer. */
+       glyph itself stays its original colour after the effect ends. */
     @keyframes pb-holo {
       0%   { background-position: -120% 50%; opacity: 0; }
       18%  { opacity: 0.85; }
@@ -74,22 +78,60 @@ if (typeof document !== 'undefined' && !document.getElementById('pb-anim-styles'
   document.head.appendChild(s);
 }
 
-// ── Button geometry (single source of truth so every NowPlayingBar
-//    button shares the same hit area). 28 px = WCAG 2.5.8 minimum
-//    24 + 2 px breathing room top + bottom.
-const BTN = 28;
-const ICON_PRIMARY = 14; // ▶ ⏸
-const ICON_SECONDARY = 13; // ⏮ ⏭ × — slightly smaller so the play
-                            // button still reads as the dominant control.
+/** Apple motion tokens — single source of truth for every animation
+ *  on the bar. Curves lifted from Apple's iOS 14+ / macOS Big Sur+
+ *  motion spec (verified against the SwiftUI .smooth / .snappy
+ *  defaults).
+ *
+ *    EASE.smooth — fast start, gentle settle; the most common
+ *      Apple "feels right" curve. Used for bar mount, hover fills,
+ *      icon transitions.
+ *    EASE.snappy — sharper exit, popular for content changes
+ *      (track slide, panel reveals).
+ *    EASE.tactile — slight overshoot at 1.0; used on press release
+ *      so buttons feel like they "spring back" with weight. */
+const EASE = {
+  smooth:  'cubic-bezier(0.32, 0.72, 0, 1)',
+  snappy:  'cubic-bezier(0.22, 1, 0.36, 1)',
+  tactile: 'cubic-bezier(0.34, 1.36, 0.64, 1)',
+} as const;
+
+/** Standard durations — short for chrome, medium for content,
+ *  longer for delight. Apple calls these "rapid", "instant",
+ *  "smooth" in the SwiftUI Animation API. */
+const DUR = {
+  hover:        140, // bg/color hover lift
+  press:        220, // button press release (compress is half of this)
+  bar:          280, // mini-player mount/unmount
+  trackChange:  340, // track row slide+fade
+} as const;
+
+// ── Button geometry — Apple Music macOS hierarchy.
+//    Three-step ladder so the row reads as a clear visual sentence:
+//      PLAY      36 px (dominant — see inline play button)
+//      NAV       32 px (prev / next — primary navigation)
+//      TOGGLE    28 px (shuffle / repeat / volume / + / × — secondary)
+//    All ≥ 24 px (WCAG 2.5.8) and use the same icon size so the
+//    dot-density scales cleanly with the hit area.
+const BTN = 28;       // toggles, side controls
+const BTN_NAV = 32;   // prev / next — primary navigation
+const ICON_PRIMARY = 16; // ▶ ⏸ — 16 px so the play icon stays dominant inside the 36 px circle
+const ICON_SECONDARY = 13; // toggles + side controls
+const ICON_NAV = 14; // prev / next — slightly larger to match BTN_NAV
 
 export function NowPlayingBar({
   darkMode = false,
   selectedBuildingId = null,
+  selectedBuildingName = null,
 }: {
   darkMode?: boolean;
   /** When a building is selected, the + button on the bar adds the
    *  current track to that building's playlist. Null = + disabled. */
   selectedBuildingId?: string | null;
+  /** Pretty name of the currently-selected building. Surfaced in the
+   *  + button's tooltip ("Pin to ${name}") so the user knows where
+   *  the pin is going to land before clicking. */
+  selectedBuildingName?: string | null;
 } = {}) {
   const player = usePlayerState();
   const t = useT();
@@ -100,13 +142,22 @@ export function NowPlayingBar({
   // boolean is derived from the store.
   const [, forcePlaylistTick] = useState(0);
   useEffect(() => subscribePlaylists(() => forcePlaylistTick((n) => n + 1)), []);
+
+  // Resolution chain for the + target building:
+  //   1. queue's source (the building whose playlist seeded current
+  //      playback) — survives even after user deselects the building
+  //   2. user's currently-selected building — fallback
+  // As long as ANY track is playing it came from some building, so
+  // this almost always resolves. The only case + is disabled is when
+  // the track is already pinned (per user spec).
+  const targetBuildingId = player.currentBuildingId ?? selectedBuildingId ?? null;
   const isAlreadyAdded = !!(
-    selectedBuildingId && player.currentId
-    && isPinned(selectedBuildingId, player.currentId)
+    targetBuildingId && player.currentId
+    && isPinned(targetBuildingId, player.currentId)
   );
 
   function handleAddToPlaylist() {
-    if (!selectedBuildingId || !player.currentId || !player.meta) return;
+    if (!targetBuildingId || !player.currentId || !player.meta) return;
     if (isAlreadyAdded) return;
     // Reconstruct a RecommendedTrack from the player meta + queue
     // entry. Genre / primaryGenreName aren't carried in the player
@@ -124,7 +175,11 @@ export function NowPlayingBar({
       genre: 'pop',
       trackViewUrl: player.meta.appleUrl ?? '',
     };
-    pinTrack(selectedBuildingId, track);
+    // pinTrack auto-creates the per-building entry when none exists
+    // (getEntry default `{tracks: [], description: ''}` + the spread
+    // assigns a fresh entry on first pin), so "auto-create my
+    // playlist if none exists" is implicit.
+    pinTrack(targetBuildingId, track);
   }
 
   // Theme-aware colour roles. Edgeless glass means there's no fill
@@ -133,7 +188,7 @@ export function NowPlayingBar({
   // glyphs on a slight light veil. Both meet WCAG ≥4.5:1 against the
   // city tiles directly under the bar.
   const ink = darkMode ? PAPER : INK;
-  const inkSoft = darkMode ? 'rgba(250,249,246,0.72)' : 'rgba(26,26,46,0.68)';
+  const inkSoft = darkMode ? 'rgba(250,249,246,0.72)' : 'rgba(14,14,26,0.68)';
   const ghostHover = darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)';
 
 
@@ -164,9 +219,12 @@ export function NowPlayingBar({
   const reducedMotion = typeof window !== 'undefined'
     && typeof window.matchMedia === 'function'
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Track-change slide: extended 260 → 340 ms so the title settles
+  // visibly instead of snapping. The Apple .snappy curve still
+  // gives the entry punch — just with a longer tail.
   const slideAnim = reducedMotion
     ? undefined
-    : `${direction === 'up' ? 'pb-slide-up' : 'pb-slide-down'} 260ms cubic-bezier(0.22, 1, 0.36, 1)`;
+    : `${direction === 'up' ? 'pb-slide-up' : 'pb-slide-down'} ${DUR.trackChange}ms ${EASE.snappy}`;
 
   // Always render the chrome so the fade transition has something
   // to interpolate on. `pointerEvents: none` when hidden so the
@@ -177,7 +235,14 @@ export function NowPlayingBar({
       aria-label={t('player.nowPlaying')}
       style={{
         position: 'fixed',
-        left: '50%',
+        // Centered between the two side rails — uses live CSS
+        // variables `--vbk-left-rail-w` / `--vbk-right-rail-w`
+        // published by FixedToolSidebar / FixedQueueSidebar on every
+        // resize / collapse. Falls back to 280 px when neither rail
+        // is mounted yet (first paint before the effect fires).
+        // The bar slides automatically as the user drags either
+        // rail's resize handle.
+        left: 'calc(var(--vbk-left-rail-w, 280px) + (100vw - var(--vbk-left-rail-w, 280px) - var(--vbk-right-rail-w, 280px)) / 2)',
         bottom: 36,
         // CLS 0: the bar always occupies the same fixed slot — only
         // opacity + transform animate. Layout never shifts because
@@ -185,13 +250,25 @@ export function NowPlayingBar({
         transform: `translateX(-50%) translateY(${visible ? 0 : 16}px)`,
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? 'auto' : 'none',
+        // Bar mount/unmount: opacity tracks transform on the same
+        // Apple .smooth curve so the rise reads as one motion, not
+        // two separately-easing properties drifting out of sync.
         transition: reducedMotion
           ? 'opacity 1ms linear'
-          : 'opacity 180ms ease-out, transform 180ms ease-out',
-        zIndex: 100,
-        // Wider footprint — Apple Music macOS is ~720 px to fit
-        // shuffle/prev/play/next/repeat + center music + ⋯/+/×.
-        width: 'min(720px, calc(100vw - 32px))',
+          : `opacity ${DUR.bar}ms ${EASE.smooth}, transform ${DUR.bar}ms ${EASE.smooth}`,
+        // Sits one tier above the side rails (40) so the floating
+        // bar always reads as the topmost chrome. Was 100 — gratu-
+        // itously high; reserved >100 for true overlays (modals,
+        // popover menus at 1000).
+        zIndex: 50,
+        // Width caps — adapts to actual rail widths:
+        //   • 720 px target (Apple Music macOS now-playing strip).
+        //   • Subtract live `--vbk-left-rail-w` + `--vbk-right-rail-w`
+        //     plus 32 px breathing room so the bar never overlaps
+        //     either rail at any resize position.
+        //   • Hard floor 320 px so the bar stays usable on very
+        //     narrow viewports (mobile-portrait fallback).
+        width: 'max(320px, min(720px, calc(100vw - var(--vbk-left-rail-w, 280px) - var(--vbk-right-rail-w, 280px) - 32px)))',
         // Glass surface lives in a separate masked layer (rendered
         // first child below) so the TOP and BOTTOM edges fade into
         // the city via a vertical gradient mask. Content (artwork,
@@ -199,8 +276,13 @@ export function NowPlayingBar({
         // to the backdrop layer, not the bar's own children.
         background: 'transparent',
         color: ink,
-        // No radius — squared edges, no rounded chrome.
-        borderRadius: 0,
+        // Floating-card radius is applied to the backdrop layer
+        // (below) — NOT to this outer container. If we put
+        // overflow:hidden + borderRadius here, the MoreMenu popover
+        // that opens ABOVE the bar gets clipped to the bar's bounds
+        // and disappears entirely. Outer stays overflow:visible so
+        // floating menus + tooltips escape; the visible glass
+        // rectangle gets its rounded corners from the backdrop div.
         border: 'none',
         boxShadow: 'none',
         // Padding + gap normalized to 8pt grid: 12 / 16 outside,
@@ -213,29 +295,26 @@ export function NowPlayingBar({
         isolation: 'isolate',
       }}
     >
-      {/* Backdrop layer: fill + blur with a TOP/BOTTOM-only fade so
-          the rectangle's horizontal edges dissolve into the city.
-          Left/right stay sharp because the user reads the bar as
-          a centered band; only the vertical seams looked boxy. */}
+      {/* Backdrop layer: Apple-style frosted glass — no border, no
+          shadow, no gradient mask. Matches FixedToolSidebar /
+          FixedQueueSidebar's edgeless treatment so the three chrome
+          surfaces (left rail, right rail, bottom bar) read as one
+          glass system floating over the 3D city. */}
       <div
         aria-hidden="true"
         style={{
           position: 'absolute', inset: 0,
           zIndex: -1,
-          borderRadius: 0,
-          // Lighter veil so the transparency reads stronger than the fill.
-          background: darkMode ? 'rgba(15,15,20,0.32)' : 'rgba(255,255,255,0.32)',
-          backdropFilter: 'blur(16px) saturate(130%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(130%)',
-          // Gradient core RE-CENTERED on the song row (artwork +
-          // title + artist). The bar's vertical layout is
-          //   [12 pad] · [song row 40] · [8 gap] · [progress 16] · [12 pad]
-          // so the song's vertical center sits at ≈ 37 %, not 50 %.
-          // Stops are shifted up to put the opaque core around the
-          // song; the progress bar at the bottom rides the natural
-          // bottom-ramp falloff.
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 16%, black 58%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 16%, black 58%, transparent 100%)',
+          // Rounded corners live HERE (the backdrop) not on the
+          // outer container — see comment on the parent's lack of
+          // overflow:hidden. Visually identical: the glass IS the
+          // pill, and the outer div is just a positioning wrapper.
+          borderRadius: 16,
+          background: darkMode ? 'rgba(20,20,24,0.55)' : 'rgba(250,250,252,0.55)',
+          backdropFilter: 'blur(24px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+          border: 'none',
+          boxShadow: 'none',
         }}
       />
       {/* ── Apple Music-style single horizontal row ──
@@ -248,16 +327,25 @@ export function NowPlayingBar({
       <div style={{
         display: 'flex', alignItems: 'center', gap: SPACE[3],
       }}>
-        {/* Left: shuffle / prev / PLAY / next / repeat */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[1] }}>
+        {/* Left: shuffle / prev / PLAY / next / repeat
+            Gap bumped 4 → 6 px so the three different button sizes
+            (28 / 32 / 36) optically read as a single transport
+            cluster instead of mashed-together pills. Apple Music
+            macOS uses a comparable 6 px gap in this density. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <GhostBtn
             onClick={toggleShuffle}
             ariaLabel={t('player.shuffle')}
-            ink={player.shuffle ? ink : inkSoft}
+            ink={player.shuffle ? APPLE_RED : inkSoft}
             hover={ghostHover}
-            active={player.shuffle}
           >
-            <Shuffle size={ICON_SECONDARY} strokeWidth={2.2} />
+            <Shuffle
+              size={ICON_SECONDARY}
+              strokeWidth={player.shuffle ? 2.6 : 2.2}
+              style={player.shuffle
+                ? { filter: 'drop-shadow(0 0 4px rgba(250,36,60,0.45))' }
+                : undefined}
+            />
           </GhostBtn>
 
           <GhostBtn
@@ -265,8 +353,9 @@ export function NowPlayingBar({
             disabled={!player.queue.length}
             ariaLabel={t('player.prev')}
             ink={inkSoft} hover={ghostHover}
+            size={BTN_NAV}
           >
-            <SkipBack size={ICON_SECONDARY} fill="currentColor" strokeWidth={0} />
+            <SkipBack size={ICON_NAV} fill="currentColor" strokeWidth={0} />
           </GhostBtn>
 
           {/* PLAY — dominant control, larger circle. Theme-flipped fog. */}
@@ -288,42 +377,65 @@ export function NowPlayingBar({
               color: ink,
               cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'transform 100ms ease, background 160ms ease',
+              // Tactile press: 80 ms compress (linear feel — finger
+              // is pressing), 220 ms release with subtle overshoot
+              // (Apple .tactile curve) so the button "springs back"
+              // with weight. Differential timing is set by swapping
+              // the transition string on press vs release.
+              transition: `transform 220ms ${EASE.tactile}, background 160ms ${EASE.smooth}`,
             }}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.94)'; }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transition = `transform 80ms linear, background 160ms ${EASE.smooth}`;
+              e.currentTarget.style.transform = 'scale(0.94)';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.transition = `transform 220ms ${EASE.tactile}, background 160ms ${EASE.smooth}`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transition = `transform 220ms ${EASE.tactile}, background 160ms ${EASE.smooth}`;
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
           >
             {player.isPlaying
-              ? <Pause size={16} fill="currentColor" strokeWidth={0} />
-              : <Play  size={16} fill="currentColor" strokeWidth={0} style={{ marginLeft: 1 }} />}
+              ? <Pause size={ICON_PRIMARY} fill="currentColor" strokeWidth={0} />
+              : <Play  size={ICON_PRIMARY} fill="currentColor" strokeWidth={0} style={{ marginLeft: 1 }} />}
           </button>
 
           <GhostBtn
             onClick={() => nextTrack()}
-            disabled={
-              !player.queue.length
-              || (
-                player.queue.findIndex((q) => q.id === player.currentId) >= player.queue.length - 1
-                && player.repeat !== 'all' && !player.shuffle
-              )
-            }
+            disabled={(() => {
+              if (!player.queue.length) return true;
+              // Always-actionable when shuffle / repeat:all or when
+              // current track isn't a member of the queue (next falls
+              // through to queue[0] in that case — see nextTrack).
+              if (player.shuffle || player.repeat === 'all') return false;
+              const i = player.queue.findIndex((q) => q.id === player.currentId);
+              if (i < 0) return false;
+              return i >= player.queue.length - 1;
+            })()}
             ariaLabel={t('player.next')}
             ink={inkSoft} hover={ghostHover}
+            size={BTN_NAV}
           >
-            <SkipForward size={ICON_SECONDARY} fill="currentColor" strokeWidth={0} />
+            <SkipForward size={ICON_NAV} fill="currentColor" strokeWidth={0} />
           </GhostBtn>
 
           <GhostBtn
             onClick={cycleRepeat}
             ariaLabel={t('player.repeat')}
-            ink={player.repeat !== 'off' ? ink : inkSoft}
+            ink={player.repeat !== 'off' ? APPLE_RED : inkSoft}
             hover={ghostHover}
-            active={player.repeat !== 'off'}
           >
-            {player.repeat === 'one'
-              ? <Repeat1 size={ICON_SECONDARY} strokeWidth={2.2} />
-              : <Repeat  size={ICON_SECONDARY} strokeWidth={2.2} />}
+            {(() => {
+              const active = player.repeat !== 'off';
+              const glow = active
+                ? { filter: 'drop-shadow(0 0 4px rgba(250,36,60,0.45))' }
+                : undefined;
+              return player.repeat === 'one'
+                ? <Repeat1 size={ICON_SECONDARY} strokeWidth={2.6} style={glow} />
+                : <Repeat  size={ICON_SECONDARY} strokeWidth={active ? 2.6 : 2.2} style={glow} />;
+            })()}
           </GhostBtn>
         </div>
 
@@ -399,20 +511,40 @@ export function NowPlayingBar({
               state once pinned so the user gets immediate confirm. */}
           <GhostBtn
             onClick={handleAddToPlaylist}
-            disabled={!selectedBuildingId || isAlreadyAdded}
-            ariaLabel={isAlreadyAdded ? t('player.added') : t('player.add')}
-            ink={isAlreadyAdded ? ink : inkSoft}
+            // Per spec: + only disables when (a) the track is already
+            // in my playlist, or (b) there's literally no track + no
+            // building anywhere (idle bar — extremely rare since the
+            // bar is hidden in that state). targetBuildingId resolves
+            // through queue source → selection so even after the user
+            // deselects the building, + keeps working.
+            disabled={isAlreadyAdded || !targetBuildingId || !player.currentId}
+            ariaLabel={
+              isAlreadyAdded
+                ? t('player.added')
+                : !targetBuildingId
+                  ? t('player.addNoBuilding')
+                  : selectedBuildingName
+                    ? t('player.addToBuilding', { name: selectedBuildingName })
+                    : t('player.add')
+            }
+            ink={isAlreadyAdded ? APPLE_RED : inkSoft}
             hover={ghostHover}
-            active={isAlreadyAdded}
           >
             <Plus size={ICON_SECONDARY} strokeWidth={isAlreadyAdded ? 3 : 2.4} />
           </GhostBtn>
         </div>
 
-        {/* Right: close. */}
-        <GhostBtn onClick={stopPreview} ariaLabel={t('player.close')} ink={inkSoft} hover={ghostHover}>
-          <X size={ICON_SECONDARY} strokeWidth={2.2} />
-        </GhostBtn>
+        {/* Volume — speaker icon (click = mute toggle) + slider. */}
+        <VolumeControl
+          volume={player.volume}
+          muted={player.muted}
+          ink={inkSoft}
+          hover={ghostHover}
+          darkMode={darkMode}
+          ariaSpeaker={t('player.volume')}
+          ariaMute={player.muted ? t('player.unmute') : t('player.mute')}
+        />
+
       </div>
 
       {/* Progress bar — click anywhere to seek. Ignored if duration
@@ -438,16 +570,30 @@ export function NowPlayingBar({
         }}>
           {fmtTime(player.duration)}
         </span>
+        {/* Preview-length disclaimer — Apple Music free tier serves
+            30 s previews. Without this label users assume the bar is
+            buggy when the track ends at 0:30 and auto-advances. */}
+        <span style={{
+          fontFamily: FONT.mono, fontSize: 9, fontWeight: 700,
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: inkSoft, opacity: 0.7,
+          padding: '2px 6px', borderRadius: 4,
+          background: ghostHover,
+          flexShrink: 0,
+        }}>
+          {t('player.preview')}
+        </span>
       </div>
     </div>
   );
 }
 
-/** Ghost (transparent) icon button. Same 28 × 28 hit area as every
- *  other secondary control on the bar so the row reads as one
- *  toolbar instead of a collection of mismatched widgets. */
+/** Ghost (transparent) icon button. Default 28 × 28 hit area for
+ *  toggles + side controls; pass `size={BTN_NAV}` for the primary
+ *  prev / next nav controls so they read one tier above the toggles
+ *  per Apple Music macOS hierarchy. */
 function GhostBtn({
-  onClick, disabled, ariaLabel, children, ink, hover, active,
+  onClick, disabled, ariaLabel, children, ink, hover, active, size = BTN,
 }: {
   onClick: () => void;
   disabled?: boolean;
@@ -458,6 +604,10 @@ function GhostBtn({
   /** Toggle button "on" state — Apple Music highlights shuffle /
    *  repeat with a subtle background fill when active. */
   active?: boolean;
+  /** Hit-area size in px. Default 28 (toggles); use BTN_NAV (32)
+   *  for prev / next so the navigation pair reads one tier above
+   *  the surrounding toggles. */
+  size?: number;
 }) {
   return (
     <button
@@ -469,14 +619,14 @@ function GhostBtn({
       title={ariaLabel}
       style={{
         flexShrink: 0,
-        width: BTN, height: BTN, borderRadius: 999,
+        width: size, height: size, borderRadius: 999,
         border: 'none',
         background: active ? hover : 'transparent',
         color: ink,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.35 : 1,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'background 120ms ease, opacity 120ms ease',
+        transition: `background ${DUR.hover}ms ${EASE.smooth}, opacity ${DUR.hover}ms ${EASE.smooth}`,
       }}
       onMouseEnter={(e) => {
         if (!disabled) e.currentTarget.style.background = hover;
@@ -514,7 +664,10 @@ function HoloText({
   const base: React.CSSProperties = {
     fontSize, fontWeight, color,
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-    letterSpacing: -0.1,
+    // Apple SF Pro body tracking — `-0.022em` for 11–17 px text.
+    // Was a flat `-0.1` (raw px) which barely registered at 11 px
+    // and over-tightened at 17 px.
+    letterSpacing: '-0.022em',
   };
   if (reducedMotion || !text) {
     return <div style={base} title={text}>{text}</div>;
@@ -541,14 +694,95 @@ function HoloText({
           color: 'transparent',
           WebkitTextFillColor: 'transparent',
           pointerEvents: 'none',
-          animation: 'pb-holo 720ms cubic-bezier(0.22, 1, 0.36, 1) both',
+          animation: 'pb-holo 1100ms cubic-bezier(0.22, 1, 0.36, 1) both',
           fontSize, fontWeight,
-          letterSpacing: -0.1,
+          letterSpacing: '-0.022em',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}
       >
         {text}
       </span>
+    </div>
+  );
+}
+
+/** Speaker icon + slider, Apple Music macOS pattern. Click the icon
+ *  to toggle mute (preserves the volume level). Drag the slider to
+ *  set 0..1; raising while muted auto-unmutes (the slider gesture
+ *  signals "I want to hear this"). Volume persists to localStorage. */
+function VolumeControl({
+  volume, muted, ink, hover, darkMode, ariaSpeaker, ariaMute,
+}: {
+  volume: number;
+  muted: boolean;
+  ink: string;
+  hover: string;
+  darkMode: boolean;
+  ariaSpeaker: string;
+  ariaMute: string;
+}) {
+  const effective = muted ? 0 : volume;
+  // Pick the speaker icon by level — VolumeX (mute) / Volume1 (low) /
+  // Volume2 (mid+). Mirrors Apple Music's three-state speaker glyph.
+  const Icon = effective <= 0
+    ? VolumeX
+    : effective < 0.5
+      ? Volume1
+      : Volume2;
+
+  // White fill (user request: "음량 바 파란색 말고 그냥 흰색으로").
+  // On light mode the white fill would vanish, so we keep a soft
+  // ink fill there for readability — only the dark hero / dark mode
+  // case actually shows the bar over a dark surface.
+  const trackBg = darkMode ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.12)';
+  const fillBg  = darkMode ? '#ffffff' : 'rgba(14,14,26,0.78)';
+
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: SPACE[1] }}>
+      <button
+        type="button"
+        onClick={toggleMute}
+        aria-label={ariaMute}
+        title={ariaMute}
+        style={{
+          flexShrink: 0,
+          width: BTN, height: BTN, borderRadius: 999,
+          border: 'none', background: 'transparent',
+          color: ink,
+          cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          transition: `background ${DUR.hover}ms ${EASE.smooth}`,
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = hover; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+      >
+        <Icon size={ICON_SECONDARY} strokeWidth={2.2} />
+      </button>
+
+      {/* Native range input — accessible, tab-focusable, keyboard
+          arrows step ±1 %. Smaller than the progress bar (52×3 vs
+          full-width × 4) and gets a small white thumb via the
+          dedicated `vibloc-vol-slider` class so the OS default
+          blue accent never shows. */}
+      <input
+        type="range"
+        className="vibloc-vol-slider"
+        min={0} max={1} step={0.01}
+        value={effective}
+        onChange={(e) => setVolume(parseFloat(e.target.value))}
+        aria-label={ariaSpeaker}
+        style={{
+          width: 52,
+          height: 3,
+          appearance: 'none',
+          WebkitAppearance: 'none',
+          background: `linear-gradient(to right, ${fillBg} 0%, ${fillBg} ${effective * 100}%, ${trackBg} ${effective * 100}%, ${trackBg} 100%)`,
+          borderRadius: 3,
+          outline: 'none',
+          cursor: 'pointer',
+          accentColor: '#ffffff',
+        }}
+      />
     </div>
   );
 }
@@ -587,7 +821,7 @@ function ProgressBar({
       <div style={{
         position: 'absolute', top: 0, left: 0, bottom: 0,
         width: `${pct}%`,
-        background: darkMode ? 'rgba(255,255,255,0.85)' : 'rgba(26,26,46,0.78)',
+        background: darkMode ? 'rgba(255,255,255,0.85)' : 'rgba(14,14,26,0.78)',
         borderRadius: 4,
         transition: 'width 80ms linear',
       }} />
@@ -649,11 +883,16 @@ function MoreMenu({
   }
 
   function handleInfo() {
-    // "Track info" item routes straight to Apple Music — same flow
-    // as Apple Music macOS's "Show in Apple Music" item, which the
-    // user explicitly requested.
-    if (appleUrl) openAppleMusic(appleUrl);
+    // "Track info" item routes to Apple Music. If we don't have a
+    // direct Apple track URL on the queue entry, fall back to a
+    // title/artist search URL so the menu item still does something
+    // useful instead of sitting greyed-out (the previous behavior).
+    const link = appleUrl
+      ?? (title || artist
+            ? `https://music.apple.com/search?term=${encodeURIComponent(`${title ?? ''} ${artist ?? ''}`.trim())}`
+            : '');
     setOpen(false);
+    if (link) openAppleMusic(link);
   }
 
   function handleShare() {
@@ -665,11 +904,6 @@ function MoreMenu({
             ? `https://music.apple.com/search?term=${encodeURIComponent(`${title ?? ''} ${artist ?? ''}`.trim())}`
             : '');
     if (link) copy(link, 'share');
-  }
-
-  function handleCopy() {
-    const text = [title, artist].filter(Boolean).join(' — ');
-    if (text) copy(text, 'copy');
   }
 
   return (
@@ -688,7 +922,7 @@ function MoreMenu({
           color: ink,
           cursor: 'pointer',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'background 120ms ease',
+          transition: `background ${DUR.hover}ms ${EASE.smooth}`,
         }}
         onMouseEnter={(e) => { e.currentTarget.style.background = hover; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
@@ -701,12 +935,18 @@ function MoreMenu({
           role="menu"
           style={{
             position: 'absolute',
-            // Anchored ABOVE the button: the NowPlayingBar lives at
-            // the bottom of the viewport, so dropping down would
-            // clip off-screen.
+            // Anchored ABOVE the button (NowPlayingBar lives at the
+            // viewport bottom, so dropping down would clip), and
+            // extending RIGHTWARD from the button's left edge so the
+            // menu appears to the right of the click point. left:-4
+            // softly overhangs the button so the corner reads as
+            // attached. If the menu would overflow the viewport on
+            // the right, the small 8 px viewport-edge guard via
+            // maxWidth keeps it readable rather than clipping items.
             bottom: 'calc(100% + 8px)',
-            right: -4,
+            left: -4,
             minWidth: 180,
+            maxWidth: 'calc(100vw - 16px)',
             padding: SPACE[1],
             borderRadius: 10,
             background: menuBg,
@@ -725,7 +965,13 @@ function MoreMenu({
             icon={<Info size={14} strokeWidth={2.2} />}
             label={t('player.menu.info')}
             onClick={handleInfo}
-            disabled={!appleUrl}
+            // Match the Share row's enabled-condition: as long as we
+            // have ANY identifier (direct Apple URL, or just a title /
+            // artist to search for), the item is actionable. Was
+            // strictly `!appleUrl`, which left it greyed-out for
+            // every queue entry that didn't carry an explicit deep
+            // link — i.e. most of them.
+            disabled={!appleUrl && !title && !artist}
             menuInk={menuInk} hover={hover}
           />
           <MenuItem
@@ -733,13 +979,6 @@ function MoreMenu({
             label={copiedKey === 'share' ? t('player.menu.copied') : t('player.menu.share')}
             onClick={handleShare}
             disabled={!appleUrl && !title && !artist}
-            menuInk={menuInk} hover={hover}
-          />
-          <MenuItem
-            icon={<Copy size={14} strokeWidth={2.2} />}
-            label={copiedKey === 'copy' ? t('player.menu.copied') : t('player.menu.copy')}
-            onClick={handleCopy}
-            disabled={!title && !artist}
             menuInk={menuInk} hover={hover}
           />
         </div>
@@ -775,7 +1014,7 @@ function MenuItem({
         opacity: disabled ? 0.4 : 1,
         textAlign: 'left',
         borderRadius: 6,
-        transition: 'background 120ms ease',
+        transition: `background ${DUR.hover}ms ${EASE.smooth}`,
         width: '100%',
       }}
       onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = hover; }}

@@ -49,7 +49,7 @@ export function CityDropdown({ area, onSelect, darkMode, t }: Props) {
     };
   }, [open]);
 
-  const ink = darkMode ? '#e0e0e8' : '#1a1a2e';
+  const ink = darkMode ? '#e0e0e8' : '#0e0e1a';
   const surface = darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)';
   const border  = darkMode ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.10)';
   const hover   = darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)';
@@ -69,7 +69,7 @@ export function CityDropdown({ area, onSelect, darkMode, t }: Props) {
           background: surface,
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
           fontSize: 11, fontWeight: 700,
           color: ink,
           cursor: 'pointer',
@@ -123,7 +123,7 @@ export function CityDropdown({ area, onSelect, darkMode, t }: Props) {
                     padding: '8px 10px', borderRadius: 8,
                     border: 'none', background: 'transparent',
                     color: ink,
-                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
                     fontSize: 12, fontWeight: selected ? 700 : 500,
                     cursor: 'pointer',
                     textAlign: 'left',

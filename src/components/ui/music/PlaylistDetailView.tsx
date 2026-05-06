@@ -16,15 +16,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Play, Shuffle, ChevronLeft } from 'lucide-react';
 import { useTaggerPlaylist, usePlaylist } from '../../../lib/music/buildingPlaylist';
-import { resolveAvatarUrl } from '../../../features/auth/avatar';
 import { useT } from '../../../lib/app/i18n';
 import type { RecommendedTrack } from '../../../lib/music/trackTypes';
-import { APPLE_RED, FONT } from '../../../lib/ui/tokens';
+import { FONT, ROW_CAPTION, SECTION_HEADER, SPACE } from '../../../lib/ui/tokens';
 import { PlaylistCover } from './PlaylistCover';
 import { playPreview } from './PreviewPlayer';
 import { TrackRow } from './TrackRow';
 
-const NAME_MAX_LEN = 60;
+const NAME_MAX_LEN = 30;
 
 /** Best-effort Apple Music deep link for a pinned track. Prefers the
  *  iTunes Search API's `trackViewUrl` (storefront-correct, opens the
@@ -77,6 +76,7 @@ export function PlaylistDetailView({
       artist: first.artistName,
       artworkUrl: first.artworkUrl || undefined,
       appleUrl: first.trackViewUrl || undefined,
+      genre: first.genre,
     });
   }
   function handleShuffle() {
@@ -88,21 +88,32 @@ export function PlaylistDetailView({
       artist: pick.artistName,
       artworkUrl: pick.artworkUrl || undefined,
       appleUrl: pick.trackViewUrl || undefined,
+      genre: pick.genre,
     });
   }
 
   if (!group) {
     return (
       <div style={{
-        padding: '24px 16px',
-        fontFamily: FONT.mono,
-        fontSize: 11, color: text2,
+        // Empty-state typography matches ROW_CAPTION so it reads in
+        // the same voice as the rail's other muted helper text.
+        ...ROW_CAPTION,
+        padding: `${SPACE[6]}px ${SPACE[4]}px`,
+        color: text2,
         textAlign: 'center',
       }}>
         Playlist no longer exists.
-        <div style={{ marginTop: 12 }}>
-          <button type="button" onClick={onBack} style={backBtnStyle(text, divider)}>
-            ← Back
+        <div style={{ marginTop: SPACE[3] }}>
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              ...backBtnStyle(text, divider),
+              display: 'inline-flex', alignItems: 'center', gap: SPACE[1],
+            }}
+          >
+            <ChevronLeft size={12} strokeWidth={2.4} />
+            Back
           </button>
         </div>
       </div>
@@ -111,68 +122,126 @@ export function PlaylistDetailView({
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', gap: 14,
-      fontFamily: FONT.mono,
+      // FONT.ui — same body type as every other rail surface.
+      // Vertical rhythm: SPACE[3] (12) between top-level blocks
+      // (back row → hero → action pills → header → track list).
+      // Anything off-grid (10 / 14 / 18) is intentionally avoided
+      // so the detail view shares the rail's 4-pt spacing scale.
+      display: 'flex', flexDirection: 'column', gap: SPACE[3],
+      fontFamily: FONT.ui,
+      letterSpacing: '-0.01em',
     }}>
-      {/* Slim back bar */}
+      {/* Slim header — icon-only back chevron + heart meta.
+          Back button mirrors the FixedQueueSidebar collapse chevron
+          (28×28 ghost, hover bg, 14 px lucide glyph) so the rail's
+          two chevrons look like the same control with opposite
+          direction.
+          paddingLeft 12 — the entire detail content column (back,
+          hero, actions, header) is indented 12 px so its left edge
+          lands at rail-x=24, matching the track-row artwork column.
+          Without this, hero cover sat at rail-x=12 while tracks
+          started at rail-x=24, breaking the panel's vertical axis. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 8, marginBottom: -2,
+        gap: SPACE[2],
+        // paddingLeft 12 indents the chevron column to rail-x=24
+        // (matching every other indented row in the detail view).
+        // paddingRight 6 lands the heart-meta's right edge on the
+        // SAME trailing axis as the FixedQueueSidebar header's
+        // collapse chevron (panel-right − 18) and as every track
+        // row's +/✕ cluster — one continuous right rail.
+        paddingLeft: SPACE[3],
+        paddingRight: 12,
       }}>
         <button
           type="button"
           onClick={onBack}
           aria-label={t('detail.back')}
+          title={t('detail.back')}
           style={{
-            ...backBtnStyle(text, divider),
-            display: 'inline-flex', alignItems: 'center', gap: 4,
+            width: 28, height: 28, borderRadius: 8,
+            border: 'none',
+            background: 'transparent',
+            color: text2,
+            cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 120ms ease, color 120ms ease',
+            flexShrink: 0,
+            // marginLeft -8 pulls the 32-wide button so the 16-px
+            // chevron's LEFT edge lands at panel-x=24 — exactly where
+            // the SONG section header's text starts. The chevron and
+            // the eyebrow share one vertical axis below them.
+            marginLeft: -8,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(14,14,26,0.07)';
+            e.currentTarget.style.color = text;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = text2;
+          }}
         >
-          <ChevronLeft size={12} strokeWidth={2.4} />
-          {t('detail.back')}
+          <ChevronLeft size={16} strokeWidth={2.4} />
         </button>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
-        }}>
+        {/* Heart meta — sans 11/700 to match the rail's other
+            count badges (TopTagger heart count, RecommendedList /
+            TOP PICKS counters). Hidden at zero likes. */}
+        {group.totalLikes > 0 && (
           <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-            color: group.totalLikes > 0 ? '#ff375f' : text3,
-            fontSize: 11, fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', gap: SPACE[1],
+            color: '#ff375f',
+            fontSize: 12, fontWeight: 700,
+            fontFamily: FONT.ui,
+            letterSpacing: '-0.01em',
+            fontVariantNumeric: 'tabular-nums',
           }}>
             <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" style={{ display: 'block' }}>
               <path
                 d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3 5 6.5 5c1.9 0 3.7 1 5 2.7C12.8 6 14.6 5 16.5 5 20 5 21.8 8.6 20.5 11.8 18.5 16.4 12 21 12 21z"
-                fill={group.totalLikes > 0 ? '#ff375f' : 'none'}
-                stroke={group.totalLikes > 0 ? '#ff375f' : 'currentColor'}
+                fill="#ff375f"
+                stroke="#ff375f"
                 strokeWidth="1.8"
                 strokeLinejoin="round"
               />
             </svg>
             {group.totalLikes}
           </span>
-          <span style={{ color: text3 }}>· {group.trackCount}t</span>
-        </div>
+        )}
       </div>
 
-      {/* Hero — Apple Music style. Big square cover on the left, big
-          headline + curator + counts on the right. Cover dominates the
-          panel so the playlist reads as "art object" first. */}
+      {/* Hero — Apple Music style. Square cover left, headline +
+          curator + counts right. Gap 12 to match the rail's
+          canonical gap token (every TopicRow / row uses 12). Was 14
+          (one-off magic number).
+          paddingLeft 12 keeps the cover's left edge on the same
+          vertical axis (rail-x=24) as the track artwork below it. */}
       <div style={{
-        display: 'flex', alignItems: 'flex-start', gap: 14,
+        display: 'flex', alignItems: 'flex-start', gap: SPACE[3],
+        paddingLeft: SPACE[3],
       }}>
         <PlaylistCover
           customUrl={group?.customCoverUrl}
           artworkUrls={coverGrid}
           fallbackText={headline}
-          size={132}
-          radius={12}
+          // 120 px cover (down from 132) — fits more comfortably in
+          // the 280 px rail and leaves more horizontal space for the
+          // headline before truncation. Radius 8 matches the rail's
+          // SectionEyebrow / TopicRow radius scale (was 12 — only
+          // the cover used that).
+          size={120}
+          radius={8}
           divider={divider}
           text2={text2}
         />
-        <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{
+          minWidth: 0, flex: 1,
+          display: 'flex', flexDirection: 'column',
+          // Internal gap SPACE[1] (4) — same micro-rhythm used by
+          // every Apple-Music-style row's title↔caption pair (see
+          // PopularRow gap 1, TrackRow gap 1, RankRow gap 2).
+          gap: SPACE[1],
+        }}>
           {isMine ? (
             <input
               type="text"
@@ -183,21 +252,29 @@ export function PlaylistDetailView({
               aria-label={t('detail.playlistName')}
               maxLength={NAME_MAX_LEN}
               style={{
+                // Headline 17 / 700 / -0.01em — Apple Music macOS
+                // playlist title spec. Was 18 / 800 / -0.2 letterSpacing,
+                // 100 g heavier than every other heading on the rail.
                 width: '100%', boxSizing: 'border-box',
                 background: 'transparent',
                 border: 'none',
                 padding: 0,
-                fontSize: 18, fontWeight: 800, color: text,
-                letterSpacing: -0.2, lineHeight: 1.15,
+                fontSize: 16, fontWeight: 600, color: text,
+                letterSpacing: '-0.01em', lineHeight: 1.2,
                 fontFamily: FONT.ui,
                 outline: 'none',
               }}
+              // Placeholder color — match text3 (caption tone) so
+              // "Playlist name" reads as instructional, not as a
+              // failed render. The default UA placeholder is too
+              // pale and flickered against the dark cover artwork.
+              className="vbk-detail-name-input"
             />
           ) : (
             <div
               style={{
-                fontSize: 18, fontWeight: 800, color: text,
-                letterSpacing: -0.2, lineHeight: 1.15,
+                fontSize: 16, fontWeight: 600, color: text,
+                letterSpacing: '-0.01em', lineHeight: 1.2,
                 fontFamily: FONT.ui,
                 wordBreak: 'break-word',
               }}
@@ -206,30 +283,35 @@ export function PlaylistDetailView({
               {headline}
             </div>
           )}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            marginTop: 2,
-          }}>
-            <img
-              src={resolveAvatarUrl(group.taggerAvatarUrl)}
-              alt=""
-              width={20}
-              height={20}
+          {/* Curator handle — alias only, no avatar (the hero cover
+              already carries the curator's visual identity). Placed
+              between the headline and the track-count line so the
+              meta column reads "title → @id → 5 songs", same rhythm
+              as Apple Music macOS playlist details. Hidden on
+              `isMine` (don't show the user their own handle on
+              their own playlist). */}
+          {!isMine && group.alias ? (
+            <div
               style={{
-                width: 20, height: 20, borderRadius: 4,
-                objectFit: 'cover',
-                border: `1px solid ${divider}`,
-                flexShrink: 0, background: divider,
+                ...ROW_CAPTION,
+                color: text3,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                marginTop: 4,
               }}
-            />
-            <span style={{
-              fontSize: 11, fontWeight: 700, color: text,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }} title={group.taggerName}>{group.taggerName}</span>
-            <span style={{ fontSize: 10.5, color: text3 }}>@{group.alias}</span>
-          </div>
+              title={`@${group.alias}`}
+            >
+              @{group.alias}
+            </div>
+          ) : null}
+          {/* Track count subtitle — ROW_CAPTION typography (12 / 500
+              / -0.01em / lh 1.3) at 400 weight so it reads as quiet
+              metadata. Same rhythm + tracking as every other row's
+              caption line; only the weight is dialed back. */}
           <div style={{
-            fontSize: 10, color: text3, letterSpacing: 0.4, marginTop: 2,
+            ...ROW_CAPTION,
+            fontWeight: 400,
+            color: text3,
+            marginTop: SPACE[1],
           }}>
             {(tracks.length === 1
               ? t('detail.songCount_one')
@@ -241,8 +323,13 @@ export function PlaylistDetailView({
 
       {/* Action buttons — Apple Music style pills. Play (filled red)
           and Shuffle (outline). Drive the existing 30 s preview
-          player; no Apple-account dependency. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          player; no Apple-account dependency.
+          paddingLeft 12 — same hero-column indent so Play's left
+          edge sits at rail-x=24, matching the cover and tracks. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: SPACE[2],
+        paddingLeft: SPACE[3],
+      }}>
         <button
           type="button"
           onClick={handlePlayAll}
@@ -250,7 +337,7 @@ export function PlaylistDetailView({
           aria-label={t('player.play')}
           style={pillBtnStyle({ filled: true, divider, text, text2 })}
         >
-          <Play size={13} fill="currentColor" strokeWidth={0} />
+          <Play size={12} fill="currentColor" strokeWidth={0} />
           {t('player.play')}
         </button>
         <button
@@ -260,58 +347,88 @@ export function PlaylistDetailView({
           aria-label={t('player.shuffle')}
           style={pillBtnStyle({ filled: false, divider, text, text2 })}
         >
-          <Shuffle size={13} strokeWidth={2.4} />
+          <Shuffle size={12} strokeWidth={2.4} />
           {t('player.shuffle')}
         </button>
-        {isMine && (
-          <span style={{
-            marginLeft: 'auto',
-            fontSize: 9, color: text3, letterSpacing: 0.4,
-          }}>
-            {draft.length}/{NAME_MAX_LEN}
-          </span>
-        )}
+        {/* Character counter ("0/30") removed — `maxLength` on the
+            input + the natural slice in onChange already enforce
+            the limit, so a visible counter was redundant chrome. */}
       </div>
 
-      {/* Track list header — "Song" left, optional column right. Mirrors
-          the Apple Music desktop layout. */}
+      {/* Track list header — "Song" left, action-column label right.
+          Right span is sized + center-aligned to sit OVER the row's
+          two-button action cluster (28 + 2 + 28 = 58 px). Removes
+          the previous misalignment where the label hovered to the
+          right of the icons. Apple SF small caps (11 / 600 / 0.06em)
+          replaces the heavier mono 9 / 800 / 1.2 px so it matches
+          every other eyebrow on the rail. */}
       <div style={{
-        marginTop: 2, paddingTop: 10,
+        // Spacing on the 4-pt grid:
+        //   marginTop SPACE[1] (4) lifts the divider clear of the
+        //   action pills.
+        //   paddingTop SPACE[2] (8) gives the SONG label breathing
+        //   room above the first row.
+        //   paddingLeft SPACE[3] indents the header into the same
+        //   rail-x=24 column the artwork uses.
+        //   paddingRight 6 keeps the EDIT label centered over the
+        //   row's trailing 28+2+28 cluster.
+        marginTop: SPACE[1],
+        paddingTop: SPACE[2],
         borderTop: `1px solid ${divider}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
-        textTransform: 'uppercase', color: text3,
+        paddingLeft: SPACE[3],
+        paddingRight: 12,
+        display: 'flex', alignItems: 'center',
+        ...SECTION_HEADER,
+        color: text3,
       }}>
-        <span>{t('detail.song')}</span>
-        <span>{isMine ? t('detail.edit') : t('detail.open')}</span>
+        <span style={{ flex: 1 }}>{t('detail.song')}</span>
+        {/* Trailing OPEN / EDIT label removed — the row's ⋯ + ✕/+
+            cluster is already self-explanatory (Apple Music macOS
+            doesn't label the trailing actions either). The header
+            now reads as a single SONG eyebrow. */}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[1] }}>
         {tracks.length === 0 ? (
           <div style={{
-            fontSize: 10.5, color: text2, padding: '12px 0',
+            ...ROW_CAPTION,
+            color: text2, padding: `${SPACE[3]}px 0`,
             textAlign: 'center',
           }}>
             {t('detail.noTracks')}
           </div>
         ) : (
-          tracks.map((tr) => (
-            <TrackRow
-              key={tr.id}
-              track={tr}
-              text={text}
-              text2={text2}
-              divider={divider}
-              rightAction={isMine ? 'remove' : 'pinned'}
-              onRightAction={() => {
-                if (isMine) playlist.unpin(tr.id);
-              }}
-              // Replace the ✓ on someone else's playlist with a one-tap
-              // jump to Apple Music. The ⋯ Apple deep-link doesn't
-              // touch the user's pinned-state, so it stays opt-in only
-              // on read-only views (other curators, not your own list).
-              appleMusicHref={!isMine ? appleMusicHrefFor(tr) : undefined}
-            />
-          ))
+          tracks.map((tr) => {
+            // Mine: ✕ remove. Other people's playlist: + to copy
+            // into MY playlist for this building, or ✓ (disabled)
+            // when I've already added it. Per-user duplicate guard
+            // lives in the store — same track can sit in multiple
+            // users' lists independently.
+            const iHavePinned = playlist.isPinned(tr.id);
+            const action = isMine
+              ? 'remove' as const
+              : iHavePinned ? 'pinned' as const : 'add' as const;
+            return (
+              <TrackRow
+                key={tr.id}
+                track={tr}
+                text={text}
+                text2={text2}
+                divider={divider}
+                rightAction={action}
+                onRightAction={() => {
+                  if (isMine) {
+                    playlist.unpin(tr.id);
+                  } else if (!iHavePinned) {
+                    playlist.pin(tr);
+                  }
+                }}
+                // Apple Music deep link — flows into the row's MoreMenu
+                // (Track info / Share). Always provided so info+share
+                // work on both your own and others' playlists.
+                appleMusicHref={appleMusicHrefFor(tr)}
+              />
+            );
+          })
         )}
       </div>
     </div>
@@ -319,10 +436,14 @@ export function PlaylistDetailView({
 }
 
 function backBtnStyle(text: string, divider: string): React.CSSProperties {
+  // Empty-state fallback button — kept as a labeled pill (vs. the
+  // icon-only chevron in the loaded view) since users hitting "no
+  // playlist" need a clearer action than a stray glyph. Typography
+  // unified to FONT.ui 12/600/-0.01em.
   return {
-    fontFamily: FONT.mono,
-    fontSize: 10, fontWeight: 700, letterSpacing: 0.6,
-    padding: '5px 10px', borderRadius: 8,
+    fontFamily: FONT.ui,
+    fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em',
+    padding: '8px 12px', borderRadius: 8,
     border: `1px solid ${divider}`,
     background: 'transparent',
     color: text, cursor: 'pointer',
@@ -330,18 +451,31 @@ function backBtnStyle(text: string, divider: string): React.CSSProperties {
   };
 }
 
-/** Apple Music style action pill — filled red Play, outline Shuffle. */
+/** Action pill — neutral ink across both Play and Shuffle so the
+ *  detail view shares the rail's monochrome system (no APPLE_RED
+ *  brand fill, which made Play visually shout next to every other
+ *  borderless / outline control on the right rail).
+ *
+ *  • `filled` (Play)    → ink fill, paper text — high-emphasis but
+ *                         neutral, like a SF Symbols action button.
+ *  • `outlined` (Shuf.) → transparent + 1 px hairline + ink text —
+ *                         secondary affordance, matches the section
+ *                         eyebrows / search input border tone.
+ *
+ *  Typography is FONT.ui 13/600/-0.01em — exactly the TopicRow /
+ *  AddTrackComposer label spec, so the pills feel native to the
+ *  rail rather than imported from a brand surface. */
 function pillBtnStyle({
   filled, divider, text, text2,
 }: { filled: boolean; divider: string; text: string; text2: string }): React.CSSProperties {
   return {
-    display: 'inline-flex', alignItems: 'center', gap: 6,
+    display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: '8px 16px', borderRadius: 999,
     border: filled ? 'none' : `1px solid ${divider}`,
-    background: filled ? APPLE_RED : 'transparent',
+    background: filled ? text : 'transparent',
     color: filled ? '#fff' : text,
-    fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
-    fontFamily: FONT.mono,
+    fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em',
+    fontFamily: FONT.ui,
     cursor: 'pointer',
     transition: 'transform 120ms ease, opacity 120ms ease, background 120ms ease',
   };

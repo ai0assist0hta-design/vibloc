@@ -976,7 +976,7 @@ function parseOverpassData(
       for (let i = 0; i < buildings.length; i++) if (!drop[i]) filtered.push(buildings[i]);
       buildings.length = 0;
       for (const b of filtered) buildings.push(b);
-      console.log(`[osmLoader] envelope dedup: dropped ${dropped} block-level outlines`);
+      if (import.meta.env.DEV) console.log(`[osmLoader] envelope dedup: dropped ${dropped} block-level outlines`);
     }
   }
 
@@ -1793,7 +1793,7 @@ function verifyBuildingNamesAgainstTenants(buildings: OSMBuilding[]): void {
   }
 
   const totalFixed = fixedByTenant + fixedByBlocklist;
-  if (totalFixed > 0 || protectedCount > 0) {
+  if (import.meta.env.DEV && (totalFixed > 0 || protectedCount > 0)) {
     console.log(
       `[VIBLOC] verifyBuildingNamesAgainstTenants: corrected ${totalFixed} mis-named ` +
         `(tenant: ${fixedByTenant}, brand blocklist: ${fixedByBlocklist}), ` +
@@ -2020,10 +2020,12 @@ function enrichBuildingsWithWikidata(
     }
   }
 
-  console.log(
-    `[VIBLOC] Wikidata: ${matched}/${wikiItems.length} items matched to buildings` +
-    (rejectedFar ? ` (${rejectedFar} dropped — P625 too far from any building)` : '')
-  );
+  if (import.meta.env.DEV) {
+    console.log(
+      `[VIBLOC] Wikidata: ${matched}/${wikiItems.length} items matched to buildings` +
+      (rejectedFar ? ` (${rejectedFar} dropped — P625 too far from any building)` : '')
+    );
+  }
   return idToBuilding;
 }
 
@@ -2183,7 +2185,7 @@ function enrichBuildingsWithWikiInfobox(
     }
   }
 
-  console.log(`[VIBLOC] Wiki infobox: enriched ${updated} buildings (+${tenantsAdded} tenants, ${addressesFixed} addresses verified)`);
+  if (import.meta.env.DEV) console.log(`[VIBLOC] Wiki infobox: enriched ${updated} buildings (+${tenantsAdded} tenants, ${addressesFixed} addresses verified)`);
 }
 
 /** Infer a tag for buildings that have none — based on size, height, and context */
@@ -2239,7 +2241,7 @@ function inferBuildingTags(buildings: OSMBuilding[]): void {
     inferred++;
   }
 
-  console.log(`[VIBLOC] Inferred tags for ${inferred} buildings without data`);
+  if (import.meta.env.DEV) console.log(`[VIBLOC] Inferred tags for ${inferred} buildings without data`);
 }
 
 /**
@@ -2344,7 +2346,7 @@ function inferApartmentComplexNames(buildings: OSMBuilding[]): void {
     }
   }
 
-  if (renamed || propagated) {
+  if (import.meta.env.DEV && (renamed || propagated)) {
     console.log(
       `[VIBLOC] Apartment complex: ${renamed} titles normalized, ${propagated} unnamed siblings inherited complex name`
     );
@@ -2405,10 +2407,10 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
     if (poiRes.ok) {
       const poiData = await poiRes.json();
       const pois = parsePOINodes(poiData.elements || []);
-      console.log(`[VIBLOC] ${area}: ${pois.length} POIs loaded, matching to ${buildings.length} buildings...`);
+      if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${pois.length} POIs loaded, matching to ${buildings.length} buildings...`);
       enrichBuildingsWithPOIs(buildings, pois, config.refLat, config.refLon);
       const enriched = buildings.filter(b => b.tags.length > 0).length;
-      console.log(`[VIBLOC] ${area}: ${enriched} buildings have tags after POI enrichment`);
+      if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${enriched} buildings have tags after POI enrichment`);
       // Cross-reference building display names against attached tenant POIs
       // and strip mis-attributed names from large buildings.
       verifyBuildingNamesAgainstTenants(buildings);
@@ -2427,7 +2429,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
       const items: WikidataItem[] = (wikiData.items || []).filter(
         (w: WikidataItem) => w.lat && w.lon && w.name && !WIKI_SKIP_TYPES.has(w.type)
       );
-      console.log(`[VIBLOC] ${area}: ${items.length} Wikidata items loaded`);
+      if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${items.length} Wikidata items loaded`);
       wikiIdMap = enrichBuildingsWithWikidata(buildings, items, config.refLat, config.refLon);
     }
   } catch (e) {
@@ -2441,7 +2443,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
     if (enrichRes.ok) {
       const enrichData = await enrichRes.json();
       const items: WikiEnrichedItem[] = enrichData.items || [];
-      console.log(`[VIBLOC] ${area}: ${items.length} Wikipedia-enriched items loaded`);
+      if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${items.length} Wikipedia-enriched items loaded`);
       enrichBuildingsWithWikiInfobox(wikiIdMap, items, area);
     }
   } catch (e) {
@@ -2522,7 +2524,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
           }
         }
         if (fused > 0) {
-          console.log(`[VIBLOC] ${area}: ${fused} addresses fused from OSM addr-point nodes`);
+          if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${fused} addresses fused from OSM addr-point nodes`);
         }
       }
     }

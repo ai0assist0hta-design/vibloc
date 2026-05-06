@@ -173,8 +173,15 @@ export function getDescription(buildingId: string): string {
   return getEntry(buildingId).description;
 }
 
+/** Does the CURRENT user have this track pinned in this building?
+ *  Scoped per-user so a track another curator already pinned doesn't
+ *  block me from adding it to my own playlist (the schema stores one
+ *  PinnedTrack row per (track, tagger) pair). */
 export function isPinned(buildingId: string, trackId: string): boolean {
-  return getEntry(buildingId).tracks.some((t) => t.id === trackId);
+  const me = _getUserIdentity?.()?.id ?? 'anonymous';
+  return getEntry(buildingId).tracks.some(
+    (t) => t.id === trackId && (t.taggerId ?? 'anonymous') === me,
+  );
 }
 
 /** Buildings where the CURRENT USER has pinned at least one track,
@@ -219,13 +226,19 @@ export function setUserIdentityProvider(fn: () => { id: string; name: string; av
   _getUserIdentity = fn;
 }
 
-/** Add a track to a building's playlist. No-op if already pinned.
- *  Stamps the current user as tagger via the identity provider. */
+/** Add a track to a building's playlist. No-op if THE CURRENT USER
+ *  has already pinned this track here — but a different curator's
+ *  pin of the same track does NOT block me, because the store keeps
+ *  one row per (track, tagger) pair so each user has an independent
+ *  per-building playlist. Stamps the current user as tagger via the
+ *  identity provider. */
 export function pinTrack(buildingId: string, track: RecommendedTrack): void {
   const entry = getEntry(buildingId);
-  if (entry.tracks.some((t) => t.id === track.id)) return;
-
   const identity = _getUserIdentity?.() ?? null;
+  const myId = identity?.id ?? 'anonymous';
+  if (entry.tracks.some(
+    (t) => t.id === track.id && (t.taggerId ?? 'anonymous') === myId,
+  )) return;
 
   store = {
     ...store,

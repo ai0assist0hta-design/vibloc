@@ -1,8 +1,10 @@
 import { useRef, useEffect } from 'react';
 import { getAzimuthDeg, resetToNorth } from '../canvas/PlateauScene';
 import { usePlayerState } from './music/PreviewPlayer';
+import { useT } from '../../lib/app/i18n';
 
 export function Compass({ darkMode = false }: { darkMode?: boolean }) {
+  const t = useT();
   // Couple visibility with the NowPlayingBar — when nothing is
   // playing, the orphaned compass disc reads as floating chrome
   // with no anchor. Both fade together, so the bottom cluster
@@ -26,9 +28,9 @@ export function Compass({ darkMode = false }: { darkMode?: boolean }) {
   }, []);
 
   const stroke = darkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)';
-  const textMain = darkMode ? '#e0e0e8' : '#1a1a2e';
+  const textMain = darkMode ? '#e0e0e8' : '#0e0e1a';
   const textSub = darkMode ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)';
-  const needleN = darkMode ? '#e0e0e8' : '#1a1a2e';
+  const needleN = darkMode ? '#e0e0e8' : '#0e0e1a';
   const needleS = darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)';
   const tickCol = darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
   const dotCenter = darkMode ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.15)';
@@ -55,7 +57,8 @@ export function Compass({ darkMode = false }: { darkMode?: boolean }) {
       }}
       onMouseEnter={(e) => { if (playing) e.currentTarget.style.opacity = '1'; }}
       onMouseLeave={(e) => { if (playing) e.currentTarget.style.opacity = '0.62'; }}
-      title="Reset to North"
+      title={t('compass.reset')}
+      aria-label={t('compass.reset')}
     >
       {/* Glass background — extra-translucent so the underlying city is visible. */}
       <div
@@ -120,7 +123,7 @@ export function Compass({ darkMode = false }: { darkMode?: boolean }) {
             textAnchor="middle"
             fontSize={7}
             fontWeight={700}
-            fontFamily="'IBM Plex Mono', monospace"
+            fontFamily="'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace"
             fill={needleN}
             dominantBaseline="auto"
           >
@@ -134,7 +137,7 @@ export function Compass({ darkMode = false }: { darkMode?: boolean }) {
             textAnchor="middle"
             fontSize={5.5}
             fontWeight={400}
-            fontFamily="'IBM Plex Mono', monospace"
+            fontFamily="'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace"
             fill={textSub}
             dominantBaseline="middle"
           >
@@ -148,7 +151,7 @@ export function Compass({ darkMode = false }: { darkMode?: boolean }) {
             textAnchor="middle"
             fontSize={5.5}
             fontWeight={400}
-            fontFamily="'IBM Plex Mono', monospace"
+            fontFamily="'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace"
             fill={textSub}
             dominantBaseline="auto"
           >
@@ -162,7 +165,7 @@ export function Compass({ darkMode = false }: { darkMode?: boolean }) {
             textAnchor="middle"
             fontSize={5.5}
             fontWeight={400}
-            fontFamily="'IBM Plex Mono', monospace"
+            fontFamily="'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace"
             fill={textSub}
             dominantBaseline="middle"
           >

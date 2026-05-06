@@ -1,98 +1,295 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Moon, Sun } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/useAuthStore';
-import { UserAvatar } from '@/features/auth/UserAvatar';
+import { signOut } from '@/features/auth/supabaseAuth';
+import { useT } from '@/lib/app/i18n';
+import { useDarkModeStore } from '@/lib/app/useDarkMode';
 
 /**
- * 마케팅 라우트 전용 헤더 (`/`, `/mypage` 등)
- * 랜딩(`/`)에서는 다크 테마, 나머지는 라이트 테마.
+ * Apple-style global nav for marketing routes (`/`, `/mypage`, etc.)
+ *
+ * Reference: nav.apple.com — 44px tall, 12px regular text, neutral gray
+ * with hover to primary, frosted glass background on light pages, pure
+ * transparent over the dark hero. Inner container max-width 980 to align
+ * exactly with the landing content grid (980).
  */
+const fontStack =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Pretendard Variable", "Pretendard", "Inter", sans-serif';
+
 export function MarketingHeader() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const t = useT();
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const clearSession = useAuthStore((s) => s.clearSession);
+  const dark = useDarkModeStore((s) => s.darkMode);
+  const toggleDark = useDarkModeStore((s) => s.toggleDarkMode);
   const authed = Boolean(accessToken && user);
 
-  // Landing page uses dark theme header
+  // On landing, header is theme-adaptive: transparent over dark hero,
+  // frosted-white once the user scrolls past ~60% of the hero.
   const isLanding = pathname === '/';
-  const textBase = isLanding ? 'text-[#f5f4f1]/60' : 'text-[#1a1a2e]/68';
-  const textHover = isLanding ? 'hover:text-[#f5f4f1]' : 'hover:text-[#1a1a2e]';
-  const textActive = isLanding
-    ? 'bg-white/[0.08] text-[#f5f4f1]'
-    : 'bg-[#1a1a2e]/[0.09] text-[#1a1a2e] shadow-[inset_0_0_0_1px_rgba(26,26,46,0.12)]';
-  const hoverBg = isLanding ? 'hover:bg-white/[0.06]' : 'hover:bg-[#1a1a2e]/[0.06]';
-  const logoColor = isLanding ? 'text-[#f5f4f1]' : 'text-[#1a1a2e]';
+  const [scrolledPastHero, setScrolledPastHero] = useState(false);
+  useEffect(() => {
+    if (!isLanding) {
+      setScrolledPastHero(false);
+      return;
+    }
+    const onScroll = () => {
+      setScrolledPastHero(window.scrollY > window.innerHeight * 0.6);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isLanding]);
 
-  const navLink = `inline-flex min-h-10 min-w-[3.25rem] shrink-0 items-center justify-center whitespace-nowrap rounded-md px-3.5 py-2 text-[13px] font-medium leading-none tracking-tight ${textBase} transition-[color,background-color] ${hoverBg} ${textHover} sm:px-4 sm:text-sm`;
+  // Effective dark surface: hero on landing OR user-selected dark
+  // mode. Either flips the chrome to the Apple-dark palette so the
+  // header reads correctly over whatever sits beneath it.
+  const surfaceDark = (isLanding && !scrolledPastHero) || dark;
+
+  // Apple palette
+  const C = {
+    text: surfaceDark ? 'rgba(245,245,247,0.72)' : 'rgba(29,29,31,0.72)',
+    textHover: surfaceDark ? '#f5f5f7' : '#1d1d1f',
+    logo: surfaceDark ? '#f5f5f7' : '#1d1d1f',
+    // Neutral accent (Apple Blue suppressed). Surface-aware: dark
+    // surface → cream pill w/ ink text; light surface → ink pill w/
+    // white text. ctaText pairs with blue so hover stays legible.
+    blue: surfaceDark ? '#f5f5f7' : '#0e0e1a',
+    blueHover: surfaceDark ? '#e0e0e8' : '#2a2a35',
+    ctaText: surfaceDark ? '#0e0e1a' : '#ffffff',
+    headerBg: (isLanding && !scrolledPastHero)
+      ? 'transparent'
+      : (dark ? 'rgba(0,0,0,0.72)' : 'rgba(251,251,253,0.72)'),
+    border: (isLanding && !scrolledPastHero)
+      ? 'transparent'
+      : (dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)'),
+    activeBg: surfaceDark ? 'rgba(255,255,255,0.10)' : 'rgba(29,29,31,0.06)',
+  };
+
+  const navItemBase: React.CSSProperties = {
+    fontFamily: fontStack,
+    fontSize: 12,
+    fontWeight: 400,
+    letterSpacing: '-0.01em',
+    color: C.text,
+    textDecoration: 'none',
+    padding: '0 12px',
+    height: 44,
+    display: 'inline-flex',
+    alignItems: 'center',
+    transition: 'color 200ms ease, background 200ms ease',
+    whiteSpace: 'nowrap',
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+  };
+
+  const onNavHover = (e: React.MouseEvent<HTMLElement>) => {
+    e.currentTarget.style.color = C.textHover;
+  };
+  const onNavLeave = (e: React.MouseEvent<HTMLElement>) => {
+    e.currentTarget.style.color = C.text;
+  };
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 ${isLanding ? '' : 'vibloc-glass-header'}`}
-      style={isLanding ? { background: 'transparent' } : undefined}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        background: C.headerBg,
+        // Frosted glass everywhere except the transparent landing-hero
+        // overlap. Both light and dark modes get the same blur — the
+        // base color (already encoded in C.headerBg) does the rest.
+        backdropFilter: (isLanding && !scrolledPastHero) ? undefined : 'saturate(180%) blur(20px)',
+        WebkitBackdropFilter: (isLanding && !scrolledPastHero) ? undefined : 'saturate(180%) blur(20px)',
+        borderBottom: `1px solid ${C.border}`,
+        transition: 'background 160ms ease, border-color 160ms ease',
+      }}
     >
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-5 sm:h-16">
+      <div
+        style={{
+          margin: '0 auto',
+          maxWidth: 980,
+          width: '100%',
+          padding: '0 22px',
+          height: 44,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+        }}
+      >
         <Link
           to="/"
-          className={`shrink-0 text-[15px] font-semibold tracking-[0.22em] ${logoColor} sm:text-base`}
-          style={{ fontFamily: "'IBM Plex Mono', ui-monospace, monospace" }}
+          style={{
+            fontFamily: fontStack,
+            fontSize: 18,
+            fontWeight: 600,
+            letterSpacing: '-0.012em',
+            color: C.logo,
+            textDecoration: 'none',
+            transition: 'opacity 200ms',
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: 44,
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
         >
           VIBLOC
         </Link>
+
         <nav
-          className="flex shrink-0 flex-wrap items-center justify-end gap-x-0.5 gap-y-1 sm:gap-x-1"
-          aria-label="주요 메뉴"
+          aria-label={t('nav.menu')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0,
+          }}
         >
           <NavLink
             to="/map"
-            className={({ isActive }) => `${navLink} ${isActive ? textActive : ''}`}
+            style={({ isActive }) => ({
+              ...navItemBase,
+              color: isActive ? C.textHover : C.text,
+            })}
+            onMouseEnter={onNavHover}
+            onMouseLeave={onNavLeave}
           >
-            맵
+            {t('nav.map')}
           </NavLink>
+
           {authed && user ? (
             <>
               <NavLink
                 to="/mypage"
-                className={({ isActive }) =>
-                  `${navLink} gap-2 px-2 sm:px-3 ${isActive ? textActive : ''}`
-                }
+                style={({ isActive }) => ({
+                  ...navItemBase,
+                  color: isActive ? C.textHover : C.text,
+                })}
+                onMouseEnter={onNavHover}
+                onMouseLeave={onNavLeave}
               >
-                <UserAvatar user={user} size={28} className="shrink-0" alt="" />
-                <span className="max-w-[5.5rem] truncate sm:max-w-none">마이페이지</span>
+                {t('nav.mypage')}
               </NavLink>
               <button
                 type="button"
                 onClick={() => {
+                  // signOut() handles both Supabase remote sign-out
+                  // (when configured) AND local zustand clear, in
+                  // that order. Navigate after to avoid the brief
+                  // race where header still shows the user.
+                  void signOut().then(() => navigate('/'));
                   clearSession();
-                  navigate('/');
                 }}
-                className={`${navLink} ${isLanding ? 'text-[#f5f4f1]/40' : 'text-[#1a1a2e]/55'} ${textHover}`}
+                style={navItemBase}
+                onMouseEnter={onNavHover}
+                onMouseLeave={onNavLeave}
               >
-                로그아웃
+                {t('nav.logout')}
               </button>
+              {/* Dark toggle hidden on the landing route — users can
+                  flip themes once they're inside the map. Keeping the
+                  marketing nav minimal (Apple practice). */}
+              {!isLanding && (
+                <DarkToggle dark={dark} onToggle={toggleDark} text={C.text} textHover={C.textHover} />
+              )}
             </>
           ) : (
             <>
               <NavLink
                 to="/login"
-                className={({ isActive }) => `${navLink} ${isActive ? textActive : ''}`}
+                style={({ isActive }) => ({
+                  ...navItemBase,
+                  color: isActive ? C.textHover : C.text,
+                })}
+                onMouseEnter={onNavHover}
+                onMouseLeave={onNavLeave}
               >
-                로그인
+                {t('nav.login')}
               </NavLink>
               <Link
                 to="/signup"
-                className={`ml-1 inline-flex min-h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-md px-4 py-2 text-[13px] font-semibold leading-none tracking-tight shadow-sm transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98] sm:ml-2 sm:px-5 sm:text-sm ${
-                  isLanding
-                    ? 'border border-white/[0.12] bg-white/[0.06] text-[#f5f4f1] backdrop-blur-sm hover:bg-white/[0.1]'
-                    : 'bg-[#1a1a2e] text-[#f8f7f4] shadow-[#1a1a2e]/25 hover:shadow-[#1a1a2e]/30'
-                }`}
+                style={{
+                  ...navItemBase,
+                  marginLeft: 8,
+                  height: 32,
+                  padding: '0 16px',
+                  borderRadius: 980,
+                  background: C.blue,
+                  color: C.ctaText,
+                  fontWeight: 400,
+                  transition: 'background 120ms ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = C.blueHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = C.blue;
+                }}
               >
-                회원가입
+                {t('nav.signup')}
               </Link>
+              {/* Dark toggle hidden on the landing route — users can
+                  flip themes once they're inside the map. Keeping the
+                  marketing nav minimal (Apple practice). */}
+              {!isLanding && (
+                <DarkToggle dark={dark} onToggle={toggleDark} text={C.text} textHover={C.textHover} />
+              )}
             </>
           )}
         </nav>
       </div>
     </header>
+  );
+}
+
+/** Compact dark/light toggle for the header. Sun in dark mode (next:
+ *  light), Moon in light mode (next: dark). 32 px hit area, no fill —
+ *  text color follows the surrounding nav for a quiet integration. */
+function DarkToggle({
+  dark, onToggle, text, textHover,
+}: {
+  dark: boolean;
+  onToggle: () => void;
+  text: string;
+  textHover: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={dark ? 'Light mode' : 'Dark mode'}
+      style={{
+        marginLeft: 4,
+        width: 32,
+        height: 32,
+        borderRadius: 999,
+        border: 'none',
+        background: 'transparent',
+        color: text,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'color 200ms ease, background 200ms ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = textHover;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = text;
+      }}
+    >
+      {dark ? <Sun size={14} strokeWidth={2.2} /> : <Moon size={14} strokeWidth={2.2} />}
+    </button>
   );
 }

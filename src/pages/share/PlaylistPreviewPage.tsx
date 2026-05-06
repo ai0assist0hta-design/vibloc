@@ -29,6 +29,7 @@ import { isIOS, isInAppBrowser, openAppleMusic } from '../../lib/share/openApple
 import {
   INK, PAPER, MUTED, DIVIDER,
 } from '../../lib/ui/tokens';
+import { useT } from '../../lib/app/i18n';
 
 export function PlaylistPreviewPage() {
   // Decode once on mount, then stay stable. Hash mutations after
@@ -46,6 +47,7 @@ export function PlaylistPreviewPage() {
 // ─── Preview ─────────────────────────────────────────────────────────
 
 function Preview({ playlist }: { playlist: SharedPlaylist }) {
+  const t = useT();
   const cover = useMemo(() => {
     // Top track's artwork = cover. Mirrors the in-app pattern.
     return playlist.tracks.find((t) => t.art)?.art ?? null;
@@ -98,7 +100,7 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             textDecoration: 'none', color: INK,
-            fontFamily: "'IBM Plex Mono', monospace",
+            fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
             fontSize: 11, fontWeight: 800, letterSpacing: 1.4,
             textTransform: 'uppercase',
           }}
@@ -131,7 +133,7 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
         gap: 14, padding: '32px 20px 20px',
       }}>
         <div style={{
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
           fontSize: 10, fontWeight: 800, letterSpacing: 1.6,
           textTransform: 'uppercase', color: MUTED,
         }}>
@@ -157,7 +159,7 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
             <div style={{
               width: '100%', height: '100%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: MUTED, fontFamily: "'IBM Plex Mono', monospace",
+              color: MUTED, fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
               fontSize: 48, fontWeight: 700,
             }}>
               {(playlist.n.trim().charAt(0) || '?').toUpperCase()}
@@ -173,7 +175,7 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
           {playlist.n}
         </h1>
         <div style={{
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
           fontSize: 11, fontWeight: 600, color: MUTED,
           letterSpacing: 0.4,
           display: 'flex', alignItems: 'center', gap: 8,
@@ -199,10 +201,7 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
           fontSize: 12, lineHeight: 1.5, color: '#7a4f00',
         }}>
           <AlertCircle size={16} strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
-          <div>
-            인앱 브라우저에서 열려 Apple Music 앱이 안 뜰 수 있어요.
-            우상단 <strong>⋯ → Safari/Chrome으로 열기</strong>를 한 번 눌러주세요.
-          </div>
+          <div>{t('preview.inAppWarning')}</div>
         </div>
       )}
 
@@ -219,12 +218,57 @@ function Preview({ playlist }: { playlist: SharedPlaylist }) {
         ))}
       </ol>
 
+      {/* Bottom CTA — bridges the share recipient into VIBLOC's
+          signup. Without this card, /p was a one-way exit (every
+          tap left for Apple Music, no path back into the product).
+          Card style mirrors Apple Music's "Sign up for Apple Music"
+          interstitial: friendly headline, soft body, single high-
+          contrast CTA. */}
+      <div style={{
+        marginTop: 32,
+        marginLeft: 'auto', marginRight: 'auto',
+        maxWidth: 480,
+        padding: '20px 22px',
+        borderRadius: 16,
+        border: `1px solid ${DIVIDER}`,
+        background: 'rgba(14,14,26,0.025)',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          fontSize: 16, fontWeight: 700, color: INK,
+          letterSpacing: '-0.011em', lineHeight: 1.3,
+        }}>
+          {t('preview.tryVibloc.title')}
+        </div>
+        <div style={{
+          marginTop: 6,
+          fontSize: 13, color: MUTED, lineHeight: 1.5,
+          letterSpacing: '-0.01em',
+        }}>
+          {t('preview.tryVibloc.body')}
+        </div>
+        <Link
+          to="/signup"
+          style={{
+            display: 'inline-block',
+            marginTop: 14,
+            padding: '10px 20px',
+            borderRadius: 999,
+            background: INK, color: PAPER,
+            fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em',
+            textDecoration: 'none',
+          }}
+        >
+          {t('preview.tryVibloc.cta')}
+        </Link>
+      </div>
+
       {/* Footer note */}
       <footer style={{
-        marginTop: 36,
+        marginTop: 24,
         padding: '0 20px',
-        fontFamily: "'IBM Plex Mono', monospace",
-        fontSize: 10.5, color: MUTED, lineHeight: 1.6,
+        fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
+        fontSize: 11, color: MUTED, lineHeight: 1.6,
         textAlign: 'center', maxWidth: 480,
         marginLeft: 'auto', marginRight: 'auto',
       }}>
@@ -262,12 +306,12 @@ function TrackRow({ t, idx, ios }: { t: SharedTrack; idx: number; ios: boolean }
         textDecoration: 'none', color: INK,
         transition: 'background 120ms ease',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(26,26,46,0.05)'; }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(14,14,26,0.05)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
     >
       <span style={{
         flexShrink: 0, width: 22, textAlign: 'right',
-        fontFamily: "'IBM Plex Mono', monospace",
+        fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
         fontSize: 11, color: MUTED, fontVariantNumeric: 'tabular-nums',
       }}>{idx}</span>
 
@@ -328,7 +372,7 @@ function BootSplash() {
       minHeight: '100dvh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: PAPER, color: MUTED,
-      fontFamily: "'IBM Plex Mono', monospace",
+      fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
       fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase',
     }}>
       Decoding playlist…
@@ -347,7 +391,7 @@ function InvalidLink() {
       textAlign: 'center',
     }}>
       <div style={{
-        fontFamily: "'IBM Plex Mono', monospace",
+        fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
         fontSize: 11, color: MUTED, letterSpacing: 1.4,
         textTransform: 'uppercase',
       }}>

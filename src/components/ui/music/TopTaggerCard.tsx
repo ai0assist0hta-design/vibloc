@@ -19,6 +19,9 @@ import {
   getTaggerPlaylistName,
   MIN_PLAYLIST_TRACKS,
 } from '../../../lib/music/buildingPlaylist';
+import { useT } from '../../../lib/app/i18n';
+import { FONT, SECTION_HEADER } from '../../../lib/ui/tokens';
+import { PlaylistCover } from './PlaylistCover';
 
 type Props = {
   buildingId: string;
@@ -27,6 +30,12 @@ type Props = {
   text3: string;
   divider: string;
   onSelect: (taggerId: string) => void;
+  /** Optional play handler. When provided, clicking a rank row also
+   *  starts playing that playlist (queue seeded from the tagger's
+   *  pins). Without it, click only opens the detail view. Apple
+   *  Music's library list uses the same dual gesture (single click
+   *  selects + plays). */
+  onPlay?: (taggerId: string) => void;
   /** Hard cap on rendered rows. Defaults to no cap (full list with
    *  scroll past 5). Used by the floating right-side callout to show
    *  exactly the top 3. */
@@ -43,8 +52,20 @@ const SCROLL_MAX_PX = 320;
 const MEDAL_COLORS = ['#f5b301', '#b6b6c1', '#c97a4a'] as const; // gold / silver / bronze
 
 export function TopTaggerCard({
-  buildingId, text, text2, text3, divider, onSelect, limit, medals = false,
+  buildingId, text, text2, text3, divider, onSelect, onPlay, limit, medals = false,
 }: Props) {
+  // Apple Music dual-gesture row: row click (label / thumb) opens
+  // the detail view, the dedicated ▶ button on hover starts playback
+  // without navigating. Splitting the gestures avoids the "I just
+  // wanted to peek and audio started" surprise. activate() is kept
+  // for keyboard activation only — Enter/Space on the row open
+  // detail (no auto-play to mirror Apple Music's keyboard model).
+  const openDetail = (taggerId: string) => onSelect(taggerId);
+  // `onPlay` prop kept on the public type for future surfaces
+  // (wider callouts) that re-introduce the inline Play button. The
+  // in-rail row dropped it to free 44 px for the curator name.
+  void onPlay;
+  const t = useT();
   // Fetch a generous pool; the scroll pane handles the overflow.
   const all = useTopTaggers(buildingId, 50);
   const ranked = limit ? all.slice(0, limit) : all;
@@ -53,57 +74,65 @@ export function TopTaggerCard({
   return (
     <div
       style={{
+        // Shared section rhythm: gap 8 between header + body.
+        // Was gap 6 — synced upward to BuildingPlaylist /
+        // PopularTrackCard so every right-rail section breathes
+        // identically.
         display: 'flex',
         flexDirection: 'column',
-        gap: 6,
-        fontFamily: "'IBM Plex Mono', monospace",
+        gap: 8,
+        fontFamily: FONT.ui,
       }}
       role="list"
-      aria-label="Top-liked playlists for this building"
+      aria-label={t('taggers.ariaLabel')}
     >
       <div style={{
-        // Standardized SECTION_HEADER — matches TENANTS / TOP PICKS /
-        // MY PLAYLIST so both panels share the same header rhythm.
-        fontSize: 11, fontWeight: 800, letterSpacing: 1.2,
-        textTransform: 'uppercase', color: text2, marginBottom: 6,
-        fontFamily: "'IBM Plex Mono', monospace",
-        display: 'flex', alignItems: 'center', gap: 6,
+        ...SECTION_HEADER,
+        color: text2, marginBottom: 8,
+        display: 'flex', alignItems: 'center', gap: 8,
+        // Right-edge alignment with every other section header /
+        // row trailing element in the rail.
+        paddingRight: 12,
       }}>
-        TOP PLAYLISTS
-        {ranked.length > 0 && (
-          <span style={{ color: text3, opacity: 0.7, marginLeft: 'auto', letterSpacing: 0.6, fontSize: 10 }}>
-            {ranked.length}
-          </span>
-        )}
+        {t('taggers.sectionTitle')}
+        {/* Count badge removed per design pass — the section header
+            reads as a clean label without the trailing number. */}
       </div>
 
       {ranked.length === 0 && (
         <div style={{
-          padding: '14px 12px',
+          padding: '16px 12px',
           borderRadius: 12,
           border: `1px dashed ${divider}`,
-          fontSize: 11,
+          fontSize: 12,
           color: text2,
           textAlign: 'center',
           letterSpacing: 0.2,
           lineHeight: 1.5,
         }}>
           <div style={{ color: text, fontWeight: 700, marginBottom: 4 }}>
-            Be the first curator here
+            {t('taggers.empty.title')}
           </div>
-          <div style={{ fontSize: 10.5 }}>
-            Search a song below and pin it —<br/>
-            it lands at the top of this list.
+          <div style={{ fontSize: 12 }}>
+            {t('taggers.empty.body')}
           </div>
         </div>
       )}
 
       <div
         style={{
-          display: 'flex', flexDirection: 'column', gap: 2,
+          // gap 4 — same row rhythm as PopularTrackCard's TOP PICKS
+          // list (post-unification). Tight enough for an Apple Music
+          // list feel, loose enough to breathe between 36-px rows.
+          display: 'flex', flexDirection: 'column', gap: 4,
           maxHeight: overflow ? SCROLL_MAX_PX : undefined,
           overflowY: overflow ? 'auto' : undefined,
-          paddingRight: overflow ? 4 : 0,
+          // paddingRight removed — was 4 px when overflowing to leave
+          // gutter for the scrollbar, but the slim global scrollbar
+          // (overlay style on this rail) makes that gutter unnecessary
+          // and pushes every row 4 px left of every other rail
+          // section's right-edge column.
+          paddingRight: 0,
           maskImage: overflow
             ? 'linear-gradient(to bottom, black 92%, transparent)' : undefined,
           WebkitMaskImage: overflow
@@ -114,45 +143,28 @@ export function TopTaggerCard({
         const liked = isPlaylistLikedByMe(buildingId, g.taggerId);
         const medalColor = medals && idx < 3 ? MEDAL_COLORS[idx] : null;
         return (
-          <div
+          <RankRow
             key={g.taggerId}
-            role="listitem"
-            tabIndex={0}
-            onClick={() => onSelect(g.taggerId)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelect(g.taggerId);
-              }
-            }}
-            aria-label={`Open playlist by ${g.taggerName}, ${g.totalLikes} likes`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '6px 6px',
-              borderRadius: 6,
-              background: 'transparent',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontFamily: 'inherit',
-              transition: 'background 150ms ease',
-              outline: 'none',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(26,26,46,0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
+            label={`Open ${g.taggerName}'s playlist (${g.totalLikes} likes)`}
+            onActivate={() => openDetail(g.taggerId)}
           >
             {medalColor && <Medal rank={idx + 1} color={medalColor} />}
-            <TaggerThumb
-              taggerId={g.taggerId}
-              avatarUrl={g.taggerAvatarUrl ?? null}
-              coverUrl={g.coverArtworkUrl ?? null}
+            {/* PlaylistCover — same 2×2 track-art mosaic the floating
+                TOP PLAYLISTS callout uses, so the in-rail row's
+                cover and the hover-panel cover read as the same
+                playlist artwork. Was a single-image TaggerThumb
+                (avatar OR top-track cover) that diverged from the
+                callout and broke the "this is the same playlist"
+                visual link when the user moved their cursor between
+                the two surfaces. */}
+            <PlaylistCover
+              customUrl={g.customCoverUrl}
+              artworkUrls={g.coverGridUrls}
+              fallbackText={g.taggerName}
+              size={36}
+              radius={5}
               divider={divider}
-              alt={g.taggerName}
+              text2={text3}
             />
 
             {/* Playlist name (custom) — bigger headline, curator name
@@ -161,13 +173,22 @@ export function TopTaggerCard({
               const customName = getTaggerPlaylistName(buildingId, g.taggerId);
               const headline = customName || g.taggerName;
               return (
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span
                     style={{
-                      fontSize: 14, fontWeight: 800, color: text,
+                      // 13/600 — matches PopularTrackCard headline so
+                      // TOP PLAYLISTS rows and TOP PICKS rows read as
+                      // one type system. Was 14/800 (heavier than every
+                      // other rail row); the demotion lets the section
+                      // header carry the weight instead of every row.
+                      // 14 / 600 / -0.01em — synced with TrackRow +
+                      // PopularRow headline so all three rail row
+                      // families share one title type ladder.
+                      fontSize: 12, fontWeight: 500, color: text,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      letterSpacing: 0,
-                      lineHeight: 1.2,
+                      letterSpacing: '-0.01em',
+                      lineHeight: 1.3,
+                      fontFamily: FONT.ui,
                     }}
                     title={headline}
                   >
@@ -175,9 +196,11 @@ export function TopTaggerCard({
                   </span>
                   <span
                     style={{
-                      fontSize: 11.5, fontWeight: 600, color: text2,
+                      fontSize: 12, fontWeight: 500, color: text2,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       letterSpacing: 0.2,
+                      lineHeight: 1.3,
+                      fontFamily: FONT.ui,
                     }}
                   >
                     {customName ? g.taggerName : <><span style={{ color: text3 }}>@</span>{g.alias}</>}
@@ -185,6 +208,14 @@ export function TopTaggerCard({
                 </div>
               );
             })()}
+
+            {/* Inline Play button removed — was eating 44 px (32 +
+                12 gap) of the row's flex space, causing curator
+                names to truncate to "Mei…" / "Ezr…" on a 280 px
+                rail. The play action is still reachable via row →
+                detail view → Play pill. The `onPlay` prop handler
+                stays in the API for future surfaces (e.g. wider
+                callout) that have room for the dual-gesture row. */}
 
             {/* Like — borderless heart that fills red when liked. */}
             <button
@@ -199,10 +230,17 @@ export function TopTaggerCard({
                 : `Like ${g.taggerName}'s playlist`}
               title={liked ? 'Unlike playlist' : 'Like playlist'}
               style={{
+                // Two-slot trailing column: [icon 32×32] gap 4 [count 32]
+                // — geometrically identical to PopularRow's
+                // [Ellipsis 32] gap 4 [Plus 32] cluster sitting on
+                // the same row in TOP PICKS. Heart's optical center
+                // shares the column with Ellipsis (⋯), count's
+                // center shares the column with the +/✓ button.
                 display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: 4, border: 'none', background: 'transparent',
+                padding: 0,
+                border: 'none', background: 'transparent',
                 color: liked ? '#ff375f' : text3,
-                fontSize: 11, fontWeight: 700,
+                fontSize: 12, fontWeight: 700,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 transition: 'color 120ms ease, transform 120ms ease',
@@ -211,12 +249,26 @@ export function TopTaggerCard({
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
-              <Heart filled={liked} />
-              {g.totalLikes > 0 && (
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace" }}>{g.totalLikes}</span>
-              )}
+              {/* Icon slot — 32×32 center-aligned, shares Ellipsis column. */}
+              <span style={{
+                width: 32, height: 32,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Heart filled={liked} />
+              </span>
+              <span
+                style={{
+                  // 32-wide center slot — shares Plus / Check column.
+                  width: 32,
+                  textAlign: 'center',
+                  fontVariantNumeric: 'tabular-nums',
+                  fontFamily: FONT.ui,
+                }}
+              >
+                {g.totalLikes > 0 ? g.totalLikes : ''}
+              </span>
             </button>
-          </div>
+          </RankRow>
         );
       })}
       </div>
@@ -224,90 +276,66 @@ export function TopTaggerCard({
   );
 }
 
-/** Tagger avatar thumb. Three-tier fallback chain (Spotify-style):
- *
- *   1. AVATAR — `avatarUrl` set → render as the curator's chosen photo.
- *   2. COVER  — fall back to the playlist's top track artwork
- *              (`coverUrl`). This is the default for seeded curators
- *              and any real user who hasn't uploaded an avatar — it
- *              makes the playlist feel anchored to its sound.
- *   3. MONOGRAM — initial-letter circle with hashed hue, last resort.
- *
- *  Image loads fall back to the next tier on <img> error so a broken
- *  CDN URL never leaves a blank circle. */
-function TaggerThumb({
-  taggerId, avatarUrl, coverUrl, divider, alt,
+/** Row wrapper — the parent click area triggers `onActivate` (open
+ *  detail). Tracks hover state so the inline ▶ Play button (rendered
+ *  via children) can fade in. Apple Music macOS uses the same
+ *  pattern: row click selects/peeks, the play affordance only
+ *  appears on hover so a quiet "I just want to look" gesture
+ *  doesn't accidentally start audio. */
+function RankRow({
+  label, onActivate, children,
 }: {
-  taggerId: string;
-  avatarUrl: string | null;
-  coverUrl: string | null;
-  divider: string;
-  alt: string;
+  label: string;
+  onActivate: () => void;
+  children: React.ReactNode;
 }) {
-  let h = 0;
-  for (let i = 0; i < taggerId.length; i++) h = (h * 31 + taggerId.charCodeAt(i)) >>> 0;
-  const initial = (alt || taggerId).trim().charAt(0).toUpperCase() || '?';
-  const hue = h % 360;
-  const [avatarBroken, setAvatarBroken] = useState(false);
-  const [coverBroken, setCoverBroken] = useState(false);
-
-  // Tier 1 — curator's chosen photo (real users).
-  if (avatarUrl && !avatarBroken) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        referrerPolicy="no-referrer"
-        onError={() => setAvatarBroken(true)}
-        style={thumbImgStyle(hue, divider)}
-      />
-    );
-  }
-  // Tier 2 — playlist's top-track album cover.
-  if (coverUrl && !coverBroken) {
-    return (
-      <img
-        src={coverUrl}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-        referrerPolicy="no-referrer"
-        onError={() => setCoverBroken(true)}
-        style={thumbImgStyle(hue, divider)}
-      />
-    );
-  }
-  // Tier 3 — initial monogram fallback. Square (rounded-corner)
-  // tile for visual consistency with album artwork.
+  const [hover, setHover] = useState(false);
   return (
-    <span
-      aria-label={alt}
-      style={{
-        width: 28, height: 28, borderRadius: 6,
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        background: `hsl(${hue}, 55%, 70%)`,
-        color: '#1a1a2e',
-        fontFamily: "'IBM Plex Mono', monospace",
-        fontSize: 12, fontWeight: 700,
-        border: `1px solid ${divider}`,
-        flexShrink: 0,
+    <div
+      role="listitem"
+      tabIndex={0}
+      onClick={onActivate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onActivate();
+        }
       }}
-    >{initial}</span>
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-label={label}
+      data-hover={hover ? '1' : '0'}
+      style={{
+        // padding 5px 6px 5px 12px — content edge sits at rail-x=24,
+        // matching the LEFT rail's icon column (TopicRow margin 12 +
+        // padding 12). Trailing axis preserved by the 6 px right
+        // padding shared with every other rail row.
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '4px 12px 4px 12px', borderRadius: 8,
+        background: hover ? 'rgba(14,14,26,0.05)' : 'transparent',
+        cursor: 'pointer', textAlign: 'left',
+        fontFamily: 'inherit',
+        transition: 'background 150ms ease',
+        outline: 'none',
+      }}
+    >
+      {/* Row-scoped CSS — make the inline ▶ Play button visible on
+          hover. Cleaner than manually tracking hover in every child
+          since RankRow already owns the hover state. */}
+      <style>{`
+        [data-row-play-button] { opacity: 0; }
+        [data-hover="1"] [data-row-play-button] { opacity: 1; }
+      `}</style>
+      {children}
+    </div>
   );
 }
 
-function thumbImgStyle(hue: number, divider: string): React.CSSProperties {
-  return {
-    width: 28, height: 28, borderRadius: 6,
-    objectFit: 'cover',
-    background: `hsl(${hue}, 55%, 88%)`,
-    border: `1px solid ${divider}`,
-    flexShrink: 0,
-    display: 'block',
-  };
-}
+// TaggerThumb (single-image avatar / top-track-cover / monogram
+// fallback) and its `thumbImgStyle` helper were retired when TOP
+// PLAYLISTS rows switched to <PlaylistCover> 2×2 mosaics — same
+// artwork the floating callout uses, so the two surfaces match.
+// The hashed-hue monogram fallback now lives inside PlaylistCover.
 
 /** Olympic-style medal pip — gold/silver/bronze depending on rank.
  *  Used by the floating right-side TOP PLAYLISTS callout to mark
@@ -318,13 +346,13 @@ function Medal({ rank, color }: { rank: number; color: string }) {
       aria-hidden="true"
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 22, height: 22, borderRadius: '50%',
+        width: 24, height: 24, borderRadius: '50%',
         background: color,
         color: '#fff',
-        fontSize: 11, fontWeight: 900,
+        fontSize: 12, fontWeight: 900,
         boxShadow: `0 0 0 1.5px #fff, 0 0 0 2.5px ${color}, 0 1px 3px rgba(0,0,0,0.18)`,
         flexShrink: 0,
-        fontFamily: "'IBM Plex Mono', monospace",
+        fontFamily: FONT.ui,
         letterSpacing: 0,
       }}
     >

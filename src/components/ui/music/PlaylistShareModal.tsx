@@ -121,7 +121,7 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
     try {
       await navigator.share({
         title: `VIBLOC — ${title}`,
-        text: `${tracks.length}곡 큐레이션 · ${group?.taggerName ?? ''}`.trim(),
+        text: t('share.payload', { n: tracks.length, name: group?.taggerName ?? '' }).trim(),
         url: shareUrl,
       });
     } catch {
@@ -157,14 +157,14 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
         }}
       >
         <div style={{
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
           fontSize: 10, fontWeight: 800, letterSpacing: 1.4,
-          textTransform: 'uppercase', color: '#6e6e73',
+          textTransform: 'uppercase', color: '#5a5a66',
         }}>
           {t('share.title')}
         </div>
         <div style={{
-          fontSize: 18, fontWeight: 800, color: '#1a1a2e',
+          fontSize: 18, fontWeight: 800, color: '#0e0e1a',
           letterSpacing: -0.2,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }} title={title}>
@@ -174,7 +174,7 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
         {error ? (
           <div style={{
             padding: 16,
-            border: '1px dashed rgba(26,26,46,0.20)',
+            border: '1px dashed rgba(14,14,26,0.20)',
             borderRadius: 12,
             color: '#a86b00',
             background: 'rgba(245,179,1,0.08)',
@@ -192,9 +192,9 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
               padding: '10px 12px',
               background: '#fff',
               borderRadius: 10,
-              border: '1px solid rgba(26,26,46,0.10)',
+              border: '1px solid rgba(14,14,26,0.10)',
             }}>
-              <Link2 size={14} color="#6e6e73" strokeWidth={2} style={{ flexShrink: 0 }} />
+              <Link2 size={14} color="#5a5a66" strokeWidth={2} style={{ flexShrink: 0 }} />
               <input
                 type="text"
                 readOnly
@@ -204,16 +204,16 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
                   flex: 1, minWidth: 0,
                   border: 'none', outline: 'none',
                   background: 'transparent',
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: 11, color: '#1a1a2e',
+                  fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
+                  fontSize: 11, color: '#0e0e1a',
                   letterSpacing: 0,
                 }}
               />
             </div>
 
             <div style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: 10.5, color: '#6e6e73',
+              fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
+              fontSize: 11, color: '#5a5a66',
               lineHeight: 1.5,
             }}>
               {t('share.tracksLink').replace('{n}', String(tracks.length))}
@@ -236,7 +236,7 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
                 padding: '11px 14px',
                 borderRadius: 10,
                 border: 'none',
-                background: '#1a1a2e',
+                background: '#0e0e1a',
                 color: '#faf9f6',
                 fontSize: 12, fontWeight: 700,
                 cursor: shareUrl ? 'pointer' : 'not-allowed',
@@ -257,9 +257,9 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
               flex: 1,
               padding: '11px 14px',
               borderRadius: 10,
-              border: canNativeShare ? '1px solid rgba(26,26,46,0.10)' : 'none',
-              background: canNativeShare ? '#fff' : '#1a1a2e',
-              color: canNativeShare ? '#1a1a2e' : '#faf9f6',
+              border: canNativeShare ? '1px solid rgba(14,14,26,0.10)' : 'none',
+              background: canNativeShare ? '#fff' : '#0e0e1a',
+              color: canNativeShare ? '#0e0e1a' : '#faf9f6',
               fontSize: 12, fontWeight: 700,
               cursor: shareUrl ? 'pointer' : 'not-allowed',
               fontFamily: 'inherit',
@@ -277,9 +277,9 @@ export function PlaylistShareModal({ buildingId, taggerId, open, onClose }: Prop
             style={{
               padding: '11px 14px',
               borderRadius: 10,
-              border: '1px solid rgba(26,26,46,0.10)',
+              border: '1px solid rgba(14,14,26,0.10)',
               background: 'transparent',
-              color: '#6e6e73',
+              color: '#5a5a66',
               fontSize: 12, fontWeight: 700,
               cursor: 'pointer',
               fontFamily: 'inherit',

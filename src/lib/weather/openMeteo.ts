@@ -64,6 +64,13 @@ export type WeatherSnapshot = {
   code: number;
   /** Wind speed in km/h. */
   windKmh: number;
+  /** Precipitation rate in mm/h (sum of rain + snow + showers in the
+   *  past hour, per Open-Meteo's `current.precipitation` field).
+   *  Drives the rain particle density / fall speed in WeatherFX so a
+   *  drizzle reads visually different from a downpour.
+   *  Reference scale: <0.5 mm/h drizzle, 0.5–2.5 light, 2.5–10 mod,
+   *  10+ heavy, 20+ torrential. */
+  precipitationMm: number;
   /** Wall-clock fetch timestamp (ms epoch). */
   fetchedAt: number;
 };
@@ -164,6 +171,7 @@ export async function fetchCurrentWeather(
         weather_code?: number;
         temperature_2m?: number;
         wind_speed_10m?: number;
+        precipitation?: number;
       };
     };
     const cur = data.current;
@@ -172,12 +180,17 @@ export async function fetchCurrentWeather(
     const code = cur.weather_code;
     const tempC = typeof cur.temperature_2m === 'number' ? cur.temperature_2m : 0;
     const windKmh = typeof cur.wind_speed_10m === 'number' ? cur.wind_speed_10m : 0;
+    const precipitationMm =
+      typeof cur.precipitation === 'number' && Number.isFinite(cur.precipitation)
+        ? Math.max(0, cur.precipitation)
+        : 0;
     const snap: WeatherSnapshot = {
       category: categorize(code),
       windy: windKmh >= 25,
       tempC,
       code,
       windKmh,
+      precipitationMm,
       fetchedAt: Date.now(),
     };
     writeCache(lat, lon, snap);

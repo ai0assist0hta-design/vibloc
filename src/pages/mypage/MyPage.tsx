@@ -1,20 +1,10 @@
 /**
- * MyPage — user profile, playlists, activity.
+ * MyPage — Apple-system rebuild with full KR/EN/JA i18n.
  *
- * Design system (mirrors LandingPage.tsx / AuthLayout.tsx):
- *   Grid:     8px base — 8 / 16 / 24 / 32 / 48 / 64 / 96
- *   Container: max-width 720px, padding 0 24px
- *   Font:     Inter/Pretendard (sans) + IBM Plex Mono (mono)
- *   Radius:   8 (chip), 12 (button/input), 16 (card)
- *   Card:     padding 24, borderRadius 16, border 1px solid border
- *   Light theme tokens:
- *     ink       #1a1a2e
- *     text2     #48484a
- *     text3     #6e6e73
- *     border    rgba(26,26,46,0.08)
- *     surface   rgba(26,26,46,0.04)
- *     bg        #f8f7f4
- *     cta       #1a1a2e (bg) / #faf9f6 (text)
+ * All visible strings flow through `useT()` so the language toggle
+ * in the footer / map app updates this page instantly. Relative
+ * times use `useTimeAgo()` so "3시간 전 / 3 hr ago / 3時間前" all
+ * reflect the active locale.
  */
 
 import { useState } from 'react';
@@ -22,141 +12,231 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/useAuthStore';
 import { isDevAdmin } from '@/features/auth/devAdmin';
 import { useProfileData } from '@/features/profile/useProfileData';
-import { PH } from '@/content/placeholders';
+import { useBuildingResolver } from '@/features/profile/useBuildingResolver';
+import { useT, useTimeAgo } from '@/lib/app/i18n';
+import { useDarkMode } from '@/lib/app/useDarkMode';
+import { MarqueeText } from '@/components/ui/music/MarqueeText';
 
-/* ── Tokens ── */
-const sans =
-  "'Inter', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const mono = "'IBM Plex Mono', ui-monospace, monospace";
+const fontStack =
+  '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Pretendard Variable", "Pretendard", "Inter", sans-serif';
 
-const C = {
-  ink: '#1a1a2e',
-  text2: '#48484a',
-  text3: '#6e6e73',
-  border: 'rgba(26,26,46,0.08)',
-  borderHover: 'rgba(26,26,46,0.16)',
-  surface: 'rgba(26,26,46,0.04)',
-  cardBg: 'rgba(255,255,255,0.90)',
-  cardBorder: 'rgba(255,255,255,0.60)',
-  cta: '#1a1a2e',
-  ctaText: '#faf9f6',
-  danger: '#881337',
-  dangerBg: 'rgba(255,228,230,0.90)',
-  dangerBorder: 'rgba(251,113,133,0.25)',
+/** Apple light + dark palettes. The runtime `getC(dark)` picks one
+ *  so every surface (page bg, cards, dividers, primary action) is
+ *  one consistent system per mode. Dark values follow Apple's
+ *  iOS/macOS dark mode spec (true black bg, #1c1c1e elevated cards,
+ *  #f5f5f7 primary text, Apple Blue dark-variant #2997ff). */
+const C_LIGHT = {
+  bg: '#fbfbfd',
+  bgAlt: '#f5f5f7',
+  cardBg: '#ffffff',
+  primary: '#1d1d1f',
+  secondary: '#6e6e73',
+  divider: 'rgba(0,0,0,0.07)',
+  border: 'rgba(0,0,0,0.12)',
+  // Neutral accent — Apple Blue suppressed in favor of high-contrast
+  // INK so the page doesn't introduce a competing brand colour.
+  blue: '#0e0e1a',
+  blueHover: '#2a2a35',
+  danger: '#a8261b',
+  dangerBg: '#fff1f1',
+  dangerBorder: '#f7caca',
+  cta: '#1d1d1f',
+  ctaText: '#ffffff',
 } as const;
 
-/* ── Helpers ── */
+/** Apple Settings.app dark spec — bumped one elevation step from
+ *  the iOS systemBackground stack so true-black + near-black-card
+ *  doesn't crush the visual hierarchy. New stops:
+ *    bg     = #1c1c1e (was #000)  — base
+ *    bgAlt  = #2c2c2e (was #1c1c1e) — section gray, one elev up
+ *    cardBg = #2c2c2e (was #1c1c1e) — cards distinct from base
+ *    secondary text bumped 0.6 → 0.65 for better contrast on bgAlt
+ *    divider 0.10 → 0.14 + border 0.18 → 0.22 so hairlines actually
+ *    register on the lifted surfaces. */
+const C_DARK = {
+  bg: '#1c1c1e',
+  bgAlt: '#2c2c2e',
+  cardBg: '#2c2c2e',
+  primary: '#f5f5f7',
+  secondary: 'rgba(235,235,245,0.65)',
+  divider: 'rgba(255,255,255,0.14)',
+  border: 'rgba(255,255,255,0.22)',
+  blue: '#f5f5f7',
+  blueHover: '#e0e0e8',
+  danger: '#ff6961',
+  dangerBg: 'rgba(255,105,97,0.12)',
+  dangerBorder: 'rgba(255,105,97,0.35)',
+  cta: '#f5f5f7',
+  ctaText: '#1d1d1f',
+} as const;
+
+/** Palette shape — widened from `typeof C_LIGHT` so DARK can actually
+ *  satisfy it (the literal type from `as const` would force the dark
+ *  bg to literally equal "#fbfbfd"). Each property is `string` so
+ *  the runtime resolver can return either palette safely. */
+type Palette = { [K in keyof typeof C_LIGHT]: string };
+function getC(dark: boolean): Palette {
+  return dark ? C_DARK : C_LIGHT;
+}
+
+const T = {
+  display: { fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 700, letterSpacing: '-0.005em', lineHeight: 1.08 } as const,
+  headline: { fontSize: 'clamp(24px, 2.8vw, 32px)', fontWeight: 700, letterSpacing: '-0.003em', lineHeight: 1.12 } as const,
+  title: { fontSize: 21, fontWeight: 600, letterSpacing: '0.011em', lineHeight: 1.19 } as const,
+  body: { fontSize: 17, fontWeight: 400, letterSpacing: '-0.022em', lineHeight: 1.47 } as const,
+  caption: { fontSize: 14, fontWeight: 400, letterSpacing: '-0.016em', lineHeight: 1.286 } as const,
+  helper: { fontSize: 12, fontWeight: 400, letterSpacing: '-0.01em', lineHeight: 1.33 } as const,
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: '0.06em',
+    lineHeight: 1.33,
+    textTransform: 'uppercase' as const,
+  } as const,
+} as const;
+
 const TAG_PRESETS = [
   'K-Pop', 'J-Pop', 'Hip-Hop', 'R&B', 'Jazz', 'Lo-fi',
   'Indie', 'Rock', 'EDM', 'Classical', 'Ambient', 'City Pop',
   'Soul', 'Funk', 'Reggae', 'Latin', 'Metal', 'Blues',
 ] as const;
 
-function timeAgo(epoch: number): string {
-  const diff = Date.now() - epoch;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return '방금';
-  if (mins < 60) return `${mins}분 전`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}일 전`;
-  return `${Math.floor(days / 30)}달 전`;
+function sectionDividerOf(C: Palette): React.CSSProperties {
+  // Match the landing page's section rhythm: hairline + breathable
+  // 64 px lift. The previous 56/56 was a touch tight against display
+  // headlines. clamp lets compact viewports stay denser.
+  return {
+    borderTop: `1px solid ${C.divider}`,
+    paddingTop: 'clamp(48px, 6vw, 72px)' as unknown as number,
+    marginTop: 'clamp(48px, 6vw, 72px)' as unknown as number,
+  };
 }
 
-function shortBuildingName(id: string): string {
-  if (id.startsWith('way/')) return `#${id.slice(4)}`;
-  if (id.startsWith('node/')) return `#${id.slice(5)}`;
-  if (id.startsWith('relation/')) return `#${id.slice(9)}`;
-  if (id.length > 10) return `#${id.slice(-8)}`;
-  return `#${id}`;
+function PillPrimary({ to, onClick, children, disabled, type, C }: {
+  to?: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+  type?: 'button' | 'submit';
+  C: Palette;
+}) {
+  const baseStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '12px 22px',
+    borderRadius: 980,
+    background: C.cta,
+    color: C.ctaText,
+    fontSize: 17,
+    fontWeight: 400,
+    letterSpacing: '-0.022em',
+    lineHeight: 1.176,
+    fontFamily: 'inherit',
+    border: 'none',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.4 : 1,
+    textDecoration: 'none',
+    transition: 'background 120ms ease, opacity 120ms ease',
+  };
+  // Hover: subtle 0.85 opacity instead of swapping background to
+  // C.blue (which after the blue-suppression change collapses to
+  // the same value as C.cta in some palettes — making the hover
+  // invisible). Opacity hover is mode-agnostic.
+  const onEnter = (e: React.MouseEvent<HTMLElement>) => {
+    if (!disabled) e.currentTarget.style.opacity = '0.85';
+  };
+  const onLeave = (e: React.MouseEvent<HTMLElement>) => {
+    if (!disabled) e.currentTarget.style.opacity = '1';
+  };
+  if (to) {
+    return (
+      <Link to={to} style={baseStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type={type ?? 'button'}
+      onClick={onClick}
+      disabled={disabled}
+      style={baseStyle}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+    >
+      {children}
+    </button>
+  );
 }
 
-/* ── Shared styles ── */
-const sectionBorder: React.CSSProperties = {
-  borderTop: `1px solid ${C.border}`,
-  paddingTop: 32,
-  marginTop: 32,
-};
-
-const sectionLabel: React.CSSProperties = {
-  fontFamily: mono,
-  fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
-  color: C.text3,
-  lineHeight: 1,
-};
-
-const card: React.CSSProperties = {
-  padding: 24,
-  borderRadius: 16,
-  border: `1px solid ${C.border}`,
-  background: C.surface,
-};
-
-const chipBase: React.CSSProperties = {
-  padding: '8px 14px',
-  borderRadius: 8,
-  fontSize: 12,
-  fontWeight: 500,
-  letterSpacing: '0.02em',
-  lineHeight: 1,
-  border: `1px solid ${C.border}`,
-  background: C.surface,
-  color: C.text3,
-  cursor: 'pointer',
-  transition: 'border-color 150ms, color 150ms, background 150ms',
-};
-
-const chipActive: React.CSSProperties = {
-  ...chipBase,
-  border: `1px solid ${C.ink}`,
-  background: C.cta,
-  color: C.ctaText,
-};
-
-const btnPrimary: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 10,
-  padding: '14px 32px',
-  borderRadius: 12,
-  fontSize: 16,
-  fontWeight: 600,
-  lineHeight: 1,
-  letterSpacing: '-0.01em',
-  background: C.cta,
-  color: C.ctaText,
-  border: 'none',
-  cursor: 'pointer',
-  boxShadow: '0 4px 16px rgba(26,26,46,0.12)',
-};
-
-const btnGhost: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 10,
-  padding: '14px 32px',
-  borderRadius: 12,
-  fontSize: 16,
-  fontWeight: 600,
-  lineHeight: 1,
-  letterSpacing: '-0.01em',
-  background: C.surface,
-  color: C.ink,
-  border: `1px solid ${C.border}`,
-  cursor: 'pointer',
-  transition: 'border-color 150ms, background 150ms',
-};
+function PillGhost({ to, onClick, children, danger, C }: {
+  to?: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+  danger?: boolean;
+  C: Palette;
+}) {
+  const baseStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '11px 22px',
+    borderRadius: 980,
+    background: danger ? C.dangerBg : 'transparent',
+    color: danger ? C.danger : C.primary,
+    fontSize: 17,
+    fontWeight: 400,
+    letterSpacing: '-0.022em',
+    lineHeight: 1.176,
+    fontFamily: 'inherit',
+    border: `1px solid ${danger ? C.dangerBorder : C.border}`,
+    cursor: 'pointer',
+    textDecoration: 'none',
+    transition: 'background 120ms ease, border-color 120ms ease',
+  };
+  const onEnter = (e: React.MouseEvent<HTMLElement>) => {
+    e.currentTarget.style.borderColor = danger ? C.danger : C.primary;
+  };
+  const onLeave = (e: React.MouseEvent<HTMLElement>) => {
+    e.currentTarget.style.borderColor = danger ? C.dangerBorder : C.border;
+  };
+  if (to) {
+    return (
+      <Link to={to} style={baseStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={baseStyle}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function MyPage() {
   const navigate = useNavigate();
+  const t = useT();
+  const timeAgo = useTimeAgo();
   const user = useAuthStore((s) => s.user);
   const clearSession = useAuthStore((s) => s.clearSession);
   const admin = isDevAdmin();
   const { playlists, stats } = useProfileData();
+  const resolver = useBuildingResolver();
+  const formatBuilding = resolver.format;
+  // Pull the global dark-mode flag and resolve the active palette
+  // once per render. Every C.foo reference downstream auto-flips
+  // when the user toggles dark mode anywhere in the product.
+  const dark = useDarkMode();
+  const C = getC(dark);
+  const sectionDivider = sectionDividerOf(C);
 
   const [tags, setTags] = useState<string[]>(() => {
     try {
@@ -174,12 +254,12 @@ export function MyPage() {
     localStorage.setItem('vibloc-user-tags', JSON.stringify(next));
   };
   const toggleTag = (tag: string) => {
-    saveTags(tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag]);
+    saveTags(tags.includes(tag) ? tags.filter((x) => x !== tag) : [...tags, tag]);
   };
   const addCustomTag = () => {
-    const t = customTag.trim();
-    if (!t || tags.includes(t)) return;
-    saveTags([...tags, t]);
+    const tag = customTag.trim();
+    if (!tag || tags.includes(tag)) return;
+    saveTags([...tags, tag]);
     setCustomTag('');
   };
 
@@ -188,23 +268,33 @@ export function MyPage() {
     return (
       <div
         style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          padding: '128px 24px 64px',
-          fontFamily: sans,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: 24,
+          background: C.bg,
+          minHeight: '100dvh',
+          fontFamily: fontStack,
+          color: C.primary,
+          paddingTop: 44,
         }}
       >
-        <p style={{ fontSize: 14, color: C.text2, lineHeight: 1.6 }}>
-          {PH.mypage.needLogin}
-        </p>
-        <Link to="/login" style={{ ...btnPrimary, textDecoration: 'none' }}>
-          로그인
-        </Link>
+        <div
+          style={{
+            maxWidth: 980,
+            margin: '0 auto',
+            padding: '120px 22px 80px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: 24,
+          }}
+        >
+          <h1 style={{ ...T.headline, margin: 0, color: C.primary }}>
+            {t('mypage.notLoggedIn.title')}
+          </h1>
+          <p style={{ ...T.body, color: C.secondary, margin: 0, maxWidth: 480 }}>
+            {t('mypage.notLoggedIn.body')}
+          </p>
+          <PillPrimary C={C} to="/login">{t('nav.login')}</PillPrimary>
+        </div>
       </div>
     );
   }
@@ -214,566 +304,651 @@ export function MyPage() {
   return (
     <div
       style={{
-        maxWidth: 720,
-        margin: '0 auto',
-        padding: '96px 24px 64px',
-        fontFamily: sans,
+        background: C.bg,
+        minHeight: '100dvh',
+        fontFamily: fontStack,
+        color: C.primary,
+        paddingTop: 44,
       }}
     >
-      {/* ━━━ PROFILE HEADER ━━━ */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <h1
-            style={{
-              fontSize: 'clamp(1.25rem, 2.5vw, 1.75rem)',
-              fontWeight: 700,
-              lineHeight: 1.2,
-              letterSpacing: '-0.02em',
-              color: C.ink,
-              margin: 0,
-            }}
-          >
-            {user.displayName ?? user.email}
-          </h1>
-          {admin && (
-            <span
-              style={{
-                fontFamily: mono,
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                padding: '4px 8px',
-                borderRadius: 6,
-                background: C.cta,
-                color: C.ctaText,
-              }}
-            >
-              Admin
-            </span>
-          )}
-        </div>
-        <p style={{ marginTop: 4, fontSize: 13, color: C.text3, lineHeight: 1.4 }}>
-          {user.email}
-        </p>
-      </div>
-
-      {/* ━━━ STATS ━━━
-          Same pattern as landing stats — mono numbers + uppercase labels.
-          3-col with vertical dividers. */}
       <div
         style={{
-          ...sectionBorder,
-          paddingTop: 0,
-          marginTop: 48,
-          borderTop: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 0,
+          maxWidth: 980,
+          margin: '0 auto',
+          padding: '80px 22px 120px',
         }}
       >
-        {[
-          { value: String(stats.totalTracks), label: '태그한 곡' },
-          { value: String(stats.totalBuildings), label: '건물' },
-          { value: String(tags.length), label: '관심 태그' },
-        ].map((s, i) => (
-          <div key={s.label} style={{ display: 'flex', alignItems: 'center' }}>
-            {i > 0 && (
-              <div
-                style={{
-                  width: 1,
-                  height: 48,
-                  margin: '0 clamp(24px, 5vw, 48px)',
-                  background: C.border,
-                }}
-              />
-            )}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 8,
-                minWidth: 64,
-              }}
-            >
+        {/* ━━━ PROFILE HEADER ━━━ */}
+        <div>
+          <p style={{ ...T.eyebrow, color: C.secondary, margin: 0 }}>{t('nav.profile')}</p>
+          <div
+            style={{
+              marginTop: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <h1 style={{ ...T.display, color: C.primary, margin: 0 }}>
+              {user.displayName ?? user.email}
+            </h1>
+            {admin ? (
               <span
                 style={{
-                  fontFamily: mono,
-                  fontSize: 'clamp(1.5rem, 3vw, 2.5rem)',
-                  fontWeight: 800,
-                  lineHeight: 1,
-                  color: C.ink,
-                  fontVariantNumeric: 'tabular-nums',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                  padding: '4px 10px',
+                  borderRadius: 980,
+                  background: C.primary,
+                  // Inverse-of-primary text so the badge stays
+                  // legible in both modes (white-on-cream invisible
+                  // in dark mode otherwise).
+                  color: C.bg,
                 }}
               >
-                {s.value}
+                Admin
               </span>
-              <span style={sectionLabel}>{s.label}</span>
-            </div>
+            ) : null}
           </div>
-        ))}
-      </div>
-
-      {/* ━━━ TOP GENRES ━━━ */}
-      {stats.topGenres.length > 0 && (
-        <div style={sectionBorder}>
-          <p style={sectionLabel}>내 장르 분포</p>
-          <div
-            style={{
-              marginTop: 16,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}
-          >
-            {stats.topGenres.map(({ genre, count, color, label }) => (
-              <div
-                key={genre}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 14px',
-                  borderRadius: 8,
-                  background: color + '14',
-                  border: `1px solid ${color}28`,
-                }}
-              >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: color,
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ fontSize: 12, fontWeight: 600, color }}>{label}</span>
-                <span
-                  style={{
-                    fontFamily: mono,
-                    fontSize: 10,
-                    fontWeight: 500,
-                    color: C.text3,
-                  }}
-                >
-                  {count}곡
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ━━━ PLAYLISTS ━━━
-          Bento-style 2-col grid matching landing features layout. */}
-      <div style={sectionBorder}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <p style={sectionLabel}>내 플레이리스트</p>
-          {playlists.length > 0 && (
-            <span
-              style={{
-                fontFamily: mono,
-                fontSize: 11,
-                fontWeight: 500,
-                color: C.text3,
-              }}
-            >
-              {playlists.length}개 건물
-            </span>
-          )}
+          <p style={{ ...T.body, color: C.secondary, marginTop: 8, marginBottom: 0 }}>
+            {user.email}
+          </p>
         </div>
 
-        {playlists.length === 0 ? (
+        {/* ━━━ STATS ━━━ */}
+        <div style={sectionDivider}>
           <div
             style={{
-              ...card,
-              marginTop: 16,
-              textAlign: 'center',
-              border: `1px dashed ${C.border}`,
-              padding: '48px 24px',
-            }}
-          >
-            <p style={{ marginTop: 0, fontSize: 14, fontWeight: 500, color: C.text2 }}>
-              아직 태그한 곡이 없어요
-            </p>
-            <p style={{ marginTop: 8, fontSize: 12, color: C.text3, lineHeight: 1.5 }}>
-              맵에서 건물을 선택하고 음악을 태그해보세요
-            </p>
-            <Link
-              to="/map"
-              style={{
-                ...btnPrimary,
-                marginTop: 24,
-                fontSize: 14,
-                padding: '12px 24px',
-                textDecoration: 'none',
-              }}
-            >
-              맵에서 시작하기 →
-            </Link>
-          </div>
-        ) : (
-          <div
-            style={{
-              marginTop: 16,
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: 16,
+              gridTemplateColumns: 'repeat(3, 1fr)',
             }}
           >
-            {visiblePlaylists.map((pl) => {
-              const arts = pl.tracks.slice(0, 4).map((t) => t.artworkUrl).filter(Boolean);
-              const trackCount = pl.tracks.length;
-              const topTrack = [...pl.tracks].sort((a, b) => b.pinnedAt - a.pinnedAt)[0];
-
-              return (
-                <Link
-                  key={pl.buildingId}
-                  to="/map"
-                  style={{
-                    ...card,
-                    padding: 16,
-                    display: 'flex',
-                    gap: 16,
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    transition: 'background 150ms, border-color 150ms',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(26,26,46,0.06)';
-                    e.currentTarget.style.borderColor = 'rgba(26,26,46,0.16)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = C.surface;
-                    e.currentTarget.style.borderColor = 'rgba(26,26,46,0.08)';
-                  }}
-                >
-                  {/* Artwork mosaic */}
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 12,
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      background: C.surface,
-                    }}
-                  >
-                    {arts.length >= 4 ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: '100%', height: '100%' }}>
-                        {arts.slice(0, 4).map((url, i) => (
-                          <img key={i} src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
-                        ))}
-                      </div>
-                    ) : arts.length > 0 ? (
-                      <img src={arts[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', background: C.surface }} />
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>
-                        건물 {shortBuildingName(pl.buildingId)}
-                      </span>
-                      <span style={{ fontFamily: mono, fontSize: 10, color: C.text3 }}>
-                        {trackCount}곡
-                      </span>
-                    </div>
-                    {pl.description && (
-                      <p style={{ fontSize: 12, color: C.text2, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
-                        {pl.description}
-                      </p>
-                    )}
-                    {topTrack && (
-                      <p style={{ fontSize: 11, color: C.text3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
-                        {topTrack.trackName} — {topTrack.artistName}
-                      </p>
-                    )}
-                    <p style={{ fontFamily: mono, fontSize: 10, color: C.text3, opacity: 0.6, margin: 0 }}>
-                      {timeAgo(pl.lastActivity)}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-
-        {playlists.length > 4 && (
-          <button
-            type="button"
-            onClick={() => setShowAllPlaylists(!showAllPlaylists)}
-            style={{
-              marginTop: 16,
-              width: '100%',
-              padding: '12px 0',
-              borderRadius: 12,
-              border: `1px solid ${C.border}`,
-              background: 'transparent',
-              fontSize: 12,
-              fontWeight: 600,
-              color: C.text2,
-              cursor: 'pointer',
-              transition: 'background 150ms',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = C.surface; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            {showAllPlaylists ? '접기' : `전체 보기 (+${playlists.length - 4})`}
-          </button>
-        )}
-      </div>
-
-      {/* ━━━ RECENT ACTIVITY ━━━ */}
-      {stats.recentTracks.length > 0 && (
-        <div style={sectionBorder}>
-          <p style={sectionLabel}>최근 활동</p>
-          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {stats.recentTracks.map((t, i) => (
+            {[
+              { value: String(stats.totalTracks), label: t('mypage.stats.tracks') },
+              { value: String(stats.totalBuildings), label: t('mypage.stats.buildings') },
+              { value: String(tags.length), label: t('mypage.stats.tags') },
+            ].map((s, i) => (
               <div
-                key={`${t.id}-${t.buildingId}-${i}`}
+                key={s.label}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 16,
-                  padding: '10px 12px',
-                  borderRadius: 12,
-                  transition: 'background 150ms',
-                  cursor: 'default',
+                  textAlign: 'center',
+                  padding: '0 16px',
+                  borderLeft: i === 0 ? 'none' : `1px solid ${C.divider}`,
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = C.surface; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
-                <img
-                  src={t.artworkUrl}
-                  alt=""
+                <div
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 8,
-                    objectFit: 'cover',
-                    flexShrink: 0,
-                  }}
-                  loading="lazy"
-                />
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: C.ink,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {t.trackName}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: C.text2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {t.artistName} · 건물 {shortBuildingName(t.buildingId)}
-                  </span>
-                </div>
-                <span
-                  style={{
-                    fontFamily: mono,
-                    fontSize: 10,
-                    color: C.text3,
-                    flexShrink: 0,
+                    fontSize: 'clamp(40px, 5vw, 64px)',
+                    fontWeight: 700,
+                    letterSpacing: '-0.005em',
+                    lineHeight: 1,
+                    color: C.primary,
+                    fontVariantNumeric: 'tabular-nums',
                   }}
                 >
-                  {timeAgo(t.pinnedAt)}
-                </span>
+                  {s.value}
+                </div>
+                <div style={{ ...T.body, color: C.secondary, marginTop: 12 }}>
+                  {s.label}
+                </div>
               </div>
             ))}
           </div>
         </div>
-      )}
 
-      {/* ━━━ INTEREST TAGS ━━━ */}
-      <div style={sectionBorder}>
-        <p style={sectionLabel}>관심 장르 태그</p>
-        <p style={{ marginTop: 8, fontSize: 13, color: C.text2, lineHeight: 1.5 }}>
-          태그를 선택하면 맵에서 추천이 개인화됩니다
-        </p>
-
-        {/* Preset chips — same pattern as landing city chips */}
-        <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {TAG_PRESETS.map((tag) => {
-            const active = tags.includes(tag);
-            return (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => toggleTag(tag)}
-                style={active ? chipActive : chipBase}
-                onMouseEnter={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.borderColor = C.borderHover;
-                    e.currentTarget.style.color = C.text2;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) {
-                    e.currentTarget.style.borderColor = 'rgba(26,26,46,0.08)';
-                    e.currentTarget.style.color = C.text3;
-                  }
-                }}
-              >
-                {tag}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Custom tag input */}
-        <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-          <input
-            type="text"
-            value={customTag}
-            onChange={(e) => setCustomTag(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addCustomTag()}
-            placeholder="직접 입력..."
-            style={{
-              flex: 1,
-              minWidth: 0,
-              padding: '10px 14px',
-              borderRadius: 12,
-              border: `1px solid ${C.border}`,
-              background: C.cardBg,
-              fontSize: 13,
-              color: C.ink,
-              outline: 'none',
-              transition: 'border-color 150ms',
-              fontFamily: 'inherit',
-            }}
-            onFocus={(e) => { e.currentTarget.style.borderColor = C.borderHover; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'rgba(26,26,46,0.08)'; }}
-          />
-          <button
-            type="button"
-            onClick={addCustomTag}
-            disabled={!customTag.trim()}
-            style={{
-              ...btnPrimary,
-              fontSize: 13,
-              padding: '10px 20px',
-              opacity: customTag.trim() ? 1 : 0.35,
-              cursor: customTag.trim() ? 'pointer' : 'not-allowed',
-            }}
-          >
-            추가
-          </button>
-        </div>
-
-        {/* Selected tags */}
-        {tags.length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <p
-              style={{
-                ...sectionLabel,
-                fontSize: 10,
-                marginBottom: 8,
-              }}
-            >
-              내 태그 ({tags.length})
+        {/* ━━━ TOP GENRES ━━━ */}
+        {stats.topGenres.length > 0 ? (
+          <div style={sectionDivider}>
+            <p style={{ ...T.eyebrow, color: C.secondary, margin: 0 }}>
+              {t('mypage.genres.eyebrow')}
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {tags.map((tag) => (
-                <span
-                  key={tag}
+            <h2 style={{ ...T.headline, color: C.primary, marginTop: 12, marginBottom: 24 }}>
+              {t('mypage.genres.headline')}
+            </h2>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {stats.topGenres.map(({ genre, count, color, label }) => (
+                <div
+                  key={genre}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 6,
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    background: C.surface,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: C.ink,
+                    gap: 10,
+                    padding: '10px 18px',
+                    borderRadius: 980,
+                    background: C.cardBg,
+                    border: `1px solid ${C.divider}`,
                   }}
                 >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    aria-label={`${tag} 제거`}
+                  <span
+                    aria-hidden
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      fontSize: 14,
-                      color: C.text3,
-                      cursor: 'pointer',
-                      lineHeight: 1,
-                      transition: 'color 150ms',
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: color,
+                      flexShrink: 0,
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = C.ink; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = C.text3; }}
-                  >
-                    ×
-                  </button>
-                </span>
+                  />
+                  <span style={{ ...T.body, fontWeight: 500, color: C.primary, lineHeight: 1.2 }}>
+                    {label}
+                  </span>
+                  <span style={{ ...T.caption, color: C.secondary, fontVariantNumeric: 'tabular-nums' }}>
+                    {t('mypage.tracksCount', { n: count })}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
-        )}
-      </div>
+        ) : null}
 
-      {/* ━━━ ACTIONS ━━━ */}
-      <div
-        style={{
-          marginTop: 48,
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 16,
-        }}
-      >
-        <Link
-          to="/map"
-          style={{ ...btnGhost, textDecoration: 'none', fontSize: 14, padding: '12px 24px' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = C.borderHover;
-            e.currentTarget.style.background = 'rgba(26,26,46,0.06)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(26,26,46,0.08)';
-            e.currentTarget.style.background = C.surface;
-          }}
-        >
-          맵으로 →
-        </Link>
-        <button
-          type="button"
-          onClick={() => {
-            clearSession();
-            navigate('/');
-          }}
+        {/* ━━━ PLAYLISTS ━━━ */}
+        <div style={sectionDivider}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div>
+              <p style={{ ...T.eyebrow, color: C.secondary, margin: 0 }}>
+                {t('mypage.playlists.eyebrow')}
+              </p>
+              <h2 style={{ ...T.headline, color: C.primary, marginTop: 12, marginBottom: 0 }}>
+                {t('mypage.playlists.headline')}
+              </h2>
+            </div>
+            {playlists.length > 0 ? (
+              <span
+                style={{
+                  ...T.caption,
+                  color: C.secondary,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {t('mypage.playlists.buildingsCount', { n: playlists.length })}
+              </span>
+            ) : null}
+          </div>
+
+          {playlists.length === 0 ? (
+            <div
+              style={{
+                marginTop: 28,
+                background: C.cardBg,
+                borderRadius: 28,
+                padding: '60px 32px',
+                textAlign: 'center',
+              }}
+            >
+              <p style={{ ...T.title, color: C.primary, margin: 0 }}>
+                {t('mypage.playlists.emptyTitle')}
+              </p>
+              <p style={{ ...T.body, color: C.secondary, marginTop: 8, marginBottom: 24 }}>
+                {t('mypage.playlists.emptyBody')}
+              </p>
+              <PillPrimary C={C} to="/map">{t('mypage.playlists.emptyCta')}</PillPrimary>
+            </div>
+          ) : (
+            // 2-column grid (1-column on narrow viewports). Larger
+            // artwork + clearer hierarchy: Title row (building name +
+            // track count) → Description (italic-feel via secondary) →
+            // Top track on its own line with a small genre dot → meta
+            // row (last activity + quick-jump). Generous 24 padding
+            // and 20 gap make each card breathable; hover lifts 2 px
+            // with a subtle shadow for a tactile feel that matches
+            // the landing's feature cards.
+            <div
+              style={{
+                marginTop: 32,
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: 20,
+              }}
+            >
+              {visiblePlaylists.map((pl) => {
+                const arts = pl.tracks.slice(0, 4).map((tr) => tr.artworkUrl).filter(Boolean);
+                const trackCount = pl.tracks.length;
+                const topTrack = [...pl.tracks].sort((a, b) => b.pinnedAt - a.pinnedAt)[0];
+                const info = resolver.info(pl.buildingId);
+                const mapHref = info
+                  ? `/map?area=${info.cityKey}&building=${encodeURIComponent(pl.buildingId)}`
+                  : `/map?building=${encodeURIComponent(pl.buildingId)}`;
+                const detailHref = `/mypage/playlist/${pl.buildingId}`;
+                return (
+                  <Link
+                    key={pl.buildingId}
+                    to={detailHref}
+                    className="vbk-card-mq"
+                    style={{
+                      background: C.cardBg,
+                      borderRadius: 28,
+                      padding: 24,
+                      display: 'flex',
+                      gap: 18,
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      transition: 'transform 160ms ease, box-shadow 160ms ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = dark
+                        ? '0 6px 24px rgba(0,0,0,0.45)'
+                        : '0 6px 24px rgba(0,0,0,0.06)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    {/* Artwork — bumped 64 → 80 for visual weight in
+                        the wider 2-col layout. 4-track mosaic falls
+                        back to a single image / empty tile. */}
+                    <div
+                      style={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: 16,
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        background: C.bgAlt,
+                      }}
+                    >
+                      {arts.length >= 4 ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', width: '100%', height: '100%' }}>
+                          {arts.slice(0, 4).map((url, i) => (
+                            <img key={i} src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+                          ))}
+                        </div>
+                      ) : arts.length > 0 ? (
+                        <img src={arts[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} loading="lazy" />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', background: C.bgAlt }} />
+                      )}
+                    </div>
+                    {/* Info column — title / track preview / meta row */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {/* Title row: building name (marquees on card
+                          hover when truncated) + track count chip */}
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+                        <MarqueeText
+                          text={formatBuilding(pl.buildingId)}
+                          title={formatBuilding(pl.buildingId)}
+                          disableClick
+                          style={{
+                            ...T.title,
+                            color: C.primary,
+                            lineHeight: 1.2,
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            ...T.helper,
+                            color: C.secondary,
+                            fontVariantNumeric: 'tabular-nums',
+                            flexShrink: 0,
+                            padding: '2px 8px',
+                            borderRadius: 980,
+                            background: C.bgAlt,
+                          }}
+                        >
+                          {t('mypage.tracksCount', { n: trackCount })}
+                        </span>
+                      </div>
+                      {/* Optional description — only when present */}
+                      {pl.description ? (
+                        <p style={{ ...T.caption, color: C.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+                          {pl.description}
+                        </p>
+                      ) : null}
+                      {/* Top track preview — marquees on card hover.
+                          Single MarqueeText takes the combined string
+                          so the artist follows the track name in one
+                          continuous scroll. Color split via CSS isn't
+                          possible inside the marquee; using the same
+                          primary color keeps it readable. */}
+                      {topTrack ? (
+                        <MarqueeText
+                          text={`${topTrack.trackName} — ${topTrack.artistName}`}
+                          title={`${topTrack.trackName} — ${topTrack.artistName}`}
+                          disableClick
+                          style={{
+                            ...T.body,
+                            color: C.primary,
+                            fontWeight: 500,
+                            lineHeight: 1.4,
+                          }}
+                        />
+                      ) : null}
+                      {/* Meta row: last activity (left) + quick jump (right) */}
+                      <div
+                        style={{
+                          marginTop: 'auto',
+                          paddingTop: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                        }}
+                      >
+                        <span style={{ ...T.helper, color: C.secondary, opacity: 0.8 }}>
+                          {timeAgo(pl.lastActivity)}
+                        </span>
+                        {/* Quick-jump pill — preventDefault stops the
+                            parent <Link> from also navigating to the
+                            detail page. Sits on the right of the meta
+                            row instead of the original far-right of
+                            the card so the artwork + title hierarchy
+                            stays uncluttered. */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigate(mapHref);
+                          }}
+                          aria-label={t('mypage.playlists.quickJumpAria')}
+                          style={{
+                            flexShrink: 0,
+                            padding: '6px 12px',
+                            borderRadius: 980,
+                            background: 'transparent',
+                            color: C.primary,
+                            ...T.helper,
+                            fontWeight: 600,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            lineHeight: 1.2,
+                            border: `1px solid ${C.divider}`,
+                            cursor: 'pointer',
+                            transition: 'background 120ms ease, border-color 120ms ease',
+                            fontFamily: 'inherit',
+                            whiteSpace: 'nowrap',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = C.bgAlt;
+                            e.currentTarget.style.borderColor = C.primary;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.borderColor = C.divider;
+                          }}
+                        >
+                          {t('mypage.playlists.quickJump')} ›
+                        </button>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {playlists.length > 4 ? (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+              <PillGhost C={C} onClick={() => setShowAllPlaylists(!showAllPlaylists)}>
+                {showAllPlaylists
+                  ? t('mypage.playlists.collapse')
+                  : t('mypage.playlists.viewMore', { n: playlists.length - 4 })}
+              </PillGhost>
+            </div>
+          ) : null}
+        </div>
+
+        {/* ━━━ RECENT ACTIVITY ━━━ */}
+        {stats.recentTracks.length > 0 ? (
+          <div style={sectionDivider}>
+            <p style={{ ...T.eyebrow, color: C.secondary, margin: 0 }}>
+              {t('mypage.recent.eyebrow')}
+            </p>
+            <h2 style={{ ...T.headline, color: C.primary, marginTop: 12, marginBottom: 24 }}>
+              {t('mypage.recent.headline')}
+            </h2>
+            <div
+              style={{
+                background: C.cardBg,
+                borderRadius: 22,
+                padding: 8,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {stats.recentTracks.map((tr, i) => (
+                <div
+                  key={`${tr.id}-${tr.buildingId}-${i}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '12px 14px',
+                    borderRadius: 14,
+                    transition: 'background 120ms ease',
+                    cursor: 'default',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = C.bgAlt; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <img
+                    src={tr.artworkUrl}
+                    alt=""
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 10,
+                      objectFit: 'cover',
+                      flexShrink: 0,
+                    }}
+                    loading="lazy"
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        ...T.body,
+                        fontWeight: 600,
+                        color: C.primary,
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {tr.trackName}
+                    </div>
+                    <div
+                      style={{
+                        ...T.caption,
+                        color: C.secondary,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {tr.artistName} · {formatBuilding(tr.buildingId)}
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      ...T.helper,
+                      color: C.secondary,
+                      flexShrink: 0,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {timeAgo(tr.pinnedAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* ━━━ INTEREST TAGS ━━━ */}
+        <div style={sectionDivider}>
+          <p style={{ ...T.eyebrow, color: C.secondary, margin: 0 }}>{t('mypage.tags.eyebrow')}</p>
+          <h2 style={{ ...T.headline, color: C.primary, marginTop: 12, marginBottom: 8 }}>
+            {t('mypage.tags.headline')}
+          </h2>
+          <p style={{ ...T.body, color: C.secondary, marginTop: 0, marginBottom: 24 }}>
+            {t('mypage.tags.body')}
+          </p>
+
+          {/* Preset chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {TAG_PRESETS.map((tag) => {
+              const active = tags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  style={{
+                    padding: '10px 18px',
+                    borderRadius: 980,
+                    border: `1px solid ${active ? C.primary : C.divider}`,
+                    background: active ? C.primary : C.cardBg,
+                    // Inverse-of-primary text on the active fill so
+                    // dark-mode chip (cream bg) reads correctly.
+                    color: active ? C.bg : C.primary,
+                    ...T.body,
+                    fontWeight: 500,
+                    lineHeight: 1.2,
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                    transition: 'border-color 120ms ease, background 120ms ease, color 120ms ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.borderColor = C.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.borderColor = C.divider;
+                  }}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom tag input */}
+          <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+            <input
+              type="text"
+              value={customTag}
+              onChange={(e) => setCustomTag(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addCustomTag()}
+              placeholder={t('mypage.tags.placeholder')}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: '12px 16px',
+                borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                background: C.cardBg,
+                ...T.body,
+                color: C.primary,
+                outline: 'none',
+                transition: 'border-color 180ms, box-shadow 180ms',
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+              }}
+              onFocus={(e) => {
+                // Neutral focus halo — replaces the legacy Apple-Blue
+                // glow (rgba 0,113,227) which clashed with the rest
+                // of the blue-suppressed system. Light mode uses an
+                // ink-tinted ring, dark mode a cream-tinted one — the
+                // C.primary alpha derivation keeps either palette
+                // self-consistent.
+                e.currentTarget.style.borderColor = C.primary;
+                e.currentTarget.style.boxShadow = `0 0 0 4px ${C.divider}`;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = C.border;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+            <PillPrimary C={C} onClick={addCustomTag} disabled={!customTag.trim()}>
+              {t('mypage.tags.add')}
+            </PillPrimary>
+          </div>
+
+          {/* Selected tags */}
+          {tags.length > 0 ? (
+            <div style={{ marginTop: 24 }}>
+              <p style={{ ...T.eyebrow, color: C.secondary, margin: 0, marginBottom: 12 }}>
+                {t('mypage.tags.myTagsCount', { n: tags.length })}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 14px',
+                      borderRadius: 980,
+                      background: C.bgAlt,
+                      ...T.caption,
+                      fontWeight: 500,
+                      color: C.primary,
+                    }}
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      aria-label={t('mypage.tags.removeAria', { tag })}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        fontSize: 16,
+                        lineHeight: 1,
+                        color: C.secondary,
+                        cursor: 'pointer',
+                        transition: 'color 150ms',
+                        fontFamily: 'inherit',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = C.primary; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = C.secondary; }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* ━━━ ACTIONS ━━━ */}
+        <div
           style={{
-            ...btnGhost,
-            fontSize: 14,
-            padding: '12px 24px',
-            color: C.danger,
-            border: `1px solid ${C.dangerBorder}`,
-            background: C.dangerBg,
+            marginTop: 56,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 12,
           }}
         >
-          로그아웃
-        </button>
+          <PillPrimary C={C} to="/map">{t('mypage.actions.toMap')}</PillPrimary>
+          <PillGhost
+            C={C}
+            onClick={() => {
+              clearSession();
+              navigate('/');
+            }}
+            danger
+          >
+            {t('mypage.actions.logout')}
+          </PillGhost>
+        </div>
       </div>
     </div>
   );
