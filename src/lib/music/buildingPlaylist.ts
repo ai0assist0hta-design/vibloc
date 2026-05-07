@@ -448,6 +448,15 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
   // Empty-string sentinels mean "user explicitly cleared the cover" —
   // we fall back to the mosaic instead of the seed image.
   const userCovers = entry.taggerPlaylistCovers ?? {};
+  // Live identity overlay — `taggerName` / `taggerAvatarUrl` are
+  // baked into each PinnedTrack at pin time, so they go stale when
+  // the current user later edits their My Page nickname or avatar.
+  // For the signed-in user's own group we substitute the LIVE values
+  // from the auth store on every render. Result: nickname change in
+  // My Page → curator headline on hovering panels (PlaylistDetailView,
+  // RankRow, AddTrackComposer playlist matches, etc.) updates without
+  // needing to repin every track.
+  const me = _getUserIdentity?.() ?? null;
   for (const g of groups.values()) {
     const pl = playlistLikes[g.taggerId]?.length ?? 0;
     g.playlistLikes = pl;
@@ -455,6 +464,10 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
     if (Object.prototype.hasOwnProperty.call(userCovers, g.taggerId)) {
       const v = userCovers[g.taggerId];
       g.customCoverUrl = typeof v === 'string' && v.length > 0 ? v : null;
+    }
+    if (me && g.taggerId === me.id) {
+      if (me.name) g.taggerName = me.name;
+      if (me.avatarUrl !== undefined) g.taggerAvatarUrl = me.avatarUrl ?? null;
     }
   }
 
