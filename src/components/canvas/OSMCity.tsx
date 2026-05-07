@@ -807,13 +807,21 @@ if (spectrumActive > 0.001) {
   // to four floors instead of "always full".
   float baseline = max(1.0, floor(wMaxFloors * 0.18));
   float dynamicRange = wMaxFloors - baseline;
-  // pow(1.6) squashes the low-mid range so quiet bands stay near
-  // baseline and only TRUE peaks push bars near the roof. Without
-  // this curve, AGC + gamma in PreviewPlayer left every band's
-  // typical energy in the 0.5–0.9 range and bars all looked 70–
-  // 90 % full. With the squash, average energy ≈ 0.7 → bar height
-  // ≈ 0.55 of range; peak energy 1.0 → full roof.
-  float effectiveEnergy = pow(bandEnergy, 1.6);
+  // Curve eased from pow(1.6) → pow(0.85). The 1.6 squash was
+  // designed for the pre-AGC saturating signal; combined with the
+  // newer volume-compensation upstream it left mid-range bands
+  // glued near the baseline and many columns visibly static. 0.85
+  // mildly EXPANDS the mid range so quiet bands still climb a few
+  // floors and the wave looks alive across all columns. Pure
+  // linear (1.0) felt slightly too uniform; 0.85 keeps a hint of
+  // perceptual emphasis on louder bands.
+  // Plus a per-column NEIGHBOR-MIX so a band that happens to be
+  // dead silent (very-high frequencies in pop tracks, etc.) still
+  // gets some motion from its neighbors — no "frozen" columns.
+  float bandEnergyN1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 1.0, 32.0) + 0.5) / 32.0, 0.5)).r;
+  float bandEnergyP1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 31.0, 32.0) + 0.5) / 32.0, 0.5)).r;
+  float mixedEnergy = bandEnergy * 0.7 + (bandEnergyN1 + bandEnergyP1) * 0.15;
+  float effectiveEnergy = pow(mixedEnergy, 0.85);
   float dynamicFloors = effectiveEnergy * dynamicRange;
   float barTop = baseline + dynamicFloors;
   float spectrumLit = step(wFloorIdx, barTop);
