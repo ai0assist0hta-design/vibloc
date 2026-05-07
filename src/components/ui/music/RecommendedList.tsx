@@ -27,6 +27,8 @@ import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import {
   recommendForBuilding,
+  invalidateRecommendation,
+  peekRecommendation,
   type RecommendationResult,
 } from '../../../lib/music/recommendEngine';
 import type { BuildingTag, CityAreaKey } from '../../../lib/geo/osmLoader';
@@ -70,8 +72,14 @@ export function RecommendedList({
   divider,
 }: Props) {
   const t = useT();
-  const [data, setData] = useState<RecommendationResult | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Synchronous cache peek seeds the initial state so revisiting a
+  // building (within the 10 min TTL) renders instantly with no
+  // loading spinner. Cold hits still show the spinner via the effect
+  // below.
+  const [data, setData] = useState<RecommendationResult | null>(
+    () => peekRecommendation(area, buildingId),
+  );
+  const [loading, setLoading] = useState(() => peekRecommendation(area, buildingId) === null);
   const [refreshKey, setRefreshKey] = useState(0);
   // Show-all-by-default per request: progressive-disclosure removed,
   // every recommended track is rendered immediately.
@@ -79,6 +87,13 @@ export function RecommendedList({
 
   useEffect(() => {
     const ctrl = new AbortController();
+    const cached = peekRecommendation(area, buildingId);
+    if (cached) {
+      // Hot path — paint the cached result immediately, no spinner.
+      setData(cached);
+      setLoading(false);
+      return () => ctrl.abort();
+    }
     setLoading(true);
     setData(null);
     recommendForBuilding({ area, lat, lon, buildingName, buildingId, buildingTags, signal: ctrl.signal })
@@ -143,7 +158,12 @@ export function RecommendedList({
         <button
           type="button"
           onClick={() => {
-            if (!loading) setRefreshKey((k) => k + 1);
+            // Invalidate the cached pick so the next run re-fans-out
+            // to all four sources instead of returning the same list.
+            if (!loading) {
+              invalidateRecommendation(area, buildingId);
+              setRefreshKey((k) => k + 1);
+            }
           }}
           aria-label="Refresh recommendations"
           title={t('music.refreshVibe')}

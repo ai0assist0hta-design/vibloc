@@ -266,8 +266,21 @@ function saveToStorage(): void {
   }
 }
 
+// Coalesce N synchronous calls (e.g. `pinTrack` triggers notify(),
+// then the bridge fires Supabase mirror which eventually triggers a
+// realtime push that fires notify() again, plus the immediate
+// shared-pins refold) into a single microtask. Without this, three
+// or four subscribers each call getTopTaggers() (O(total tracks))
+// twice per pin — perceptibly laggy on big stores. With it, every
+// burst collapses to one render frame per logical change.
+let _notifyScheduled = false;
 function notify(): void {
-  for (const l of listeners) l(store);
+  if (_notifyScheduled) return;
+  _notifyScheduled = true;
+  queueMicrotask(() => {
+    _notifyScheduled = false;
+    for (const l of listeners) l(store);
+  });
 }
 
 // Cross-tab live sync — when another tab writes to the same

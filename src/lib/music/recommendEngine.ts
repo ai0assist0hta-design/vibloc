@@ -143,6 +143,21 @@ export async function recommendForBuilding(opts: {
   const vibe = getCityVibe(area);
   const buildingVibe = deriveBuildingVibe(buildingTags ?? []);
 
+  // ─── Result cache (LRU + TTL) ─────────────────────────────────
+  // Each building selection used to fan out into 4 external HTTP
+  // round-trips (Wikidata, iTunes search, named-landmark, city-vibe
+  // pool) every single time the panel reopened — even revisiting the
+  // SAME building 5 seconds later re-ran the whole pipeline. Caching
+  // by buildingId for 10 minutes makes the second visit instant and
+  // the first visit unchanged. The session-scoped overlap guard
+  // (`buildingTrackMemory`) still applies, so the cached pick never
+  // collides with neighbours that were resolved meanwhile.
+  const cacheKey = `${area}|${buildingId}|${limit}`;
+  const cached = recommendationCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < RECOMMEND_TTL_MS) {
+    return cached.value;
+  }
+
   // Run all special-source algorithms in parallel — none of them
   // block the local picks, and we only consume up to 2 tracks from
   // whichever one wins, so we don't need a high threshold anymore.
@@ -188,12 +203,46 @@ export async function recommendForBuilding(opts: {
     buildingId,
   );
 
-  return {
+  const result: RecommendationResult = {
     vibe,
     tracks: finalTracks,
     algorithm: specialKind ?? 'city-vibe',
     context: specialContext,
   };
+  // Insert at tail; evict oldest when over the soft cap. Tiny cap
+  // because a single result is small and JS Maps maintain insertion
+  // order, so first-key removal is O(1).
+  recommendationCache.set(cacheKey, { value: result, at: Date.now() });
+  if (recommendationCache.size > RECOMMEND_CACHE_MAX) {
+    const oldest = recommendationCache.keys().next().value;
+    if (oldest !== undefined) recommendationCache.delete(oldest);
+  }
+  return result;
+}
+
+// 10 min TTL — long enough to absorb back-and-forth navigation,
+// short enough that a refresh button (RecommendedList exposes one)
+// is still meaningful for grabbing fresh picks.
+const RECOMMEND_TTL_MS = 10 * 60 * 1000;
+const RECOMMEND_CACHE_MAX = 64;
+const recommendationCache = new Map<string, { value: RecommendationResult; at: number }>();
+/** Bust the cached recommendation for a building so the next fetch
+ *  re-runs all four sources. Wired to the RecommendedList "refresh"
+ *  button. */
+export function invalidateRecommendation(area: CityAreaKey, buildingId: string, limit = 5): void {
+  recommendationCache.delete(`${area}|${buildingId}|${limit}`);
+}
+
+/** Synchronous cache peek — lets the panel render the cached pick on
+ *  the very first paint without going through the loading spinner.
+ *  Returns null on a miss; expired entries are treated as a miss. */
+export function peekRecommendation(
+  area: CityAreaKey, buildingId: string, limit = 5,
+): RecommendationResult | null {
+  const hit = recommendationCache.get(`${area}|${buildingId}|${limit}`);
+  if (!hit) return null;
+  if (Date.now() - hit.at > RECOMMEND_TTL_MS) return null;
+  return hit.value;
 }
 
 // ─── Cross-building overlap guard ──────────────────────────────────
