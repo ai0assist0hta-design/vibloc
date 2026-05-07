@@ -96,7 +96,12 @@ export function AddTrackComposer({
     setSearching(true);
     setSearched(true);
     try {
-      const r = await searchTrack(q, country, 6);
+      // Bumped 6 → 25. The results well below is already a bounded
+      // scroller (maxHeight 360 / overflowY auto), so a longer list
+      // just turns into more scrollable rows rather than pushing
+      // anything off screen. iTunes' polite-use limit comfortably
+      // accommodates 25 rows per query.
+      const r = await searchTrack(q, country, 25);
       setResults(r);
     } finally {
       setSearching(false);
