@@ -153,6 +153,59 @@ export function reloadFromStorage(): void {
   notify();
 }
 
+/** Fold the shared-likes server cache into the in-memory store —
+ *  every track's `likedBy` becomes `local ∪ remote` and every entry's
+ *  `playlistLikedBy` is merged the same way. Triggers `notify()` so
+ *  every UI heart count updates without the consumer needing to know
+ *  about Supabase. Called from main.tsx whenever the sharedLikes
+ *  module hydrates, receives a Realtime push, or applies a local
+ *  optimistic toggle. Server-authoritative — no localStorage write
+ *  for the merged values (toggleLike still writes the local snapshot
+ *  for the offline / dev-admin path). */
+export function mergeSharedLikesIntoStore(
+  getTrackLikers: (b: string, t: string) => ReadonlySet<string>,
+  getPlaylistLikers: (b: string, t: string) => ReadonlySet<string>,
+): void {
+  let touched = false;
+  const next: Store = {};
+  for (const [bid, entry] of Object.entries(store)) {
+    let trackTouched = false;
+    const newTracks = entry.tracks.map((t) => {
+      const remote = getTrackLikers(bid, t.id);
+      if (remote.size === 0) return t;
+      const merged = new Set([...(t.likedBy ?? []), ...remote]);
+      if (merged.size === (t.likedBy?.length ?? 0)) return t;
+      trackTouched = true;
+      return { ...t, likedBy: [...merged], likes: merged.size };
+    });
+    let playlistMap = entry.playlistLikedBy;
+    let plTouched = false;
+    if (playlistMap) {
+      const cloned: Record<string, string[]> = {};
+      let any = false;
+      for (const [tid, ids] of Object.entries(playlistMap)) {
+        const remote = getPlaylistLikers(bid, tid);
+        if (remote.size === 0) { cloned[tid] = ids; continue; }
+        const merged = new Set([...(ids ?? []), ...remote]);
+        if (merged.size === (ids?.length ?? 0)) { cloned[tid] = ids; continue; }
+        cloned[tid] = [...merged];
+        any = true;
+      }
+      if (any) { playlistMap = cloned; plTouched = true; }
+    }
+    if (trackTouched || plTouched) {
+      touched = true;
+      next[bid] = { ...entry, tracks: newTracks, playlistLikedBy: playlistMap };
+    } else {
+      next[bid] = entry;
+    }
+  }
+  if (touched) {
+    store = next;
+    notify();
+  }
+}
+
 function saveToStorage(): void {
   if (typeof window === 'undefined') return;
   try {
@@ -243,6 +296,20 @@ export function getMyBuildings(): MyBuildingShortcut[] {
 /** Injected at app init — provides current user identity for tagger stamps. */
 let _getUserIdentity: (() => { id: string; name: string; avatarUrl?: string | null } | null) | null = null;
 
+/** Optional hook that sends a like toggle to the shared (Supabase)
+ *  backend. Set from main.tsx so this leaf module never imports the
+ *  server module directly. When unset (offline / Supabase disabled),
+ *  toggles still update the local store the legacy way. */
+let _shareTrackLike: ((buildingId: string, trackId: string) => void) | null = null;
+let _sharePlaylistLike: ((buildingId: string, taggerId: string) => void) | null = null;
+export function setSharedLikeBridge(
+  trackFn: (b: string, t: string) => void,
+  playlistFn: (b: string, t: string) => void,
+): void {
+  _shareTrackLike = trackFn;
+  _sharePlaylistLike = playlistFn;
+}
+
 /** Call once at app startup to wire the auth store into the playlist module. */
 export function setUserIdentityProvider(fn: () => { id: string; name: string; avatarUrl?: string | null } | null): void {
   _getUserIdentity = fn;
@@ -318,6 +385,10 @@ export function toggleLike(buildingId: string, trackId: string): number {
   };
   saveToStorage();
   notify();
+  // Mirror to the shared (Supabase) backend so the like also shows
+  // up on every other user's screen via the realtime channel. The
+  // bridge handles auth gating + uuid validation; no-op when offline.
+  if (_shareTrackLike) _shareTrackLike(buildingId, trackId);
 
   const updated = store[buildingId]?.tracks.find((t) => t.id === trackId);
   return updated?.likes ?? 0;
@@ -495,6 +566,7 @@ export function togglePlaylistLike(buildingId: string, taggerId: string): number
   };
   saveToStorage();
   notify();
+  if (_sharePlaylistLike) _sharePlaylistLike(buildingId, taggerId);
   return map[taggerId].length;
 }
 
