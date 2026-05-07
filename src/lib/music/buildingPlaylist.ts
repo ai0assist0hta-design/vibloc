@@ -153,6 +153,57 @@ export function reloadFromStorage(): void {
   notify();
 }
 
+/** Fold the shared-pins server cache into the in-memory store. For
+ *  every buildingId that the server has at least one pin for, REPLACE
+ *  the local entry's `tracks` with a deduped union of (server pins ∪
+ *  local-only pins). Server is authoritative for any (track, tagger)
+ *  pair that exists on both sides — local-only entries (offline pins
+ *  pre-sign-in, dev-admin) are appended at the end so they don't
+ *  disappear visually.
+ *
+ *  Pure (besides notifying subscribers): nothing is written back to
+ *  localStorage — the server snapshot stays the live source of truth
+ *  on each render and the localStorage cache continues to reflect
+ *  whatever the local user has personally pinned. */
+export function mergeSharedPinsIntoStore(
+  remoteBuildings: readonly string[],
+  getRemotePins: (buildingId: string) => readonly PinnedTrack[],
+): void {
+  if (remoteBuildings.length === 0) return;
+  let touched = false;
+  const next: Store = { ...store };
+  for (const bid of remoteBuildings) {
+    const remote = getRemotePins(bid);
+    if (remote.length === 0) continue;
+    const existing = store[bid];
+    const localTracks = existing?.tracks ?? [];
+    const seen = new Set<string>();
+    const merged: PinnedTrack[] = [];
+    for (const t of remote) {
+      const key = `${t.id}|${t.taggerId ?? 'anonymous'}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(t);
+    }
+    for (const t of localTracks) {
+      const key = `${t.id}|${t.taggerId ?? 'anonymous'}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(t);
+    }
+    if (merged.length === localTracks.length
+        && merged.every((m, i) => m === localTracks[i])) continue;
+    next[bid] = existing
+      ? { ...existing, tracks: merged }
+      : { tracks: merged, description: '' };
+    touched = true;
+  }
+  if (touched) {
+    store = next;
+    notify();
+  }
+}
+
 /** Fold the shared-likes server cache into the in-memory store —
  *  every track's `likedBy` becomes `local ∪ remote` and every entry's
  *  `playlistLikedBy` is merged the same way. Triggers `notify()` so
@@ -310,6 +361,19 @@ export function setSharedLikeBridge(
   _sharePlaylistLike = playlistFn;
 }
 
+/** Same pattern for shared pins — main.tsx wires the Supabase
+ *  upsert / delete writers in. pinTrack / unpinTrack mirror to the
+ *  server after the local store update. */
+let _sharePinTrack: ((buildingId: string, track: RecommendedTrack) => void) | null = null;
+let _shareUnpinTrack: ((buildingId: string, trackId: string) => void) | null = null;
+export function setSharedPinBridge(
+  pinFn: (b: string, t: RecommendedTrack) => void,
+  unpinFn: (b: string, tid: string) => void,
+): void {
+  _sharePinTrack = pinFn;
+  _shareUnpinTrack = unpinFn;
+}
+
 /** Call once at app startup to wire the auth store into the playlist module. */
 export function setUserIdentityProvider(fn: () => { id: string; name: string; avatarUrl?: string | null } | null): void {
   _getUserIdentity = fn;
@@ -355,6 +419,10 @@ export function pinTrack(buildingId: string, track: RecommendedTrack): void {
   };
   saveToStorage();
   notify();
+  // Mirror to Supabase so other users see the new pin globally + via
+  // realtime push. Bridge handles auth gating (uuid only) and
+  // Supabase configuration; no-op when offline / dev-admin.
+  if (_sharePinTrack) _sharePinTrack(buildingId, track);
 }
 
 /** Toggle like on a pinned track. Returns new like count. */
@@ -873,6 +941,8 @@ export function unpinTrack(buildingId: string, trackId: string): void {
   }
   saveToStorage();
   notify();
+  // Mirror to Supabase so the unpin propagates to every other client.
+  if (_shareUnpinTrack) _shareUnpinTrack(buildingId, trackId);
 }
 
 /** Update the user's free-text description for a building's playlist.

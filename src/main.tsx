@@ -6,7 +6,9 @@ import { seedDevAdmin } from './features/auth/devAdmin';
 import {
   setUserIdentityProvider,
   setSharedLikeBridge,
+  setSharedPinBridge,
   mergeSharedLikesIntoStore,
+  mergeSharedPinsIntoStore,
 } from './lib/music/buildingPlaylist';
 import { useAuthStore } from './features/auth/useAuthStore';
 import {
@@ -17,6 +19,14 @@ import {
   toggleSharedTrackLike,
   toggleSharedPlaylistLike,
 } from './lib/music/sharedLikes';
+import {
+  bootSharedPins,
+  subscribeSharedPins,
+  getServerPinsForBuilding,
+  getServerPinBuildings,
+  shareTrackPin,
+  shareTrackUnpin,
+} from './lib/music/sharedPins';
 
 // Dev 모드: 어드민 계정 자동 주입 (로그인/회원가입 불필요)
 if (import.meta.env.DEV) {
@@ -49,6 +59,18 @@ setTimeout(refoldLikes, 0);
 setSharedLikeBridge(
   (b, t) => { void toggleSharedTrackLike(b, t); },
   (b, t) => { void toggleSharedPlaylistLike(b, t); },
+);
+
+// Phase 2 — shared pinned tracks. Same shape as likes: hydrate the
+// in-memory cache, refold into the store on every change, dual-write
+// pin/unpin so other users' clients see the action live via realtime.
+void bootSharedPins();
+const refoldPins = () => mergeSharedPinsIntoStore(getServerPinBuildings(), getServerPinsForBuilding);
+subscribeSharedPins(refoldPins);
+setTimeout(refoldPins, 0);
+setSharedPinBridge(
+  (b, track) => { void shareTrackPin(b, track); },
+  (b, tid) => { void shareTrackUnpin(b, tid); },
 );
 
 createRoot(document.getElementById('root')!).render(
