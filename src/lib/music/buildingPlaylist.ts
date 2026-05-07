@@ -265,6 +265,13 @@ export function pinTrack(buildingId: string, track: RecommendedTrack): void {
   store = {
     ...store,
     [buildingId]: {
+      // Spread the existing entry FIRST so taggerPlaylistCovers /
+      // taggerPlaylistNames / taggerNotes / playlistLikedBy survive.
+      // The previous shape only copied { tracks, description },
+      // silently wiping every per-tagger custom field — which meant
+      // adding a new track would erase the user's uploaded playlist
+      // cover and inline-edited name.
+      ...entry,
       tracks: [
         ...entry.tracks,
         {
@@ -277,7 +284,6 @@ export function pinTrack(buildingId: string, track: RecommendedTrack): void {
           likedBy: [],
         },
       ],
-      description: entry.description,
     },
   };
   saveToStorage();
@@ -752,13 +758,32 @@ export function unpinTrack(buildingId: string, trackId: string): void {
   const entry = store[buildingId];
   if (!entry || !entry.tracks.some((t) => t.id === trackId)) return;
   const nextTracks = entry.tracks.filter((t) => t.id !== trackId);
-  if (nextTracks.length === 0 && !entry.description) {
+  // Auto-remove the entry only when there is genuinely nothing left
+  // to remember. Previously this checked just `description`, so
+  // unpinning the last track would silently drop the user's uploaded
+  // cover and any custom playlist name. Widened to look at every
+  // per-tagger field that the user can populate from the UI.
+  const hasCovers = !!entry.taggerPlaylistCovers
+    && Object.keys(entry.taggerPlaylistCovers).length > 0;
+  const hasNames = !!entry.taggerPlaylistNames
+    && Object.keys(entry.taggerPlaylistNames).length > 0;
+  const hasLikes = !!entry.playlistLikedBy
+    && Object.values(entry.playlistLikedBy).some((arr) => arr && arr.length > 0);
+  if (
+    nextTracks.length === 0
+    && !entry.description
+    && !hasCovers
+    && !hasNames
+    && !hasLikes
+  ) {
     const { [buildingId]: _removed, ...rest } = store;
     store = rest;
   } else {
     store = {
       ...store,
-      [buildingId]: { tracks: nextTracks, description: entry.description },
+      // Spread the existing entry so every per-tagger custom field
+      // (covers, names, notes, likes) survives unpinning a track.
+      [buildingId]: { ...entry, tracks: nextTracks },
     };
   }
   saveToStorage();
@@ -772,7 +797,10 @@ export function setDescription(buildingId: string, description: string): void {
   const entry = getEntry(buildingId);
   store = {
     ...store,
-    [buildingId]: { tracks: entry.tracks, description },
+    // Spread `...entry` so taggerPlaylistCovers / taggerPlaylistNames /
+    // taggerNotes / playlistLikedBy aren't dropped when only the
+    // building-wide description changes.
+    [buildingId]: { ...entry, description },
   };
   saveToStorage();
   notify();
