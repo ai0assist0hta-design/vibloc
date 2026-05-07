@@ -349,7 +349,7 @@ const DICT: Record<string, Record<Lang, string>> = {
   'compass.reset':         { en: 'Reset to North',            ko: '북쪽으로 재설정',           ja: '北にリセット' },
 
   // ─── Music section ───
-  'music.topPick':           { en: 'AI TOP PICK',                            ko: 'AI 추천곡',                        ja: 'AI トップピック' },
+  'music.topPick':           { en: 'AI PICKS',                                ko: 'AI 추천',                          ja: 'AI おすすめ' },
   'music.tagTrack':          { en: 'TAG A TRACK',                            ko: '트랙 태그하기',                    ja: 'トラックにタグ付け' },
   'music.loadingPlaylist':   { en: 'loading playlist…',                      ko: '플레이리스트 로드 중…',            ja: 'プレイリストを読み込み中…' },
   'music.noPreview':         { en: 'no preview available',                   ko: '미리보기 없음',                    ja: 'プレビューなし' },
