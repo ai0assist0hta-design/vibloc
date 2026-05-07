@@ -13,7 +13,7 @@
  * left on a playlist.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Shuffle, ChevronLeft } from 'lucide-react';
 import { useTaggerPlaylist, usePlaylist } from '../../../lib/music/buildingPlaylist';
 import { useT } from '../../../lib/app/i18n';
@@ -50,10 +50,38 @@ export function PlaylistDetailView({
   buildingId, taggerId, text, text2, text3, divider, onBack,
 }: Props) {
   const t = useT();
-  const { group, tracks, name, setName, isMine } = useTaggerPlaylist(buildingId, taggerId);
+  const { group, tracks, name, setName, setCover, isMine } = useTaggerPlaylist(buildingId, taggerId);
   const playlist = usePlaylist(buildingId);
   const [draft, setDraft] = useState(name);
   useEffect(() => { setDraft(name); }, [name, taggerId]);
+
+  /* ── Cover upload (mine-only) ──
+   *  Mirrors the MyPage avatar pattern: hover surfaces a camera glyph
+   *  over a 45 % scrim, click opens a hidden <input type="file">,
+   *  uploads land as data URLs in `taggerPlaylistCovers[taggerId]`
+   *  via setCover(). 2 MB cap to keep localStorage bounded. */
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const [coverHover, setCoverHover] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const handleCoverPick = () => coverInputRef.current?.click();
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) {
+      setCoverError(t('detail.coverTooLarge'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = typeof reader.result === 'string' ? reader.result : '';
+      if (!url) return;
+      setCover(url);
+      setCoverError(null);
+    };
+    reader.readAsDataURL(f);
+  };
+  const handleCoverRemove = () => setCover('');
 
   // Cover sources that the shared PlaylistCover component picks
   // between (custom override → 2×2 mosaic → single image → monogram).
@@ -220,20 +248,66 @@ export function PlaylistDetailView({
         display: 'flex', alignItems: 'flex-start', gap: SPACE[3],
         paddingLeft: SPACE[3],
       }}>
-        <PlaylistCover
-          customUrl={group?.customCoverUrl}
-          artworkUrls={coverGrid}
-          fallbackText={headline}
-          // 120 px cover (down from 132) — fits more comfortably in
-          // the 280 px rail and leaves more horizontal space for the
-          // headline before truncation. Radius 8 matches the rail's
-          // SectionEyebrow / TopicRow radius scale (was 12 — only
-          // the cover used that).
-          size={120}
-          radius={8}
-          divider={divider}
-          text2={text2}
-        />
+        {/* Cover slot — wraps the shared PlaylistCover with a hover
+            scrim + camera affordance for the curator. Read-only viewers
+            see the bare cover (no overlay, no cursor change). The
+            wrapper preserves the 120 × 120 footprint so the right-side
+            text column doesn't reflow when the overlay attaches. */}
+        <div
+          style={{ position: 'relative', width: 120, height: 120, flexShrink: 0 }}
+          onMouseEnter={isMine ? () => setCoverHover(true) : undefined}
+          onMouseLeave={isMine ? () => setCoverHover(false) : undefined}
+        >
+          <PlaylistCover
+            customUrl={group?.customCoverUrl}
+            artworkUrls={coverGrid}
+            fallbackText={headline}
+            size={120}
+            radius={8}
+            divider={divider}
+            text2={text2}
+          />
+          {isMine ? (
+            <>
+              <button
+                type="button"
+                onClick={handleCoverPick}
+                onFocus={() => setCoverHover(true)}
+                onBlur={() => setCoverHover(false)}
+                aria-label={t('detail.changeCover')}
+                title={t('detail.changeCover')}
+                style={{
+                  position: 'absolute', inset: 0,
+                  width: '100%', height: '100%',
+                  background: 'rgba(0,0,0,0.45)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  opacity: coverHover ? 1 : 0,
+                  transition: 'opacity 160ms ease',
+                  padding: 0,
+                  fontFamily: FONT.ui,
+                }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </button>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleCoverChange}
+                style={{ display: 'none' }}
+              />
+            </>
+          ) : null}
+        </div>
         <div style={{
           minWidth: 0, flex: 1,
           display: 'flex', flexDirection: 'column',
@@ -318,6 +392,40 @@ export function PlaylistDetailView({
               : t('detail.songCount')
             ).replace('{n}', String(tracks.length))}
           </div>
+          {/* Cover utility row — only the curator sees it; only when
+              there's something to surface (uploaded cover OR a fresh
+              upload error). Underline-text link tone matches MyPage's
+              "Remove photo" affordance. */}
+          {isMine && (group?.customCoverUrl || coverError) ? (
+            <div style={{
+              marginTop: SPACE[1],
+              display: 'flex', alignItems: 'center', gap: SPACE[2], flexWrap: 'wrap',
+            }}>
+              {group?.customCoverUrl ? (
+                <button
+                  type="button"
+                  onClick={handleCoverRemove}
+                  style={{
+                    ...ROW_CAPTION,
+                    fontWeight: 400,
+                    color: text3,
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: 3,
+                    fontFamily: FONT.ui,
+                  }}
+                >
+                  {t('detail.removeCover')}
+                </button>
+              ) : null}
+              {coverError ? (
+                <span style={{ ...ROW_CAPTION, color: '#a8261b' }}>{coverError}</span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 

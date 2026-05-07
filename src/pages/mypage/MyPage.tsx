@@ -7,7 +7,7 @@
  * reflect the active locale.
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/useAuthStore';
 import { isDevAdmin } from '@/features/auth/devAdmin';
@@ -227,6 +227,7 @@ export function MyPage() {
   const timeAgo = useTimeAgo();
   const user = useAuthStore((s) => s.user);
   const clearSession = useAuthStore((s) => s.clearSession);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const admin = isDevAdmin();
   const { playlists, stats } = useProfileData();
   const resolver = useBuildingResolver();
@@ -248,6 +249,57 @@ export function MyPage() {
   });
   const [customTag, setCustomTag] = useState('');
   const [showAllPlaylists, setShowAllPlaylists] = useState(false);
+
+  /* ── Profile header local edit state ──
+   *  Avatar uploads land in `useAuthStore.user.avatarUrl` as a data
+   *  URL (no backend yet — persists via the auth store's localStorage
+   *  partialize). Name edits patch `user.displayName` the same way.
+   *  `nameDraft` shadows the input while editing so cancelling
+   *  reverts cleanly. `avatarHover` drives the camera-icon overlay. */
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [avatarHover, setAvatarHover] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handlePickAvatar = () => {
+    fileInputRef.current?.click();
+  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    // 2 MB cap — data URLs in localStorage get expensive fast, and
+    // this is a local-only feature for now.
+    if (f.size > 2 * 1024 * 1024) {
+      setUploadError(t('mypage.profile.fileTooLarge'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = typeof reader.result === 'string' ? reader.result : '';
+      if (!url) return;
+      updateUser({ avatarUrl: url });
+      setUploadError(null);
+    };
+    reader.readAsDataURL(f);
+  };
+  const handleRemoveAvatar = () => {
+    updateUser({ avatarUrl: null });
+  };
+  const startEditName = () => {
+    setNameDraft(user?.displayName ?? '');
+    setEditingName(true);
+  };
+  const saveName = () => {
+    const v = nameDraft.trim();
+    if (v) updateUser({ displayName: v });
+    setEditingName(false);
+  };
+  const cancelEditName = () => {
+    setEditingName(false);
+    setNameDraft('');
+  };
 
   const saveTags = (next: string[]) => {
     setTags(next);
@@ -318,44 +370,236 @@ export function MyPage() {
           padding: '80px 22px 120px',
         }}
       >
-        {/* ━━━ PROFILE HEADER ━━━ */}
+        {/* ━━━ PROFILE HEADER ━━━
+         *  Layout matches the rest of the page (eyebrow → display →
+         *  caption) but adds a circular avatar to the left of the
+         *  name block. The avatar is a clickable upload affordance:
+         *  hover surfaces a camera icon over a 50%-alpha scrim, and
+         *  clicking opens a hidden <input type="file"> that accepts
+         *  PNG/JPEG/WebP under 2 MB. With no uploaded image we render
+         *  the first letter of displayName/email — same monogram
+         *  pattern used in the right-rail ProfileRow on the home view.
+         *  The display name is inline-editable: clicking the pencil
+         *  swaps the H1 for an input + Save/Cancel pair. */}
         <div>
           <p style={{ ...T.eyebrow, color: C.secondary, margin: 0 }}>{t('nav.profile')}</p>
           <div
             style={{
-              marginTop: 12,
+              marginTop: 16,
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
+              gap: 20,
               flexWrap: 'wrap',
             }}
           >
-            <h1 style={{ ...T.display, color: C.primary, margin: 0 }}>
-              {user.displayName ?? user.email}
-            </h1>
-            {admin ? (
+            {/* Avatar — circular, hover→camera, click→upload */}
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label={t('mypage.profile.editAvatar')}
+              onClick={handlePickAvatar}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handlePickAvatar();
+                }
+              }}
+              onMouseEnter={() => setAvatarHover(true)}
+              onMouseLeave={() => setAvatarHover(false)}
+              onFocus={() => setAvatarHover(true)}
+              onBlur={() => setAvatarHover(false)}
+              style={{
+                position: 'relative',
+                width: 96,
+                height: 96,
+                borderRadius: '50%',
+                background: C.primary,
+                color: C.bg,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                overflow: 'hidden',
+                flexShrink: 0,
+                outline: 'none',
+                border: `1px solid ${C.divider}`,
+              }}
+            >
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt=""
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              ) : (
+                <span
+                  aria-hidden
+                  style={{
+                    fontSize: 40,
+                    fontWeight: 600,
+                    letterSpacing: '-0.01em',
+                    lineHeight: 1,
+                    color: C.bg,
+                  }}
+                >
+                  {(user.displayName || user.email || '?').trim().charAt(0).toUpperCase()}
+                </span>
+              )}
+              {/* Hover scrim + camera glyph. Pure CSS opacity transition
+                  so it feels analog rather than popping. */}
               <span
+                aria-hidden
                 style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  padding: '4px 10px',
-                  borderRadius: 980,
-                  background: C.primary,
-                  // Inverse-of-primary text so the badge stays
-                  // legible in both modes (white-on-cream invisible
-                  // in dark mode otherwise).
-                  color: C.bg,
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.45)',
+                  color: '#ffffff',
+                  opacity: avatarHover ? 1 : 0,
+                  transition: 'opacity 160ms ease',
+                  pointerEvents: 'none',
                 }}
               >
-                Admin
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
               </span>
-            ) : null}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+            </div>
+
+            {/* Name + email column */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {editingName ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveName();
+                      else if (e.key === 'Escape') cancelEditName();
+                    }}
+                    autoFocus
+                    placeholder={t('mypage.profile.namePlaceholder')}
+                    style={{
+                      ...T.display,
+                      color: C.primary,
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: `2px solid ${C.primary}`,
+                      outline: 'none',
+                      padding: '2px 0',
+                      minWidth: 0,
+                      width: 'min(100%, 480px)',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                  <PillPrimary C={C} onClick={saveName} disabled={!nameDraft.trim()}>
+                    {t('mypage.profile.saveName')}
+                  </PillPrimary>
+                  <PillGhost C={C} onClick={cancelEditName}>
+                    {t('mypage.profile.cancel')}
+                  </PillGhost>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <h1 style={{ ...T.display, color: C.primary, margin: 0 }}>
+                    {user.displayName ?? user.email}
+                  </h1>
+                  <button
+                    type="button"
+                    onClick={startEditName}
+                    aria-label={t('mypage.profile.editName')}
+                    title={t('mypage.profile.editName')}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      border: `1px solid ${C.divider}`,
+                      background: 'transparent',
+                      color: C.primary,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'background 120ms ease, border-color 120ms ease',
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = C.bgAlt;
+                      e.currentTarget.style.borderColor = C.primary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.borderColor = C.divider;
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9"/>
+                      <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+                    </svg>
+                  </button>
+                  {admin ? (
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        padding: '4px 10px',
+                        borderRadius: 980,
+                        background: C.primary,
+                        color: C.bg,
+                      }}
+                    >
+                      Admin
+                    </span>
+                  ) : null}
+                </div>
+              )}
+              <p style={{ ...T.body, color: C.secondary, marginTop: 8, marginBottom: 0 }}>
+                {user.email}
+              </p>
+              {/* Avatar utility row — only show "Remove photo" when an
+                  uploaded/external avatar exists. Errors (e.g. file too
+                  big) surface inline beneath. */}
+              {(user.avatarUrl || uploadError) ? (
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  {user.avatarUrl ? (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      style={{
+                        ...T.helper,
+                        color: C.secondary,
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: 3,
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      {t('mypage.profile.removeAvatar')}
+                    </button>
+                  ) : null}
+                  {uploadError ? (
+                    <span style={{ ...T.helper, color: C.danger }}>{uploadError}</span>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
-          <p style={{ ...T.body, color: C.secondary, marginTop: 8, marginBottom: 0 }}>
-            {user.email}
-          </p>
         </div>
 
         {/* ━━━ STATS ━━━ */}

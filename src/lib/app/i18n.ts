@@ -507,6 +507,9 @@ const DICT: Record<string, Record<Lang, string>> = {
   'detail.songCount':      { en: '{n} songs',             ko: '곡 {n}개',      ja: '{n}曲' },
   'detail.songCount_one':  { en: '{n} song',              ko: '곡 {n}개',      ja: '{n}曲' },
   'detail.noTracks':       { en: 'No tracks remain in this playlist.', ko: '플레이리스트에 트랙이 없습니다.', ja: 'プレイリストに曲がありません。' },
+  'detail.changeCover':    { en: 'Change cover',          ko: '커버 변경',     ja: 'カバーを変更' },
+  'detail.removeCover':    { en: 'Remove cover',          ko: '커버 제거',     ja: 'カバーを削除' },
+  'detail.coverTooLarge':  { en: 'Image is too large (max 2 MB).', ko: '이미지가 너무 커요 (최대 2 MB).', ja: '画像が大きすぎます（最大2MB）。' },
 
   'share.title':           { en: 'Share Playlist',        ko: '플레이리스트 공유', ja: 'プレイリストを共有' },
   'share.share':           { en: 'Share…',                ko: '공유…',         ja: '共有…' },
@@ -590,6 +593,13 @@ const DICT: Record<string, Record<Lang, string>> = {
   'mypage.tags.removeAria':      { en: 'Remove {tag}',     ko: '{tag} 제거',   ja: '{tag}を削除' },
   'mypage.actions.toMap':        { en: 'To Map',           ko: '맵으로',       ja: 'マップへ' },
   'mypage.actions.logout':       { en: 'Log Out',          ko: '로그아웃',     ja: 'ログアウト' },
+  'mypage.profile.editAvatar':   { en: 'Change photo',     ko: '사진 변경',    ja: '写真を変更' },
+  'mypage.profile.removeAvatar': { en: 'Remove photo',     ko: '사진 제거',    ja: '写真を削除' },
+  'mypage.profile.editName':     { en: 'Edit name',        ko: '이름 수정',    ja: '名前を編集' },
+  'mypage.profile.saveName':     { en: 'Save',             ko: '저장',         ja: '保存' },
+  'mypage.profile.cancel':       { en: 'Cancel',           ko: '취소',         ja: 'キャンセル' },
+  'mypage.profile.namePlaceholder': { en: 'Your name',     ko: '이름',         ja: '名前' },
+  'mypage.profile.fileTooLarge': { en: 'Image is too large (max 2 MB).', ko: '이미지가 너무 커요 (최대 2 MB).', ja: '画像が大きすぎます（最大2MB）。' },
 
   // ── Playlist Detail page ──
   'playlist.eyebrow':            { en: 'Playlist',         ko: '플레이리스트', ja: 'プレイリスト' },

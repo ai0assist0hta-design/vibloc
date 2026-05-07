@@ -886,15 +886,19 @@ function App() {
     // we read the current snapshot from the store rather than relying
     // on stale closure state.
     const next = !useDarkModeStore.getState().darkMode;
-    if (liveTimeEnabled) {
-      // In live mode, manual toggle overrides auto — toggle it off on next sun change
-      manualDarkRef.current = true;
-      setDarkMode(next);
-      // Reset manual override after 3 seconds — let sun take over again
-      setTimeout(() => { manualDarkRef.current = false; }, 3000);
-    } else {
-      setDarkMode(next);
+    // Mutual exclusion: turning dark mode ON force-disables Live mode
+    // (and vice-versa in handleLiveTimeToggle below). The two modes
+    // both drive the scene's lighting, and Live's auto-sun would
+    // otherwise immediately overwrite the user's manual dark choice.
+    if (next && liveTimeEnabled) {
+      setLiveTimeEnabled(false);
+      setSunLightPos(null);
+      manualDarkRef.current = false;
+      useWeatherStore.getState().clear();
+      setDarkMode(true);
+      return;
     }
+    setDarkMode(next);
   }, [liveTimeEnabled, setDarkMode]);
 
   const handleLiveTimeToggle = useCallback((enabled: boolean) => {
@@ -905,9 +909,15 @@ function App() {
       // Hide the weather glyph as soon as the user leaves LIVE mode.
       useWeatherStore.getState().clear();
     } else {
+      // Live mode takes over the scene's day/night cycle — silently
+      // drop dark mode if it was manually held, so the sun's first
+      // update isn't fighting a user-pinned palette.
+      if (useDarkModeStore.getState().darkMode) {
+        setDarkMode(false);
+      }
       manualDarkRef.current = false; // let sun control dark mode
     }
-  }, []);
+  }, [setDarkMode]);
 
   // ── Live weather hydration ────────────────────────────────────────
   // Whenever LIVE mode is on, fetch the current weather for the

@@ -401,18 +401,23 @@ export function FixedToolSidebar({
           similarly omit a top-of-rail brand mark. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
-        // Unified header padding across all hovering panels:
-        // top 12 / horizontal 16 / bottom 12. Visually matches
-        // FixedQueueSidebar + NowPlayingBar so all three rails
-        // present the same chrome thickness.
-        padding: `${SPACE[3]}px ${SPACE[4]}px ${SPACE[3]}px`,
+        // Header padding-left aligned to the TopicRow icon column
+        // below: each row uses `margin: 0 12` + `padding: 0 12`,
+        // putting its 24-wide iconBox at x=24. Matching the header
+        // pad-left to 24 makes the collapse glyph center sit on the
+        // same vertical line as Search / Cities / My Blocks icons —
+        // no more 6 px jog at the top of the rail.
+        padding: `${SPACE[3]}px ${SPACE[3]}px ${SPACE[3]}px ${SPACE[6]}px`,
       }}>
         <button
           type="button"
           onClick={() => setOpen(false)}
           aria-label={t('tools.collapse')}
           title={t('tools.collapse')}
-          style={btnIcon(muted)}
+          // Slim 24×24 hit-box (was 28×28) so the centred glyph
+          // lands at x=36 — exactly the optical centre of the row
+          // icons below (margin 12 + padding 12 + iconBox half 12).
+          style={{ ...btnIcon(muted), width: 24, height: 24 }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = hover;
             e.currentTarget.style.color = ink;
@@ -423,11 +428,11 @@ export function FixedToolSidebar({
           }}
         >
           {/* PanelLeftClose — semantic "collapse this side panel"
-              icon (Apple Finder / VS Code sidebar pattern). Reads
-              as a panel toggle, not a generic back-arrow. Sits in
-              muted color so it doesn't compete with the VIBLOC
-              wordmark on the same row. */}
-          <PanelLeftClose size={15} strokeWidth={2} />
+              icon (Apple Finder / VS Code sidebar pattern). Sized
+              to 16 to match the row icons (Search / Cities / My
+              Blocks all use size={16}) so the glyph weight aligns
+              vertically as well as horizontally. */}
+          <PanelLeftClose size={16} strokeWidth={2} />
         </button>
       </div>
 

@@ -69,6 +69,10 @@ export type BuildingPlaylistEntry = {
    *  the page title in PlaylistDetailView. Empty/missing = falls back
    *  to the curator's display name. */
   taggerPlaylistNames?: Record<string, string>;
+  /** Per-tagger custom playlist COVER (data URL or remote URL). When
+   *  set, overrides the seed `taggerCustomCoverUrl` and the 2×2 mosaic
+   *  in PlaylistCover. Cleared by writing an empty string. */
+  taggerPlaylistCovers?: Record<string, string>;
   /** Per-playlist (per-tagger) likes — userIds who liked the playlist
    *  itself (separate from per-track likes). Surfaces the heart pill
    *  on the TopTaggerCard rank rows. */
@@ -115,6 +119,9 @@ function loadFromStorage(): Store {
             : {},
           taggerPlaylistNames: entry.taggerPlaylistNames && typeof entry.taggerPlaylistNames === 'object'
             ? entry.taggerPlaylistNames
+            : {},
+          taggerPlaylistCovers: entry.taggerPlaylistCovers && typeof entry.taggerPlaylistCovers === 'object'
+            ? entry.taggerPlaylistCovers
             : {},
           playlistLikedBy: entry.playlistLikedBy && typeof entry.playlistLikedBy === 'object'
             ? entry.playlistLikedBy
@@ -416,10 +423,18 @@ export function getTopTaggers(buildingId: string, limit = 3): TaggerGroup[] {
 
   // Fold playlist-level likes into the ranking score.
   const playlistLikes = entry.playlistLikedBy ?? {};
+  // User-uploaded covers override the seed `taggerCustomCoverUrl`.
+  // Empty-string sentinels mean "user explicitly cleared the cover" —
+  // we fall back to the mosaic instead of the seed image.
+  const userCovers = entry.taggerPlaylistCovers ?? {};
   for (const g of groups.values()) {
     const pl = playlistLikes[g.taggerId]?.length ?? 0;
     g.playlistLikes = pl;
     g.totalLikes += pl;
+    if (Object.prototype.hasOwnProperty.call(userCovers, g.taggerId)) {
+      const v = userCovers[g.taggerId];
+      g.customCoverUrl = typeof v === 'string' && v.length > 0 ? v : null;
+    }
   }
 
   return [...groups.values()]
@@ -634,12 +649,28 @@ export function setTaggerPlaylistName(buildingId: string, taggerId: string, name
   notify();
 }
 
+/** Per-tagger custom cover (data URL or remote URL). Pass an empty
+ *  string to clear and fall back to the mosaic. */
+export function setTaggerPlaylistCover(buildingId: string, taggerId: string, url: string): void {
+  const entry = getEntry(buildingId);
+  store = {
+    ...store,
+    [buildingId]: {
+      ...entry,
+      taggerPlaylistCovers: { ...(entry.taggerPlaylistCovers ?? {}), [taggerId]: url },
+    },
+  };
+  saveToStorage();
+  notify();
+}
+
 /** Hook bundling everything needed for the playlist detail view. */
 export function useTaggerPlaylist(buildingId: string, taggerId: string): {
   group: TaggerGroup | null;
   tracks: PinnedTrack[];
   name: string;
   setName: (name: string) => void;
+  setCover: (url: string) => void;
   isMine: boolean;
 } {
   const [snap, setSnap] = useState(() => ({
@@ -664,6 +695,7 @@ export function useTaggerPlaylist(buildingId: string, taggerId: string): {
     ...snap,
     isMine: myId === taggerId,
     setName: (name: string) => setTaggerPlaylistName(buildingId, taggerId, name),
+    setCover: (url: string) => setTaggerPlaylistCover(buildingId, taggerId, url),
   };
 }
 

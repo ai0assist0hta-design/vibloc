@@ -611,12 +611,13 @@ export function PlateauScene({
 
     // ── Base palette (driven by dark mode) ──────────────────────
     // Light mode: warm white fog, light density.
-    // Dark mode:  cool near-black fog, heavily dense — the city
-    // dissolves into the void at mid-distance for a moody Apple
-    // Vision-style atmosphere. Near pulled in (900→400) and far
-    // tightened (3000→2000) so even mid-range buildings get hazed.
+    // Dark mode:  cool near-black fog. Previous spec (near 400 /
+    // far 2000 / exp 1.8) collapsed the visible city to a couple of
+    // foreground blocks — too aggressive for navigation. Eased to
+    // near 900 / far 3400 / exp 1.4 so mid-range buildings stay
+    // legible while the far horizon still dissolves into the void.
     const base = darkMode
-      ? { r: 0.04, g: 0.04, b: 0.06, near: 400,  far: 2000, exp: 1.8 }
+      ? { r: 0.04, g: 0.04, b: 0.06, near: 900,  far: 3400, exp: 1.4 }
       : { r: 1.00, g: 1.00, b: 1.00, near: 1200, far: 4000, exp: 1.2 };
 
     // ── Weather modifier ───────────────────────────────────────

@@ -7,6 +7,10 @@ type AuthState = {
   user: AuthUser | null;
   setSession: (token: string, user: AuthUser) => void;
   clearSession: () => void;
+  /** Patch fields on the currently signed-in user — used by MyPage
+   *  for inline name edits and local avatar uploads. No-op if there
+   *  is no active user. */
+  updateUser: (patch: Partial<AuthUser>) => void;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -16,6 +20,8 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       setSession: (accessToken, user) => set({ accessToken, user }),
       clearSession: () => set({ accessToken: null, user: null }),
+      updateUser: (patch) =>
+        set((s) => (s.user ? { user: { ...s.user, ...patch } } : {})),
     }),
     {
       name: 'vibloc-auth',

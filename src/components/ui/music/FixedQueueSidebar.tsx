@@ -438,14 +438,23 @@ export function FixedQueueSidebar({
                 bottom: '100%',
                 maxHeight: '50vh',
                 overflowY: 'auto',
-                background: darkMode ? 'rgba(20,20,24,0.96)' : 'rgba(255,255,255,0.98)',
+                // Surface tone differentiated from the rail body
+                // (rgba 255/255/255 0.98) but inside the same family:
+                // light mode lands on the warm `paper` (#faf9f6) at
+                // 0.96 alpha so it reads as a lifted card, not a foreign
+                // popover; dark mode takes a single elevation step up
+                // from the rail's near-black so the queue feels like a
+                // shelf hovering over the chrome. Border tinted by ink
+                // (top hairline doubled in alpha) so the lifted edge
+                // actually registers against the warm paper fill.
+                background: darkMode ? 'rgba(28,28,32,0.96)' : 'rgba(250,249,246,0.96)',
                 backdropFilter: 'blur(20px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                borderTop: `1px solid ${divider}`,
+                borderTop: `1px solid ${darkMode ? 'rgba(255,255,255,0.16)' : 'rgba(14,14,26,0.14)'}`,
                 borderBottom: `1px solid ${divider}`,
                 boxShadow: darkMode
-                  ? '0 -12px 28px rgba(0,0,0,0.32)'
-                  : '0 -12px 28px rgba(0,0,0,0.10)',
+                  ? '0 -14px 32px rgba(0,0,0,0.36)'
+                  : '0 -14px 32px rgba(14,14,26,0.10)',
                 padding: `${SPACE[2]}px ${SPACE[3]}px ${SPACE[3]}px`,
                 animation: 'vbk-upnext-in 180ms cubic-bezier(0.2, 0.9, 0.3, 1)',
               }}
@@ -649,9 +658,20 @@ function ProfileRow({
           fontSize: 12, fontWeight: 600,
           letterSpacing: '-0.01em',
           flexShrink: 0,
+          overflow: 'hidden',
         }}
       >
-        {user && initial ? initial : <User size={16} strokeWidth={2.2} />}
+        {/* Uploaded/external avatar wins; otherwise fall back to the
+            display-name monogram, then the generic User glyph for
+            signed-out viewers. Image is `objectFit: cover` so the
+            full circle stays filled. */}
+        {user?.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : user && initial ? initial : <User size={16} strokeWidth={2.2} />}
       </span>
       <span style={{
         flex: 1, minWidth: 0,

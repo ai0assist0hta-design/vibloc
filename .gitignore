@@ -36,3 +36,4 @@ dist-ssr
 /bun.lock
 
 # `today/` is tracked again — daily dev journal shared with the team
+.vercel
