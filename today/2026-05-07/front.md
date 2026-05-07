@@ -196,3 +196,37 @@ https://vibloc26.com/mypage  → HTTP 200
 | `vercel.json` | (이전 커밋) SPA fallback rewrite |
 
 `tsc -b` EXIT 0 통과, dev 환경에서 모든 시나리오 수동 검증 완료.
+
+---
+
+## 8. 후속 패치 (같은 날, 배포 후)
+
+### MY PLAYLIST 카드 커버 동기화 (`BuildingPlaylist.tsx`)
+우측 레일 MY PLAYLIST 카드가 HSL hue 모노그램만 그려 PlaylistDetailView에서 업로드한 커버를 반영하지 않던 문제. 36×36 모노그램 타일을 공용 `PlaylistCover`로 교체 (size 36 / radius 4).
+- `lib/music/buildingPlaylist.ts`에 신규 export `getTaggerPlaylistCover(buildingId, taggerId)` 추가. 우선순위: 사용자 업로드 (`taggerPlaylistCovers`) → 시드 `taggerCustomCoverUrl` → null.
+- 콜드 스타트 (커버 + 트랙 아트 전부 없음)에서만 기존 HSL 모노그램 폴백 유지.
+- 결과: 디테일 뷰에서 커버 변경 → MY PLAYLIST 카드 / TOP PLAYLISTS 랭크 카드 / 디테일 뷰 모두 즉시 같은 이미지.
+
+### 즉시 저장 + 즉시 반영
+사진 변경이 일부 화면에서 안 바뀌어 보이던 두 가지 원인 제거.
+
+1. **Stale broken-flag 버그 (`PlaylistCover.tsx`)** — 이전 customUrl이 한 번 404 났으면 `customBroken=true` state가 다음 customUrl prop 변경 시에도 유지되어 새 업로드가 모자이크로 폴백되던 문제. `useEffect`로 `customUrl` / `usable[0]` 변경 시 자동 리셋.
+
+2. **크로스-탭 라이브 싱크** — zustand `persist`와 buildingPlaylist 자체 store 모두 `storage` 이벤트 무청취. 두 모듈 각각 module-level `window.addEventListener('storage', ...)` 추가:
+   - `useAuthStore.ts`: `key === 'vibloc-auth'`이면 `useAuthStore.persist.rehydrate()`.
+   - `lib/music/buildingPlaylist.ts`: `key === STORAGE_KEY`이면 `loadFromStorage()` + `notify()`.
+   - 결과: 한 탭에서 사진/이름/커버 바꾸면 다른 모든 탭에 즉시 반영, 새로고침 불필요.
+
+### ProfileRow 정렬 (`FixedQueueSidebar.tsx`)
+우측 레일 헤더의 ProfileRow 아바타가 rail-x = **20**에서 (헤더 12 + Link pad 8) 시작, 그 아래 모든 행은 rail-x = **24**에서 시작 → 4px 어긋남.
+- ProfileRow `<Link>` padding-left `SPACE[2]` (8) → **`SPACE[3]`** (12).
+- 결과: 아바타 / 검색바 아이콘 / MY PLAYLIST eyebrow / PopularRow 아트워크 / TrackRow 아트워크 모두 한 수직선 (x = 24).
+
+### 추가 변경 파일
+| 파일 | 변경 |
+|---|---|
+| `src/components/ui/music/BuildingPlaylist.tsx` | `PlaylistCover` 통합, `getTaggerPlaylistCover` import |
+| `src/components/ui/music/PlaylistCover.tsx` | URL 변경 시 broken-flag 리셋 effect |
+| `src/lib/music/buildingPlaylist.ts` | `getTaggerPlaylistCover` getter, storage 이벤트 리스너 |
+| `src/features/auth/useAuthStore.ts` | storage 이벤트 → `persist.rehydrate()` |
+| `src/components/ui/music/FixedQueueSidebar.tsx` | ProfileRow padding-left 8 → 12 |

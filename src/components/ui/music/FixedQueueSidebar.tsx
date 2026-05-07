@@ -637,7 +637,13 @@ function ProfileRow({
       style={{
         flex: 1, minWidth: 0,
         display: 'inline-flex', alignItems: 'center', gap: 12,
-        padding: `${SPACE[1]}px ${SPACE[2]}px`,
+        // padding-Left bumped 8 → 12 (SPACE[2] → SPACE[3]) so the
+        // avatar's left edge lands at rail-x = 12 (header pad) + 12
+        // (link pad) = 24 — exactly where the body's PopularRow /
+        // TrackRow artwork (12 body pad + 12 row pad = 24) sits.
+        // Profile avatar, "MY PLAYLIST" eyebrow, search bar icon,
+        // and every track artwork now share one vertical column.
+        padding: `${SPACE[1]}px ${SPACE[3]}px`,
         borderRadius: 999,
         textDecoration: 'none',
         color: ink,

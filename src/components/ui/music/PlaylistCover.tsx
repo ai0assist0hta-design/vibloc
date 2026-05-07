@@ -18,7 +18,7 @@
  * other album-art tiles in VIBLOC.
  */
 
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 type Props = {
   /** Optional override — full-bleed single image. Falls back to the
@@ -49,6 +49,14 @@ export function PlaylistCover({
   const [customBroken, setCustomBroken] = useState(false);
   // First-track image broken? Drop it from the chain too.
   const [singleBroken, setSingleBroken] = useState(false);
+  // Reset the "broken" flags whenever the source URL actually changes —
+  // otherwise a stale broken state from a previous (404'd) seed cover
+  // would block a freshly uploaded user cover from showing up. Critical
+  // for the in-place upload flow: user clicks cover → picks a new PNG →
+  // setCover() updates customUrl → this effect clears customBroken so
+  // the new image renders immediately.
+  useEffect(() => { setCustomBroken(false); }, [customUrl]);
+  useEffect(() => { setSingleBroken(false); }, [usable[0]]);
 
   const useCustom = !!customUrl && !customBroken;
   const usableLive = singleBroken ? usable.slice(1) : usable;

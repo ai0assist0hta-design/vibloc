@@ -28,7 +28,9 @@ import { Plus } from 'lucide-react';
 import {
   usePlaylist,
   getTaggerPlaylistName,
+  getTaggerPlaylistCover,
 } from '../../../lib/music/buildingPlaylist';
+import { PlaylistCover } from './PlaylistCover';
 import type { CityVibe } from '../../../lib/music/trackTypes';
 import type { GenreKey } from '../../../types';
 import { GENRE_COLORS } from '../../../data/genres';
@@ -116,6 +118,16 @@ export function BuildingPlaylist({
   let h = 0;
   for (let i = 0; i < myId.length; i++) h = (h * 31 + myId.charCodeAt(i)) >>> 0;
   const avatarHue = h % 360;
+
+  // Cover sources for the summary tile — same chain PlaylistCover
+  // uses everywhere else (custom upload → 2×2 mosaic of pinned-track
+  // artwork → single image → monogram). Sourcing it here keeps the
+  // right-rail MY PLAYLIST card synced with whatever cover the user
+  // picked in PlaylistDetailView (or the rank cards on the right).
+  const myCustomCover = getTaggerPlaylistCover(buildingId, myId);
+  const myArtworkUrls = myTracks
+    .map((tr) => tr.artworkUrl)
+    .filter((u): u is string => !!u);
 
   return (
     <div
@@ -246,25 +258,37 @@ export function BuildingPlaylist({
             if (onOpenDetail) e.currentTarget.style.background = 'transparent';
           }}
         >
-          {/* Initial-letter monogram tile — square (rounded-corner) for
-              consistency with album-art thumbnails throughout the panel. */}
-          <span
-            aria-hidden="true"
-            style={{
-              // 36×36 / radius 4 / borderless — matches every other
-              // rail row's thumb (TrackRow artwork, PlaylistCover at
-              // size 36). Was 28×28 / radius 8 with hairline border,
-              // a smaller and visually boxed-in tile that broke the
-              // unified row look.
-              width: 36, height: 36, borderRadius: 4,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              background: `hsl(${avatarHue}, 55%, 70%)`,
-              color: '#0e0e1a',
-              fontFamily: FONT.ui,
-              fontSize: 12, fontWeight: 600,
-              flexShrink: 0,
-            }}
-          >{initial}</span>
+          {/* Cover tile — shared `PlaylistCover` so the MY PLAYLIST
+              row syncs with whatever cover the user uploaded in
+              PlaylistDetailView (or the seed/mosaic fallback). When no
+              custom cover and no track artwork exist (cold start) we
+              fall back to a deterministic-hue monogram below — keeps
+              the empty state from rendering as a generic grey square. */}
+          {(myCustomCover || myArtworkUrls.length > 0) ? (
+            <PlaylistCover
+              customUrl={myCustomCover}
+              artworkUrls={myArtworkUrls}
+              fallbackText={headline}
+              size={36}
+              radius={4}
+              divider={divider}
+              text2={text2}
+              style={{ flexShrink: 0 }}
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              style={{
+                width: 36, height: 36, borderRadius: 4,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: `hsl(${avatarHue}, 55%, 70%)`,
+                color: '#0e0e1a',
+                fontFamily: FONT.ui,
+                fontSize: 12, fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >{initial}</span>
+          )}
 
           {/* Headline + secondary line */}
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>

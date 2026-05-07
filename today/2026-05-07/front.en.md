@@ -195,3 +195,37 @@ https://vibloc26.com/mypage  → HTTP 200
 | `vercel.json` | (prior commit) SPA fallback rewrite |
 
 `tsc -b` exits 0; manually verified every flow in dev.
+
+---
+
+## 8. Follow-up patches (same day, post-deploy)
+
+### MY PLAYLIST card cover sync (`BuildingPlaylist.tsx`)
+The right-rail MY PLAYLIST card was rendering only an HSL-hue monogram, ignoring covers uploaded in PlaylistDetailView. Replaced the 36×36 monogram tile with the shared `PlaylistCover` (size 36 / radius 4).
+- Added `getTaggerPlaylistCover(buildingId, taggerId)` to `lib/music/buildingPlaylist.ts`. Priority: user upload (`taggerPlaylistCovers`) → seed `taggerCustomCoverUrl` → null.
+- The legacy HSL monogram is kept only as the cold-start fallback (no cover AND no track art).
+- Result: changing the cover in the detail view → MY PLAYLIST card / TOP PLAYLISTS rank cards / detail view all paint the same image instantly.
+
+### Instant save + instant reflect
+Two reasons photo changes appeared not to update on some surfaces — both fixed.
+
+1. **Stale broken-flag bug (`PlaylistCover.tsx`)** — once a previous `customUrl` 404'd, `customBroken=true` stuck around when the prop changed, so a freshly uploaded cover fell through to the mosaic. Added `useEffect` resets keyed on `customUrl` / `usable[0]`.
+
+2. **Cross-tab live sync** — neither zustand `persist` nor the buildingPlaylist store listened for `storage` events, so a change in tab A wouldn't appear in tab B until reload. Module-level `window.addEventListener('storage', ...)` added in both:
+   - `useAuthStore.ts`: on `key === 'vibloc-auth'` → `useAuthStore.persist.rehydrate()`.
+   - `lib/music/buildingPlaylist.ts`: on `key === STORAGE_KEY` → `loadFromStorage()` + `notify()`.
+   - Result: photo / name / cover change in one tab propagates to every other open tab without a refresh.
+
+### ProfileRow alignment (`FixedQueueSidebar.tsx`)
+Right-rail header ProfileRow avatar started at rail-x = **20** (header pad 12 + link pad 8) while every body row started at rail-x = **24** — a 4 px jog.
+- ProfileRow `<Link>` padding-left `SPACE[2]` (8) → **`SPACE[3]`** (12).
+- Result: avatar / search-bar icon / MY PLAYLIST eyebrow / PopularRow artwork / TrackRow artwork all share the same x = 24 axis.
+
+### Additional files changed
+| File | Change |
+|---|---|
+| `src/components/ui/music/BuildingPlaylist.tsx` | `PlaylistCover` wired in, `getTaggerPlaylistCover` import |
+| `src/components/ui/music/PlaylistCover.tsx` | broken-flag reset effects on URL change |
+| `src/lib/music/buildingPlaylist.ts` | `getTaggerPlaylistCover` getter + `storage` event listener |
+| `src/features/auth/useAuthStore.ts` | `storage` event → `persist.rehydrate()` |
+| `src/components/ui/music/FixedQueueSidebar.tsx` | ProfileRow padding-left 8 → 12 |

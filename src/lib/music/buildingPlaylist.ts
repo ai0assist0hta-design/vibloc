@@ -166,6 +166,21 @@ function notify(): void {
   for (const l of listeners) l(store);
 }
 
+// Cross-tab live sync — when another tab writes to the same
+// `vibloc.playlists.v1` key (e.g. user uploads a new playlist cover
+// in tab A), the `storage` event fires here in tab B; we re-hydrate
+// the in-memory snapshot and notify subscribers so the right rail's
+// MY PLAYLIST card / RankRows / PlaylistDetailView all repaint with
+// the freshly saved data without needing a manual refresh.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) {
+      store = loadFromStorage();
+      notify();
+    }
+  });
+}
+
 function getEntry(buildingId: string): BuildingPlaylistEntry {
   return store[buildingId] ?? { tracks: [], description: '' };
 }
@@ -647,6 +662,29 @@ export function setTaggerPlaylistName(buildingId: string, taggerId: string, name
   };
   saveToStorage();
   notify();
+}
+
+/** Per-tagger custom cover read. Returns the user-uploaded URL when
+ *  set (empty string = explicitly cleared → null), else the seed
+ *  `taggerCustomCoverUrl` from one of this tagger's pinned tracks,
+ *  else null. Used by surfaces like the right-rail MY PLAYLIST card
+ *  that don't already pay the full `getTaggerGroup` cost. */
+export function getTaggerPlaylistCover(buildingId: string, taggerId: string): string | null {
+  const entry = store[buildingId];
+  if (!entry) return null;
+  const userMap = entry.taggerPlaylistCovers;
+  if (userMap && Object.prototype.hasOwnProperty.call(userMap, taggerId)) {
+    const v = userMap[taggerId];
+    return typeof v === 'string' && v.length > 0 ? v : null;
+  }
+  // Fall back to whatever the seed tracks declared (kept for back-compat
+  // with the persona seed data; production users won't have a seed).
+  for (const t of entry.tracks) {
+    if ((t.taggerId ?? 'anonymous') === taggerId && t.taggerCustomCoverUrl) {
+      return t.taggerCustomCoverUrl;
+    }
+  }
+  return null;
 }
 
 /** Per-tagger custom cover (data URL or remote URL). Pass an empty
