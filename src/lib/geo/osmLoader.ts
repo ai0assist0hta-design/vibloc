@@ -1057,13 +1057,16 @@ function parseOverpassData(
   return buildings;
 }
 
+// Order matters — `Object.keys(CITY_AREAS)` drives the left-rail
+// Cities list and the landing-page chip strip. US → KR → JP per
+// product direction (Manhattan is now the default landing shot).
 export const CITY_AREAS = {
-  shinjuku: { file: '/data/shinjuku.json', refLat: 35.690, refLon: 139.700, label: '新宿 Shinjuku' },
-  shibuya: { file: '/data/shibuya.json', refLat: 35.659, refLon: 139.701, label: '渋谷 Shibuya' },
-  itaewon: { file: '/data/itaewon.json', refLat: 37.536, refLon: 126.995, label: '이태원 Itaewon' },
-  gangnam: { file: '/data/gangnam.json', refLat: 37.499, refLon: 127.029, label: '강남 Gangnam' },
   manhattan: { file: '/data/manhattan.json', refLat: 40.7565, refLon: -73.983, label: 'Manhattan' },
   la: { file: '/data/la.json', refLat: 34.050, refLon: -118.250, label: 'Los Angeles' },
+  itaewon: { file: '/data/itaewon.json', refLat: 37.536, refLon: 126.995, label: '이태원 Itaewon' },
+  gangnam: { file: '/data/gangnam.json', refLat: 37.499, refLon: 127.029, label: '강남 Gangnam' },
+  shinjuku: { file: '/data/shinjuku.json', refLat: 35.690, refLon: 139.700, label: '新宿 Shinjuku' },
+  shibuya: { file: '/data/shibuya.json', refLat: 35.659, refLon: 139.701, label: '渋谷 Shibuya' },
 } as const;
 
 export type CityAreaKey = keyof typeof CITY_AREAS;

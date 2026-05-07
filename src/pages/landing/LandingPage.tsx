@@ -192,13 +192,16 @@ const copy: Record<
   },
 };
 
+// US → KR → JP — same order as `CITY_AREAS` and the left-rail
+// Cities list, so a user scanning the chip strip sees the same
+// sequence everywhere.
 const CITIES = [
-  { label: '신주쿠', en: 'Shinjuku', ja: '新宿', area: 'shinjuku' },
-  { label: '시부야', en: 'Shibuya', ja: '渋谷', area: 'shibuya' },
-  { label: '이태원', en: 'Itaewon', ja: 'イテウォン', area: 'itaewon' },
-  { label: '강남', en: 'Gangnam', ja: 'カンナム', area: 'gangnam' },
   { label: '맨해튼', en: 'Manhattan', ja: 'マンハッタン', area: 'manhattan' },
   { label: 'LA', en: 'LA', ja: 'LA', area: 'la' },
+  { label: '이태원', en: 'Itaewon', ja: 'イテウォン', area: 'itaewon' },
+  { label: '강남', en: 'Gangnam', ja: 'カンナム', area: 'gangnam' },
+  { label: '신주쿠', en: 'Shinjuku', ja: '新宿', area: 'shinjuku' },
+  { label: '시부야', en: 'Shibuya', ja: '渋谷', area: 'shibuya' },
 ] as const;
 
 const STATS = [

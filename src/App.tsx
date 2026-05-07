@@ -226,10 +226,13 @@ function App() {
   // landing chips and the MyPage playlist "바로가기" button.
   const [searchParams, setSearchParams] = useSearchParams();
   const initialAreaParam = searchParams.get('area');
+  // Default area on first visit (no `?area=` param) — Manhattan.
+  // The landing intro flies into Manhattan as well, so the map view
+  // matches that opening shot the user just watched.
   const initialArea: CityAreaKey =
     initialAreaParam && initialAreaParam in CITY_AREAS
       ? (initialAreaParam as CityAreaKey)
-      : 'shinjuku';
+      : 'manhattan';
   const pendingBuildingId = searchParams.get('building');
 
   const [area, setArea] = useState<CityAreaKey>(initialArea);
