@@ -2549,7 +2549,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
           count++;
         }
       }
-      if (count > 0) console.log(`[VIBLOC] ${area}: ${count} addresses set from manual overrides`);
+      if (count > 0 && import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${count} addresses set from manual overrides`);
     }
   } catch (e) {
     console.warn(`[VIBLOC] Could not load address overrides:`, e);
