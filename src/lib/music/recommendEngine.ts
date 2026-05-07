@@ -64,6 +64,11 @@ export type RecommendationResult = {
   vibe: CityVibe;
   tracks: RecommendedTrack[];
   algorithm: AlgorithmKind;
+  /** The country chart's top picks at the time of resolution.
+   *  pickWithOverlapLimit reserves one slot for one of these so every
+   *  panel surfaces at least one current hit. Internal field — UI
+   *  doesn't render this directly. */
+  chartToppers?: RecommendedTrack[];
   /** Algorithm-specific context the UI can render as a badge. */
   context: {
     /** Set when algorithm === 'filming-location'. */
@@ -196,11 +201,18 @@ export async function recommendForBuilding(opts: {
   // buildings share at most 1 track session-wide.
   const specialQuota = specialKind ? Math.min(2, specialTracks.length) : 0;
   const pinned = specialTracks.slice(0, specialQuota);
+  // Lift the chart-topper anchors out of the local pool — the picker
+  // reserves one of the top-3 RSS chart positions so every panel
+  // includes at least one current popular hit. `chartToppers` is the
+  // top of the local pool BEFORE the shuffle randomization in
+  // cityVibeAlgorithm; it survives because cityVibeAlgorithm exports
+  // them on the result object below.
   const finalTracks = pickWithOverlapLimit(
     pinned,
     local.tracks,
     limit,
     buildingId,
+    local.chartToppers,
   );
 
   const result: RecommendationResult = {
@@ -257,6 +269,12 @@ export function peekRecommendation(
 const MAX_REMEMBERED_BUILDINGS = 30;
 const buildingTrackMemory = new Map<string, Set<string>>();
 
+// Session-wide set of every track id we've ever surfaced as a
+// recommendation. Used as a soft prefer-unseen bias on refresh so
+// hitting "새로고침" actually rotates the picks, not just reshuffles
+// the same five RSS tracks.
+const sessionShownTracks = new Set<string>();
+
 function rememberBuilding(buildingId: string, trackIds: string[]): void {
   // Re-insert at the end so existing entries become "most recent".
   buildingTrackMemory.delete(buildingId);
@@ -275,16 +293,48 @@ function pickWithOverlapLimit(
   candidates: RecommendedTrack[],
   limit: number,
   buildingId: string,
+  chartToppers?: RecommendedTrack[],
 ): RecommendedTrack[] {
   const selected: RecommendedTrack[] = [];
   const selectedIds = new Set<string>();
+  // Genre tally — caps each genre at 2 of the `limit` slots so the
+  // panel doesn't end up "5 K-pop tracks" or "5 chart pop". Diversity
+  // is the user-visible win we just got asked for.
+  const genreCount = new Map<string, number>();
+  const GENRE_CAP = Math.max(2, Math.ceil(limit / 2));
 
-  // Always include pinned (special-source) tracks first.
-  for (const t of pinned) {
-    if (selected.length >= limit) break;
-    if (selectedIds.has(t.id)) continue;
+  const tryPush = (t: RecommendedTrack, ignoreGenreCap = false): boolean => {
+    if (selected.length >= limit) return false;
+    if (selectedIds.has(t.id)) return false;
+    if (!ignoreGenreCap) {
+      const g = String(t.genre || t.primaryGenreName || 'other');
+      if ((genreCount.get(g) ?? 0) >= GENRE_CAP) return false;
+    }
     selected.push(t);
     selectedIds.add(t.id);
+    const g = String(t.genre || t.primaryGenreName || 'other');
+    genreCount.set(g, (genreCount.get(g) ?? 0) + 1);
+    return true;
+  };
+
+  // Always include pinned (special-source) tracks first — these
+  // ignore the genre cap because they're contextually pinned (film
+  // theme / Wikidata song / landmark anthem).
+  for (const t of pinned) {
+    if (!tryPush(t, true)) continue;
+  }
+
+  // Reserve at least one slot for a current-chart guarantee. We pick
+  // from the TOP 3 chart positions (latest popularity) and randomize
+  // which one so two adjacent buildings don't both anchor on #1.
+  // Genre cap also bypassed because "the #1 song" is a contextual pin.
+  if (chartToppers && chartToppers.length > 0) {
+    const pool = chartToppers.slice(0, 3);
+    const order = [...pool].sort(() => Math.random() - 0.5);
+    for (const t of order) {
+      if (selected.length >= limit) break;
+      if (tryPush(t, true)) break; // one guaranteed chart-topper is enough
+    }
   }
 
   // Would adding `id` push any *other* building's overlap with us
@@ -305,18 +355,32 @@ function pickWithOverlapLimit(
     return false;
   };
 
-  // First pass: only accept candidates that respect the constraint.
-  for (const t of candidates) {
+  // First pass — strict: respects the cross-building overlap guard,
+  // the genre cap, and prefers tracks the user has NOT already seen
+  // this session (so refresh actually rotates the picks).
+  const seenThisSession = (id: string) => sessionShownTracks.has(id);
+  const sortedCandidates = [...candidates].sort((a, b) => {
+    const sa = seenThisSession(a.id) ? 1 : 0;
+    const sb = seenThisSession(b.id) ? 1 : 0;
+    return sa - sb; // unseen first
+  });
+  for (const t of sortedCandidates) {
     if (selected.length >= limit) break;
-    if (selectedIds.has(t.id)) continue;
     if (wouldExceedOverlap(t.id)) continue;
-    selected.push(t);
-    selectedIds.add(t.id);
+    if (!tryPush(t)) continue;
   }
 
-  // Second pass (rare): if the constraint starved us, fill the
-  // remaining slots so the panel never shows a half-empty list.
-  for (const t of candidates) {
+  // Second pass — relax the genre cap if we're still short.
+  for (const t of sortedCandidates) {
+    if (selected.length >= limit) break;
+    if (wouldExceedOverlap(t.id)) continue;
+    if (!tryPush(t, true)) continue;
+  }
+
+  // Third pass (very rare): the constraint starved us — fill the
+  // remaining slots without any guards so the panel never ships a
+  // half-empty list.
+  for (const t of sortedCandidates) {
     if (selected.length >= limit) break;
     if (selectedIds.has(t.id)) continue;
     selected.push(t);
@@ -324,6 +388,7 @@ function pickWithOverlapLimit(
   }
 
   rememberBuilding(buildingId, [...selectedIds]);
+  for (const id of selectedIds) sessionShownTracks.add(id);
   return selected;
 }
 
@@ -458,7 +523,11 @@ async function cityVibeAlgorithm(
   applySeasonBias(cityGenreWeights);
 
   // ── Stage 1 — RSS top songs in this country (chart signal) ──
-  const topSongs = await topSongsByCountry(vibe.country, 25, signal);
+  // Bumped 25 → 50 for a wider diversity pool — the panel returns
+  // limit (5) tracks but we want a 10× pool to draw from so refresh
+  // genuinely produces a different mix rather than reshuffling the
+  // same handful.
+  const topSongs = await topSongsByCountry(vibe.country, 50, signal);
 
   type Scored = { rss: (typeof topSongs)[number]; score: number };
   const scored: Scored[] = topSongs.map((song, idx) => {
@@ -481,7 +550,13 @@ async function cityVibeAlgorithm(
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  const rssCandidates = pool.slice(0, limit * 2);
+  // Bumped from limit*2 to limit*3 — wider RSS slate so the genre
+  // cap + session-shown bias have room to differentiate refreshes.
+  const rssCandidates = pool.slice(0, limit * 3);
+  // Capture the very-top (un-shuffled) chart positions separately so
+  // the picker can guarantee one current hit per panel regardless of
+  // how the random shuffle reordered the broader pool.
+  const chartToppers = scored.slice(0, 5).map(s => s.rss);
 
   // ── Stage 2 — keyword pool (city moods + building tenants) ──
   // The city's `moodKeywords` cover scene/ethnic identity that the
@@ -594,7 +669,28 @@ async function cityVibeAlgorithm(
     }
   }
 
-  return { vibe, tracks: merged, algorithm: 'city-vibe', context: {} };
+  // Resolve chart-toppers to RecommendedTracks so the picker can
+  // reserve a guaranteed slot. We already have most of these in the
+  // pool (`rssTracks`), so we mostly cherry-pick from there to avoid
+  // a second iTunes search round-trip. Anything missing falls back
+  // to a single targeted search.
+  const resolvedToppers: RecommendedTrack[] = [];
+  for (const top of chartToppers) {
+    const want = top.name.toLowerCase().split(/\s*[\(\[]/)[0].trim();
+    let match = rssTracks.find((t) => t.trackName.toLowerCase().includes(want));
+    if (!match) {
+      try {
+        const hits = await searchTrack(`${top.name} ${top.artistName}`, vibe.country, 1, signal);
+        match = hits.find((h) => !!h.previewUrl) ?? hits[0];
+      } catch { /* skip */ }
+    }
+    if (match && match.previewUrl && !resolvedToppers.some((r) => r.id === match!.id)) {
+      resolvedToppers.push(match);
+    }
+    if (resolvedToppers.length >= 3) break;
+  }
+
+  return { vibe, tracks: merged, algorithm: 'city-vibe', context: {}, chartToppers: resolvedToppers };
 }
 
 // ─── Weather → genre mood bias ──────────────────────────────────────
