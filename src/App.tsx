@@ -575,24 +575,14 @@ function App() {
   const headerTint = useArtworkTint(_topPinnedArtwork);
   const [buildings, setBuildings] = useState<OSMBuilding[]>([]);
 
-  // After the building list loads, re-select the building the
-  // restored snapshot was anchored to. Without this, prev/next on
-  // the bar still works (queue is restored) but the right rail
-  // shows the empty state until the user clicks something — and
-  // the + pin button on the bar reads "Select a building first"
-  // even though the restored track came FROM a building. We honor
-  // the snapshot only when the user hasn't already selected a
-  // different building this session.
-  useEffect(() => {
-    if (restoredBuildingRef.current) return;
-    if (selectedBuilding) { restoredBuildingRef.current = true; return; }
-    if (buildings.length === 0) return;
-    const snap = getPlayerStateSnapshot();
-    if (!snap.currentBuildingId) { restoredBuildingRef.current = true; return; }
-    const match = buildings.find((b) => b.id === snap.currentBuildingId);
-    if (match) setSelectedBuilding(match);
-    restoredBuildingRef.current = true;
-  }, [buildings, selectedBuilding]);
+  // Auto-select-on-mount removed — the map now ALWAYS opens with no
+  // building selected so users navigating from the landing page see
+  // a clean canvas. Returning users still see their previous queue
+  // restored (audio resumes paused), but no building is auto-picked
+  // for them. They explicitly click whatever they want next. The
+  // deep-link path below (`?building=way/123`) still respects URL-
+  // driven selection.
+  void restoredBuildingRef; // (kept for deep-link guard logic below)
 
   // ── Deep-link auto-select ──
   // When the page is opened with `?building=way/123`, wait for the
@@ -710,30 +700,23 @@ function App() {
     return () => clearTimeout(t);
   }, [selectedBuilding]);
 
-  // Seed demo agent playlists for buildings that have no pins yet,
-  // so the UI renders meaningful data before real users tag
-  // anything. Idempotent — never overwrites real entries. Runs in
-  // production too: VIBLOC has no real-user data yet, the seeded
-  // personas ARE the demo content (and the iTunes enricher needs
-  // to fire so covers match Apple Music).
+  // Seed demo agent playlists — DEV ONLY. Production uses real-user
+  // data only; the virtual personas (Mei, Rio, Jiro, Jaehyun, Noa,
+  // etc.) and their pre-pinned tracks load just in dev so designers
+  // can preview the UI with content. Idempotent — never overwrites
+  // real entries when it does run.
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     if (buildings.length === 0) return;
     void import('./features/dev/seedAgents').then(({ seedBuildingPlaylists }) => {
       seedBuildingPlaylists(
         buildings.map((b) => ({
           id: b.id,
-          // Building-aware seeding: pass shape so the seeder can vary
-          // tracks per building (a tall office tower gets office-vibe
-          // music, a low retail block gets cafe-friendly picks).
           height: b.height,
           tagCategories: b.tags?.map((t) => t.category) ?? [],
         })),
         AREA_COUNTRY[area],
       );
-      // Kick off the iTunes enrichment pass so the picsum placeholder
-      // covers get progressively replaced with real Apple album art
-      // (and previewUrl + trackViewUrl) within a few seconds. Cached
-      // in localStorage so it's a one-time cost per device.
       void import('./features/dev/enrichSeedArtwork').then(({ enrichSeedArtworkInBackground }) => {
         enrichSeedArtworkInBackground(AREA_COUNTRY[area]);
       });
