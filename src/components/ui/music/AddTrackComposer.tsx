@@ -193,6 +193,18 @@ export function AddTrackComposer({
         />
       </form>
 
+      {/* Results well — bounded scroll area so playlist matches + up
+          to 6 track rows + section headers don't push the rest of
+          the building panel off screen. The input above stays sticky
+          (lives outside this scroller), so the user can keep typing
+          without losing context while reviewing matches. maxHeight
+          calibrated for ~6 rows + a Playlists section before the
+          internal scrollbar kicks in. */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 8,
+        maxHeight: 360,
+        overflowY: 'auto',
+      }}>
       {/* Playlist matches — shown ABOVE track results when the query
           fuzz-matches a curator's alias / name / playlist name on
           this building. Apple Music's search surfaces "Top Result"
@@ -268,6 +280,7 @@ export function AddTrackComposer({
           />
         );
       })}
+      </div>
     </div>
   );
 }

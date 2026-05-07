@@ -312,7 +312,12 @@ export function SearchBar({ area, buildings, onSelectBuilding, onNavigate, darkM
             margin: 0,
             padding: 4,
             width: embedded ? '100%' : 320,
-            maxHeight: 280,
+            // 360 (was 280) so ~7 building suggestions fit before
+            // the scrollbar kicks in. `min(360px, 50vh)` keeps short
+            // viewports from having the dropdown spill past the
+            // bottom of the rail. `overflowY: auto` already turns
+            // any overflow into an internal scrollbar.
+            maxHeight: 'min(360px, 50vh)',
             overflowY: 'auto',
             background: darkMode ? 'rgba(20,20,28,0.92)' : 'rgba(255,255,255,0.92)',
             backdropFilter: 'blur(20px)',
