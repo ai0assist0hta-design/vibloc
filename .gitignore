@@ -26,3 +26,12 @@ dist-ssr
 
 # Vite cache
 .vite/
+
+# Private working notes (kept locally, never pushed)
+/today/
+/CLAUDE.md
+/TODAY-*.md
+/docs/business/
+/docs/개발현황-총정리.md
+/docs/디렉토리구조.md
+/bun.lock
