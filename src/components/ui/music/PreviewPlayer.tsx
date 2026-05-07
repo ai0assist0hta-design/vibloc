@@ -151,13 +151,6 @@ export function userHasPlayedOnce(): boolean { return _userHasPlayed; }
 // reactivity, app still functions).
 let _audioCtx: AudioContext | null = null;
 let _analyser: AnalyserNode | null = null;
-// User-volume gain node, inserted AFTER the analyser tap so the
-// visualiser's input signal never changes with the playback volume
-// slider. Without this split, the analyser saw the post-volume
-// signal and either starved (low volume) or saturated (high volume)
-// — making the building EQ animation look pegged at the top of the
-// scale on a loud track + max volume.
-let _outputGain: GainNode | null = null;
 let _audioGraphWired = false;
 let _freqData: Uint8Array<ArrayBuffer> | null = null;
 let _beatRafId: number | null = null;
@@ -185,17 +178,8 @@ function ensureAudioGraph(): void {
     _analyser.fftSize = 2048;
     _analyser.smoothingTimeConstant = 0.4;
     _freqData = new Uint8Array(_analyser.frequencyBinCount);
-    _outputGain = _audioCtx.createGain();
-    _outputGain.gain.value = a.volume;
-    // src → analyser → gain → destination
-    // analyser is tapped BEFORE the gain so its signal stays at the
-    // raw track level regardless of the user's volume slider. Audio
-    // element's own .volume is locked to 1.0 below; the gain node is
-    // now the single playback volume control (setVolume writes here).
     src.connect(_analyser);
-    _analyser.connect(_outputGain);
-    _outputGain.connect(_audioCtx.destination);
-    a.volume = 1; // visualiser sees a stable 0 dB FS reference signal
+    _analyser.connect(_audioCtx.destination);
     _audioGraphWired = true;
   } catch {
     // Browser blocked it (Safari pre-gesture, etc.) — leave unwired,
@@ -755,16 +739,7 @@ export function getPlayerStateSnapshot(): PlayerState {
 export function setVolume(v: number): void {
   const clamped = Math.max(0, Math.min(1, v));
   const a = ensureAudio();
-  // After the audio graph is wired, the GainNode owns playback
-  // volume — `a.volume` is locked to 1.0 to keep the analyser tap on
-  // the raw track signal. Until the graph wires (pre-first-play
-  // browser autoplay gate), we still write `a.volume` so muting on
-  // the landing page works as expected.
-  if (_outputGain) {
-    _outputGain.gain.value = clamped;
-  } else {
-    a.volume = clamped;
-  }
+  a.volume = clamped;
   const wasMuted = state.muted;
   const nextMuted = wasMuted && clamped === 0; // unmute when raised
   a.muted = nextMuted;
