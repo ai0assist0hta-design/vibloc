@@ -98,6 +98,23 @@ export async function signInWithGoogle(): Promise<void> {
   if (error) throw error;
 }
 
+/** Persist a display-name change to Supabase user_metadata so the
+ *  server is the source of truth across devices / fresh sign-ins.
+ *  Avatar uploads are kept local-only (data URLs blow past
+ *  user_metadata's ~4 KB cap). Errors are swallowed so a flaky
+ *  network doesn't undo the in-memory change the user just made —
+ *  the local store already reflects the new name. */
+export async function persistDisplayName(displayName: string): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  try {
+    await supabase().auth.updateUser({
+      data: { full_name: displayName, name: displayName },
+    });
+  } catch {
+    /* network down / signed out — local state stays correct */
+  }
+}
+
 /** Sign out + clear local store. */
 export async function signOut(): Promise<void> {
   if (isSupabaseConfigured()) {

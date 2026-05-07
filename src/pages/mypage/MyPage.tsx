@@ -11,6 +11,7 @@ import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/useAuthStore';
 import { isDevAdmin } from '@/features/auth/devAdmin';
+import { persistDisplayName } from '@/features/auth/supabaseAuth';
 import { useProfileData } from '@/features/profile/useProfileData';
 import { useBuildingResolver } from '@/features/profile/useBuildingResolver';
 import { useT, useTimeAgo } from '@/lib/app/i18n';
@@ -293,7 +294,15 @@ export function MyPage() {
   };
   const saveName = () => {
     const v = nameDraft.trim();
-    if (v) updateUser({ displayName: v });
+    if (v) {
+      // Local update first — instant UI reflection. Then push to
+      // Supabase user_metadata so the new name follows the user
+      // across devices and survives localStorage clears. Fire-and-
+      // forget: the local state is already correct, network failure
+      // shouldn't surface as an error or roll back the visible name.
+      updateUser({ displayName: v });
+      void persistDisplayName(v);
+    }
     setEditingName(false);
   };
   const cancelEditName = () => {
