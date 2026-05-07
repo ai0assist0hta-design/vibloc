@@ -49,6 +49,20 @@ export const useI18nStore = create<I18nStore>((set) => ({
   },
 }));
 
+// Cross-tab live sync — language change in one tab flips every
+// other open tab to the same locale immediately.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key !== STORAGE_KEY || !e.newValue) return;
+    const next = e.newValue as Lang;
+    if (next === 'en' || next === 'ko' || next === 'ja') {
+      if (useI18nStore.getState().lang !== next) {
+        useI18nStore.setState({ lang: next });
+      }
+    }
+  });
+}
+
 /**
  * Translation dictionary. Keys are namespaced ids; values are the literal
  * string in each supported language. Add new keys here, never inline

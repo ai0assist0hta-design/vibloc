@@ -53,6 +53,18 @@ export const useDarkModeStore = create<DarkModeStore>((set, get) => ({
   toggleDarkMode: () => get().setDarkMode(!get().darkMode),
 }));
 
+// Cross-tab live sync — toggling dark mode in tab A immediately
+// flips every other open tab to the same palette, no refresh needed.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key !== STORAGE_KEY || e.newValue == null) return;
+    const next = e.newValue === '1' || e.newValue === 'true';
+    if (useDarkModeStore.getState().darkMode !== next) {
+      useDarkModeStore.setState({ darkMode: next });
+    }
+  });
+}
+
 /** Convenience hook — returns just the boolean for components that
  *  only need to read. Equivalent to `useDarkModeStore(s => s.darkMode)`. */
 export function useDarkMode(): boolean {
