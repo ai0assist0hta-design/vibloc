@@ -198,11 +198,27 @@ function startBeatLoop(): void {
     if (!_analyser || !_freqData) return;
     _analyser.getByteFrequencyData(_freqData);
 
+    // Volume-compensation gain — the analyser is wired AFTER the
+    // <audio> element's volume control, so cranking the slider
+    // saturates every FFT bin to 255 and the visualiser flatlines.
+    // The user explicitly asked for the low-volume "musical wave"
+    // look to PERSIST when volume is raised, so we scale the
+    // visualiser-input bytes by `min(1, ceiling / userVolume)`.
+    //
+    //   userVolume ≤ ceiling → compensation = 1  (no change, low-vol look)
+    //   userVolume = 1.0     → compensation ≈ 0.4 (signal feels like vol 0.4)
+    //
+    // Only affects the visualiser pipeline (spectrum + beat); actual
+    // playback loudness is whatever .volume / GainNode is doing.
+    const VISUAL_VOL_CEILING = 0.4;
+    const userVol = Math.max(0.05, state.volume || 1);
+    const visComp = Math.min(1, VISUAL_VOL_CEILING / userVol);
+
     // Bass band: FFT bins 40-150 Hz at 44.1 kHz sample rate, fftSize
     // 2048 → bin width ≈ 21.5 Hz → bins 2..7 cover the band.
     let sum = 0;
     for (let i = 2; i <= 7; i++) sum += _freqData[i];
-    const energy = sum / 6 / 255;  // 0..1
+    const energy = (sum / 6 / 255) * visComp;  // 0..1, vol-compensated
 
     // Running mean (EMA) — adaptive baseline so loud and quiet songs
     // both produce visible reactivity.
@@ -235,12 +251,15 @@ function startBeatLoop(): void {
     //   (3) PERCEPTUAL GAMMA — pow(x, 0.6) for mid-range
     //       expansion so subtle moves are visible.
     // Pass 1: compute tilted values + this-frame global max.
+    // visComp (computed above) shrinks the input proportionally to
+    // user volume, so the wave shape stays the way it looks at
+    // volume ≤ VISUAL_VOL_CEILING.
     let globalMaxThisFrame = 0;
     for (let b = 0; b < SPECTRUM_BANDS; b++) {
       const { lo, hi } = _bandRanges[b];
       let sum = 0; let n = 0;
       for (let i = lo; i < hi && i < _freqData.length; i++) { sum += _freqData[i]; n++; }
-      const rawMean = n > 0 ? (sum / n) / 255 : 0;
+      const rawMean = (n > 0 ? (sum / n) / 255 : 0) * visComp;
       const tilt = 1.0 + (b / SPECTRUM_BANDS) * 1.5;
       const tilted = Math.min(1, rawMean * tilt);
       _tiltedScratch[b] = tilted;
