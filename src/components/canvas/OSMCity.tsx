@@ -805,31 +805,48 @@ if (spectrumActive > 0.001) {
   // Mid-rise (15 floors): baseline 2, range 13.
   // 5-floor cottage: baseline 1, range 4 — visible motion up
   // to four floors instead of "always full".
-  float baseline = max(1.0, floor(wMaxFloors * 0.18));
-  // Cap the bar's top at 85 % of the building's height so even on a
-  // peak the EQ never fills all the way to the roof — the top floors
-  // stay quiet, giving the silhouette a visible "head room" cue
-  // (matches Apple Music's mini visualiser convention).
-  float ceiling = max(baseline + 1.0, floor(wMaxFloors * 0.85));
+  // Section split — for stepped / setback buildings (Empire State,
+  // Chrysler, etc.) a single bar from ground to roof reads as one
+  // long stripe across geometry breaks. Splitting the height into
+  // SECTION_COUNT independent sub-bars lets each "block" of the
+  // silhouette breathe on its own, and the per-section band shift
+  // means the three bars never mirror each other (one section may
+  // be peaking on bass while another is quiet on highs).
+  // Tall (60-floor) → 3 sections of 20 floors each, each with its
+  // own baseline / ceiling / dynamic range.
+  // Short (≤8 floors) → 1 section (skip the split entirely so the
+  // baseline logic doesn't crush the visible motion to 0).
+  float sectionCount = wMaxFloors >= 12.0 ? 3.0 : (wMaxFloors >= 6.0 ? 2.0 : 1.0);
+  float floorsPerSection = wMaxFloors / sectionCount;
+  float sectionIdx = floor(min(wFloorIdx / floorsPerSection, sectionCount - 1.0));
+  float localFloor = wFloorIdx - sectionIdx * floorsPerSection;
+
+  // Per-section baseline + ceiling so each block has its own
+  // 18 % baseline floor and 85 % head room.
+  float baseline = max(1.0, floor(floorsPerSection * 0.18));
+  float ceiling = max(baseline + 1.0, floor(floorsPerSection * 0.85));
   float dynamicRange = ceiling - baseline;
-  // Curve eased from pow(1.6) → pow(0.85). The 1.6 squash was
-  // designed for the pre-AGC saturating signal; combined with the
-  // newer volume-compensation upstream it left mid-range bands
-  // glued near the baseline and many columns visibly static. 0.85
-  // mildly EXPANDS the mid range so quiet bands still climb a few
-  // floors and the wave looks alive across all columns. Pure
-  // linear (1.0) felt slightly too uniform; 0.85 keeps a hint of
-  // perceptual emphasis on louder bands.
-  // Plus a per-column NEIGHBOR-MIX so a band that happens to be
-  // dead silent (very-high frequencies in pop tracks, etc.) still
-  // gets some motion from its neighbors — no "frozen" columns.
-  float bandEnergyN1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 1.0, 32.0) + 0.5) / 32.0, 0.5)).r;
-  float bandEnergyP1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 31.0, 32.0) + 0.5) / 32.0, 0.5)).r;
-  float mixedEnergy = bandEnergy * 0.7 + (bandEnergyN1 + bandEnergyP1) * 0.15;
+
+  // Per-section band shift — section 0 keeps its own band, section 1
+  // pulls from a band 7 indices away, section 2 from 14 away. The
+  // three sections therefore animate to different parts of the
+  // spectrum and never lock into the same motion.
+  float sectionBand = mod(bandIdx + sectionIdx * 7.0, 32.0);
+  float sectionBandU = (sectionBand + 0.5) / 32.0;
+  float bandEnergyMain = texture2D(uSpectrumTex, vec2(sectionBandU, 0.5)).r;
+  // Per-column NEIGHBOR-MIX (around the section-shifted band) so a
+  // dead-silent band still gets motion from neighbors.
+  float bandEnergyN1 = texture2D(uSpectrumTex, vec2((mod(sectionBand + 1.0, 32.0) + 0.5) / 32.0, 0.5)).r;
+  float bandEnergyP1 = texture2D(uSpectrumTex, vec2((mod(sectionBand + 31.0, 32.0) + 0.5) / 32.0, 0.5)).r;
+  float mixedEnergy = bandEnergyMain * 0.7 + (bandEnergyN1 + bandEnergyP1) * 0.15;
+
+  // Curve pow(0.85) gently EXPANDS the mid range so quiet bands
+  // still climb a few floors. Combined with the volume-compensation
+  // upstream the wave stays animated across the whole volume range.
   float effectiveEnergy = pow(mixedEnergy, 0.85);
   float dynamicFloors = effectiveEnergy * dynamicRange;
   float barTop = baseline + dynamicFloors;
-  float spectrumLit = step(wFloorIdx, barTop);
+  float spectrumLit = step(localFloor, barTop);
   winLit = mix(winLit, spectrumLit, spectrumActive);
 }
 float topFade = smoothstep(50.0, 100.0, wFloorY);
