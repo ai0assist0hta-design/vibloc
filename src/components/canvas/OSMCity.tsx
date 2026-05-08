@@ -815,6 +815,17 @@ if (spectrumActive > 0.001) {
   float bandEnergyN1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 1.0, 32.0) + 0.5) / 32.0, 0.5)).r;
   float bandEnergyP1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 31.0, 32.0) + 0.5) / 32.0, 0.5)).r;
   float mixedEnergy = bandEnergy * 0.7 + (bandEnergyN1 + bandEnergyP1) * 0.15;
+  // MOTION FLOOR — even bands that happen to be near-silent get a
+  // gentle, slow sine wobble so no column ever sits at a constant
+  // height. Each column has its own random phase + frequency
+  // perturbation so neighbouring columns don't wave in unison;
+  // amplitude is tiny (≤ 8 %) so it doesn't visually compete with
+  // the music-driven motion when the band IS active.
+  float colPhase = hash21(vec2(wColIdx + 0.13, vBuildingId * 0.137)) * 6.2831;
+  float colSpeed = 1.2 + hash21(vec2(wColIdx + 7.0, vBuildingId * 0.31)) * 1.6;
+  float wobble = 0.5 + 0.5 * sin(uTime * colSpeed + colPhase);
+  float motionFloor = 0.06 * wobble;
+  mixedEnergy = max(mixedEnergy, motionFloor);
 
   // Floor-count adaptive curve — taller buildings get slight peak
   // compression (so 60-floor towers don't always slam to ceiling),
