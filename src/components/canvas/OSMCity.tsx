@@ -821,11 +821,24 @@ if (spectrumActive > 0.001) {
   float sectionIdx = floor(min(wFloorIdx / floorsPerSection, sectionCount - 1.0));
   float localFloor = wFloorIdx - sectionIdx * floorsPerSection;
 
-  // Per-section baseline + ceiling so each block has its own
-  // 18 % baseline floor and 85 % head room.
-  float baseline = max(1.0, floor(floorsPerSection * 0.18));
-  float ceiling = max(baseline + 1.0, floor(floorsPerSection * 0.85));
-  float dynamicRange = ceiling - baseline;
+  // Bar grounds at the BOTTOM of each section (no fixed baseline) —
+  // user wants the signal to rise from the literal floor of the
+  // section so motion always reads. baseline 0 + dynamic range up
+  // to the per-section ceiling.
+  //
+  // Ceiling scales with building height so every silhouette gets a
+  // pleasing head room ratio:
+  //   • short (≤ 8 floors): 92 % — bars need most of the height to
+  //     register visually
+  //   • mid   (9-30 floors): 85 % — Apple-Music-style head room
+  //   • tall  (> 30 floors): 78 % — extra head room so peaks don't
+  //     visually crowd the roof of a skyscraper
+  float ceilingFrac = floorsPerSection <= 8.0
+    ? 0.92
+    : (floorsPerSection >= 30.0 ? 0.78 : 0.85);
+  float baseline = 0.0;
+  float ceiling = max(2.0, floor(floorsPerSection * ceilingFrac));
+  float dynamicRange = ceiling;
 
   // Per-section band shift — section 0 keeps its own band, section 1
   // pulls from a band 7 indices away, section 2 from 14 away. The
@@ -843,7 +856,13 @@ if (spectrumActive > 0.001) {
   // Curve pow(0.85) gently EXPANDS the mid range so quiet bands
   // still climb a few floors. Combined with the volume-compensation
   // upstream the wave stays animated across the whole volume range.
-  float effectiveEnergy = pow(mixedEnergy, 0.85);
+  // Floor count adaptive curve — taller sections get a little more
+  // perceptual punch (slightly compressing peaks so a 50-band wave
+  // doesn't always max out the dynamic range), short sections get
+  // a slight expansion so quiet bands still climb a few visible
+  // floors instead of staying flush with the ground.
+  float curveExp = floorsPerSection <= 8.0 ? 0.75 : (floorsPerSection >= 30.0 ? 0.95 : 0.85);
+  float effectiveEnergy = pow(mixedEnergy, curveExp);
   float dynamicFloors = effectiveEnergy * dynamicRange;
   float barTop = baseline + dynamicFloors;
   float spectrumLit = step(localFloor, barTop);
