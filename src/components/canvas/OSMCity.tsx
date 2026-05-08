@@ -827,7 +827,16 @@ if (spectrumActive > 0.001) {
   float bandEnergyP1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 31.0, 32.0) + 0.5) / 32.0, 0.5)).r;
   float mixedEnergy = bandEnergy * 0.7 + (bandEnergyN1 + bandEnergyP1) * 0.15;
   float effectiveEnergy = pow(mixedEnergy, 0.85);
-  float dynamicFloors = effectiveEnergy * dynamicRange;
+  // Soft-clip near the ceiling — anything above 0.80 asymptotes
+  // toward ~0.92 instead of climbing further, and on the very next
+  // frame the band's natural release pulls it back down. Visually:
+  // the bar approaches the cap, "compresses" briefly, then drops
+  // — never touches the actual roof of the building. Implements
+  // the user's request: "닿는다면 바로 줄어들게".
+  float clipped = effectiveEnergy <= 0.80
+    ? effectiveEnergy
+    : 0.80 + 0.12 * (1.0 - exp(-(effectiveEnergy - 0.80) * 8.0));
+  float dynamicFloors = clipped * dynamicRange;
   float barTop = baseline + dynamicFloors;
   float spectrumLit = step(wFloorIdx, barTop);
   winLit = mix(winLit, spectrumLit, spectrumActive);
