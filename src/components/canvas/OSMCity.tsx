@@ -806,22 +806,9 @@ if (spectrumActive > 0.001) {
   // 5-floor cottage: baseline 1, range 4 — visible motion up
   // to four floors instead of "always full".
   // Single bar per column — one continuous EQ from the building's
-  // ground floor up to a height-adaptive ceiling. No vertical
-  // section split (was creating 1-3 sub-bars). Heights are mapped
-  // by total building floors instead of per-section floor count.
-  //
-  // Ceiling fraction adapts to building height so every silhouette
-  // gets pleasing head room:
-  //   • short (≤ 8 floors): 92 % — bars need most of the height to
-  //     register visually
-  //   • mid   (9-30 floors): 85 % — Apple-Music-style head room
-  //   • tall  (> 30 floors): 78 % — extra head room so peaks don't
-  //     visually crowd the roof of a skyscraper
-  float ceilingFrac = wMaxFloors <= 8.0
-    ? 0.92
-    : (wMaxFloors >= 30.0 ? 0.78 : 0.85);
-  float ceiling = max(2.0, floor(wMaxFloors * ceilingFrac));
-  float dynamicRange = ceiling;
+  // ground floor all the way up to (and including) the roof on a
+  // peak. No head-room cap; the bar can fully fill the silhouette.
+  float dynamicRange = wMaxFloors;
 
   // Per-column NEIGHBOR-MIX so a dead-silent band still gets some
   // motion from its neighbors and no column ever freezes.
