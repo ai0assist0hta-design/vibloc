@@ -825,15 +825,14 @@ if (spectrumActive > 0.001) {
   float motionFloor = 0.06 * wobble;
   mixedEnergy = max(mixedEnergy, motionFloor);
 
-  // PER-COLUMN PULSE — multiplicative modulation so even columns
-  // mapped to a near-constant band (typical for bass bins) visibly
-  // breathe up and down. Each column gets its own pulse phase +
-  // speed, so adjacent columns desync and the facade reads as
-  // many independent bars instead of a few solid white lines.
-  // Scale 0.55 .. 1.0 — never zero (we don't want flickering).
+  // PER-COLUMN PULSE — kept subtle so the music-driven motion stays
+  // dominant. Was 0.55..1.0 multiplier (45 % modulation) which over-
+  // rode the beat — bars seemed to wave on their own clock instead
+  // of with the song. Now 0.92..1.0 (8 % only): just enough to
+  // desync neighbouring columns visually without masking the beat.
   float colPhase2 = hash21(vec2(wColIdx + 5.3, vBuildingId * 0.21)) * 6.2831;
   float colSpeed2 = 1.4 + hash21(vec2(wColIdx + 11.7, vBuildingId * 0.41)) * 1.8;
-  float pulse = 0.55 + 0.45 * (0.5 + 0.5 * sin(uTime * colSpeed2 + colPhase2));
+  float pulse = 0.92 + 0.08 * (0.5 + 0.5 * sin(uTime * colSpeed2 + colPhase2));
   mixedEnergy *= pulse;
 
   // Floor-count adaptive curve — taller buildings get slight peak
