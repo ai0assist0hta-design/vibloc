@@ -818,14 +818,23 @@ if (spectrumActive > 0.001) {
   // MOTION FLOOR — even bands that happen to be near-silent get a
   // gentle, slow sine wobble so no column ever sits at a constant
   // height. Each column has its own random phase + frequency
-  // perturbation so neighbouring columns don't wave in unison;
-  // amplitude is tiny (≤ 8 %) so it doesn't visually compete with
-  // the music-driven motion when the band IS active.
+  // perturbation so neighbouring columns don't wave in unison.
   float colPhase = hash21(vec2(wColIdx + 0.13, vBuildingId * 0.137)) * 6.2831;
   float colSpeed = 1.2 + hash21(vec2(wColIdx + 7.0, vBuildingId * 0.31)) * 1.6;
   float wobble = 0.5 + 0.5 * sin(uTime * colSpeed + colPhase);
   float motionFloor = 0.06 * wobble;
   mixedEnergy = max(mixedEnergy, motionFloor);
+
+  // PER-COLUMN PULSE — multiplicative modulation so even columns
+  // mapped to a near-constant band (typical for bass bins) visibly
+  // breathe up and down. Each column gets its own pulse phase +
+  // speed, so adjacent columns desync and the facade reads as
+  // many independent bars instead of a few solid white lines.
+  // Scale 0.55 .. 1.0 — never zero (we don't want flickering).
+  float colPhase2 = hash21(vec2(wColIdx + 5.3, vBuildingId * 0.21)) * 6.2831;
+  float colSpeed2 = 1.4 + hash21(vec2(wColIdx + 11.7, vBuildingId * 0.41)) * 1.8;
+  float pulse = 0.55 + 0.45 * (0.5 + 0.5 * sin(uTime * colSpeed2 + colPhase2));
+  mixedEnergy *= pulse;
 
   // Floor-count adaptive curve — taller buildings get slight peak
   // compression (so 60-floor towers don't always slam to ceiling),
