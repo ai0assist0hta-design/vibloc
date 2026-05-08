@@ -838,22 +838,7 @@ if (spectrumActive > 0.001) {
     : 0.80 + 0.12 * (1.0 - exp(-(effectiveEnergy - 0.80) * 8.0));
   float dynamicFloors = clipped * dynamicRange;
   float barTop = baseline + dynamicFloors;
-  // Two-zone composite (replaces the previous full-replace with a
-  // hard step):
-  //   • BELOW BAR — denser occupancy than the ambient pattern but
-  //     still NOT a solid fill. A per-cell hash gates ~80 % of
-  //     windows lit, so the bar reads as a glowing column with
-  //     visible sparseness rather than a brick of light.
-  //   • ABOVE BAR — keep the ambient night-occupancy pattern. The
-  //     previous shader forced this region to 0, leaving big dark
-  //     stripes on tall selected buildings in dark mode (user
-  //     report). Now lit windows survive at the natural ~70 %
-  //     occupancy the rest of the city uses.
-  float belowBarMask = step(wFloorIdx, barTop);
-  float barOcc = step(0.22, hash21(winCell + wBuildingCell * 19.3 + 11.0));
-  float barLit = max(winLit, barOcc) * belowBarMask;
-  float aboveLit = winLit * (1.0 - belowBarMask);
-  float spectrumLit = barLit + aboveLit;
+  float spectrumLit = step(wFloorIdx, barTop);
   winLit = mix(winLit, spectrumLit, spectrumActive);
 }
 float topFade = smoothstep(50.0, 100.0, wFloorY);
