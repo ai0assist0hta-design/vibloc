@@ -868,7 +868,10 @@ if (blinkActive > 0.001) {
   float musicBoost = 0.15 + 0.30 * uBeatLevel;
   float blinkWave2 = sin(uTime * blinkRate + blinkPhase) * 0.5 + 0.5;
   float blinkOn = step(1.0 - musicBoost, blinkWave2);
-  float spectralBlink = partGate * blinkOn * (1.0 - winLit) * blinkActive;
+  // Skip the selected building — its facade should read as a calm
+  // light-mode-like surface, not also flicker on top of the selection
+  // halo + EQ bars.
+  float spectralBlink = partGate * blinkOn * (1.0 - winLit) * blinkActive * (1.0 - vIsSelected);
   winLit = max(winLit, spectralBlink);
 }
 float topFade = smoothstep(50.0, 100.0, wFloorY);
@@ -908,9 +911,11 @@ if (spectrumActive > 0.001) {
   nightLight = mix(nightLight, genreTint, spectrumActive);
 }
 
-// Night blink
+// Night blink — dark-mode window shimmer. Disabled on the selected
+// building so its facade reads as a calm, light-mode-like silhouette
+// instead of also shimmering on top of the selection halo + EQ.
 float blinkChance = hash21(winCell * 5.3 + wBuildingCell * 2.1);
-float isBlinking = step(0.72, blinkChance) * uDarkMode;
+float isBlinking = step(0.72, blinkChance) * uDarkMode * (1.0 - vIsSelected);
 float blinkSpeed = mix(0.03, 0.12, hash21(winCell * 7.1 + wBuildingCell));
 float blinkPhase = hash21(winCell * 11.3 + wBuildingCell) * 6.2832;
 float blinkWave = sin(uTime * blinkSpeed * 6.2832 + blinkPhase);
@@ -979,13 +984,12 @@ float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
 if (ghostMask > 0.5) discard;
 
 // ====== Selection glow ======
-// Match light + dark intensities — user wants the dark-mode selection
-// halo to read the same as light mode rather than the previous reduced
-// dark-only values.
+// Same halo color + intensity in both modes — user wants the dark-mode
+// selection to feel identical to light-mode (no blue tint shift).
 float selFocus = insideFocus * uFocusActive;
 if (selFocus > 0.001) {
   float selBreath = 0.78 + 0.22 * (sin(uTime * 1.6) * 0.5 + 0.5);
-  vec3 selGlow = mix(vec3(0.92, 0.96, 1.0), vec3(0.65, 0.82, 1.0), uDarkMode);
+  vec3 selGlow = vec3(0.92, 0.96, 1.0);
   gl_FragColor.rgb += selGlow * 0.06 * selBreath * selFocus;
   float selRim = pow(fresnel, 2.0);
   gl_FragColor.rgb += selGlow * selRim * 0.40 * selBreath * selFocus * wFacadeMask;
