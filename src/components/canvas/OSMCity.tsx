@@ -945,13 +945,18 @@ float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
 if (ghostMask > 0.5) discard;
 
 // ====== Selection glow ======
+// Dark-mode intensities cut ~50 % vs light — at night the glow halo
+// reads way brighter against the near-black bg + bloom postprocessing,
+// so the matched 0.06 / 0.40 light values overpowered the silhouette.
 float selFocus = insideFocus * uFocusActive;
 if (selFocus > 0.001) {
   float selBreath = 0.78 + 0.22 * (sin(uTime * 1.6) * 0.5 + 0.5);
   vec3 selGlow = mix(vec3(0.92, 0.96, 1.0), vec3(0.65, 0.82, 1.0), uDarkMode);
-  gl_FragColor.rgb += selGlow * 0.06 * selBreath * selFocus;
+  float bodyGlow = mix(0.06, 0.025, uDarkMode);
+  float rimGlow  = mix(0.40, 0.18,  uDarkMode);
+  gl_FragColor.rgb += selGlow * bodyGlow * selBreath * selFocus;
   float selRim = pow(fresnel, 2.0);
-  gl_FragColor.rgb += selGlow * selRim * 0.40 * selBreath * selFocus * wFacadeMask;
+  gl_FragColor.rgb += selGlow * selRim * rimGlow * selBreath * selFocus * wFacadeMask;
 }
 
 #include <dithering_fragment>`
