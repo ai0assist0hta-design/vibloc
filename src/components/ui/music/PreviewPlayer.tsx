@@ -210,12 +210,13 @@ function startBeatLoop(): void {
     //
     // Only affects the visualiser pipeline (spectrum + beat); actual
     // playback loudness is whatever .volume / GainNode is doing.
-    // Locked at 0.5 — the user explicitly approved the EQ wave shape
-    // at the default volume (0.5). Anything ≤ 0.5 plays unchanged;
-    // anything above is proportionally scaled down on the visualiser
-    // side so the wave always LOOKS like volume 0.5 even at 1.0.
-    // Audible playback loudness is unaffected.
-    const VISUAL_VOL_CEILING = 0.5;
+    // Lowered to 0.3 — the user reports the EQ wave looks more
+    // dynamic/varied at lower volumes than at 0.5. Locking the
+    // visualiser ceiling to 0.3 means even at the default 0.5
+    // playback volume the wave reads as if the signal were ~0.3
+    // (signal scaled by 0.3/0.5 = 0.6). Audible loudness is
+    // unaffected — slider still goes 0..1.
+    const VISUAL_VOL_CEILING = 0.3;
     const userVol = Math.max(0.05, state.volume || 1);
     const visComp = Math.min(1, VISUAL_VOL_CEILING / userVol);
 
