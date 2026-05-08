@@ -836,6 +836,26 @@ if (spectrumActive > 0.001) {
   float barTop = dynamicFloors;
   float spectrumLit = step(wFloorIdx, barTop);
   winLit = mix(winLit, spectrumLit, spectrumActive);
+
+  // Random spectral BLINKS on the off-bar windows so the dark zone
+  // above the bar isn't a solid block. A small subset of off-windows
+  // (~8 %) is selected per cell, each with its own blink rate +
+  // phase, gated on a music-driven threshold so blinks become more
+  // frequent on peaks. Looks like scattered apartment lights flicking
+  // on and off — inspired by light-mode shadowed buildings, where
+  // a few interior windows show through a darkened facade.
+  float partHash = hash21(winCell + wBuildingCell * 47.3);
+  float partGate = step(0.92, partHash);
+  float blinkPhase = partHash * 6.2831;
+  float blinkRate = 0.6 + partHash * 1.4;
+  float musicBoost = 0.18 + 0.20 * mixedEnergy;
+  float blinkWave2 = sin(uTime * blinkRate + blinkPhase) * 0.5 + 0.5;
+  float blinkOn = step(1.0 - musicBoost, blinkWave2);
+  // Apply only to OFF windows (above bar) — multiply by (1 - lit) so
+  // bar windows aren't double-lit, and gate by spectrumActive so
+  // unselected buildings stay calm.
+  float spectralBlink = partGate * blinkOn * (1.0 - winLit) * spectrumActive;
+  winLit = max(winLit, spectralBlink);
 }
 float topFade = smoothstep(50.0, 100.0, wFloorY);
 winLit *= mix(1.0, step(0.35, hash21(wBuildingCell + 99.0)), topFade);
