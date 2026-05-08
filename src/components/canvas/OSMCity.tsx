@@ -837,24 +837,29 @@ if (spectrumActive > 0.001) {
   float spectrumLit = step(wFloorIdx, barTop);
   winLit = mix(winLit, spectrumLit, spectrumActive);
 
-  // Random spectral BLINKS on the off-bar windows so the dark zone
-  // above the bar isn't a solid block. A small subset of off-windows
-  // (~8 %) is selected per cell, each with its own blink rate +
-  // phase, gated on a music-driven threshold so blinks become more
-  // frequent on peaks. Looks like scattered apartment lights flicking
-  // on and off — inspired by light-mode shadowed buildings, where
-  // a few interior windows show through a darkened facade.
+}
+
+// Global SPECTRAL BLINKS — applied to OFF windows across the WHOLE
+// dark-mode skyline whenever audio is playing. ~8 % of off-windows
+// per building participate, each with its own random blink rate +
+// phase, with a beat-driven boost so flickers cluster on bass hits.
+// Looks like scattered apartment lights flicking on and off — gives
+// the dark city a subtle living pulse instead of a wall of black.
+// (Inspired by the way light-mode shadowed facades show a handful
+// of interior windows through the darkness.)
+float blinkActive = uAudioActive * uDarkMode;
+if (blinkActive > 0.001) {
   float partHash = hash21(winCell + wBuildingCell * 47.3);
   float partGate = step(0.92, partHash);
   float blinkPhase = partHash * 6.2831;
-  float blinkRate = 0.6 + partHash * 1.4;
-  float musicBoost = 0.18 + 0.20 * mixedEnergy;
+  float blinkRate = 0.5 + partHash * 1.2;
+  // Beat-driven trigger threshold — kicks fire more flickers, calm
+  // sections show only the occasional one. uBeatLevel is the global
+  // bass envelope (0..1) the rest of the scene already consumes.
+  float musicBoost = 0.15 + 0.30 * uBeatLevel;
   float blinkWave2 = sin(uTime * blinkRate + blinkPhase) * 0.5 + 0.5;
   float blinkOn = step(1.0 - musicBoost, blinkWave2);
-  // Apply only to OFF windows (above bar) — multiply by (1 - lit) so
-  // bar windows aren't double-lit, and gate by spectrumActive so
-  // unselected buildings stay calm.
-  float spectralBlink = partGate * blinkOn * (1.0 - winLit) * spectrumActive;
+  float spectralBlink = partGate * blinkOn * (1.0 - winLit) * blinkActive;
   winLit = max(winLit, spectralBlink);
 }
 float topFade = smoothstep(50.0, 100.0, wFloorY);
