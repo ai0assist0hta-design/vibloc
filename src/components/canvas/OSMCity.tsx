@@ -842,7 +842,13 @@ if (spectrumActive > 0.001) {
   float curveExp = wMaxFloors <= 8.0 ? 0.75 : (wMaxFloors >= 30.0 ? 0.95 : 0.85);
   float effectiveEnergy = pow(mixedEnergy, curveExp);
   float dynamicFloors = effectiveEnergy * dynamicRange;
-  float barTop = dynamicFloors;
+  // Guaranteed foundation — every column shows at least
+  // max(2, 10 % of building height) floors lit from the ground up,
+  // regardless of band energy or playback volume. The visualiser
+  // therefore always reads as "rising from the floor" instead of
+  // disappearing entirely on a quiet band.
+  float barFloor = max(2.0, floor(wMaxFloors * 0.10));
+  float barTop = max(dynamicFloors, barFloor);
   float spectrumLit = step(wFloorIdx, barTop);
   winLit = mix(winLit, spectrumLit, spectrumActive);
 
