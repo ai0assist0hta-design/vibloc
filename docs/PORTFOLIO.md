@@ -989,6 +989,203 @@ src/
 
 ---
 
-**문서 마지막 수정**: 2026-05-06
-**총 라인**: ~520
-**다음 업데이트**: PR 머지 + 배포 후 실사용자 데이터 회고 추가 예정
+# 13. 2026-05-07 후속 작업 — 라이브 배포 + 멀티 사용자 백엔드 + 인터랙션 폴리시
+
+5/6 시점의 배포 (vibloc26.com) 직후 같은 날 안에 진행된 보강 작업. UI 인터랙션 완성도, Supabase 기반 다중 사용자 동기화, 추천 엔진 다양성, 3D EQ 셰이더 폴리시 등 13개 영역.
+
+## 13.1 프로필 / 플레이리스트 사진 업로드 + 인라인 편집
+
+**MyPage 헤더 개편**
+- 96 × 96 원형 아바타 도입. 사진 없으면 이름 첫 글자 모노그램 (홈 우측 레일 ProfileRow와 동일 패턴, 사이즈만 28→96).
+- 호버/포커스 시 `inset: 0` `rgba(0,0,0,0.45)` 스크림 + 28 px lucide-style 카메라 SVG 가 `opacity 0→1` 160 ms ease 페이드.
+- `role="button" tabIndex={0}` + Enter/Space 키 → 숨겨진 `<input type="file" accept="image/png,image/jpeg,image/webp">` 트리거.
+- `FileReader.readAsDataURL` → `useAuthStore.updateUser({ avatarUrl: dataURL })`.
+- 2 MB 캡 (`f.size > 2 * 1024 * 1024`) — localStorage 비대화 방지. 초과 시 인라인 에러.
+
+**이름 인라인 편집**
+- 32 × 32 원형 ✏ 버튼 → 클릭 시 H1을 `<input>`로 교체 (display 폰트 그대로, 2 px ink 밑줄, autoFocus, max-width 480).
+- Enter / Save 커밋 (빈 값 차단), Esc / Cancel 폐기.
+- `updateUser({ displayName: trimmed })` + `persistDisplayName()` 으로 Supabase user_metadata.full_name / name 까지 비동기 전파 → 다른 기기에서도 새 이름 동기화.
+
+**플레이리스트 커버** (`PlaylistDetailView` 120 × 120)
+- 같은 호버 카메라 + 업로드 어휘. `isMine === true`일 때만 활성.
+- 신규 데이터 모델 `BuildingPlaylistEntry.taggerPlaylistCovers: Record<taggerId, dataURL>` 추가, `loadFromStorage` 마이그레이션 포함.
+- `getTaggerPlaylistCover()` getter + `setTaggerPlaylistCover()` setter export.
+- `getTopTaggers` 마지막 패스에서 user-cover 오버레이로 `g.customCoverUrl` 덮어씀 → 우측 레일 RankRow / FeaturedHero / PlaylistDetailView 모두 같은 진입점 통과해 즉시 반영.
+- `BuildingPlaylist.tsx` MY PLAYLIST 카드의 36 × 36 모노그램 타일도 공용 `PlaylistCover`로 교체 → 디테일뷰 업로드 즉시 카드 동기화.
+
+**Stale broken-flag 버그** (`PlaylistCover.tsx`)
+- 한 번 404 났던 `customUrl` 의 `customBroken=true` 상태가 prop 변경 후에도 유지되어 새 업로드가 모자이크 폴백되던 문제. `useEffect`로 `customUrl` / `usable[0]` 변경 시 자동 리셋.
+
+## 13.2 인증 — Supabase 토큰 리프레시 안전성
+
+**문제**: Supabase의 `onAuthStateChange`는 토큰 자동 리프레시 / 페이지 포커스 / 새로고침 등에서 빈번히 발화하면서 `setSession(token, user)`을 호출. user 전체를 통째로 덮어쓰는 기존 로직이 사용자가 마이페이지에서 편집한 `avatarUrl` (data URL) / `displayName` 을 몇 초 후 롤백시켰음.
+
+**수정** (`useAuthStore.ts`)
+```ts
+setSession: (accessToken, user) => set((s) => {
+  if (s.user && s.user.id === user.id) {
+    return {
+      accessToken,
+      user: {
+        ...user,
+        displayName: s.user.displayName ?? user.displayName,
+        avatarUrl: s.user.avatarUrl !== undefined ? s.user.avatarUrl : user.avatarUrl,
+      },
+    };
+  }
+  return { accessToken, user };
+}),
+```
+같은 `user.id`로 다시 호출되면(같은 사람의 토큰 리프레시) 로컬 편집 우선 보존, 다른 id면 깨끗한 서버 프로필로 시작.
+
+**서버 영속화** (`persistDisplayName()`)
+- 이름 변경 시 fire-and-forget `supabase.auth.updateUser({ data: { full_name, name } })` → user_metadata에 영구 저장 → 다른 기기 / 브라우저 / localStorage 클리어 후에도 유지.
+- 아바타는 데이터 URL 크기 (~2 MB)가 user_metadata 한도 (~4 KB) 초과로 로컬만 (Supabase Storage는 별도 슬라이스).
+
+## 13.3 다중 사용자 백엔드 — Supabase + Realtime
+
+**Phase 1 — 좋아요** (`supabase/migrations/0001_shared_likes.sql`)
+- `track_likes(building_id, track_id, user_id, liked_at)` — (building, track, user) PK
+- `playlist_likes(building_id, tagger_id::uuid, user_id, liked_at)` — (building, tagger, user) PK
+- RLS: SELECT 누구나 / INSERT·DELETE 본인만 (`auth.uid() = user_id`)
+- `supabase_realtime` publication 추가 → INSERT/DELETE 실시간 push
+
+**Client** (`lib/music/sharedLikes.ts`)
+- 인메모리 캐시: `Map<key, Set<userId>>`
+- `bootSharedLikes()`: 앱 부팅 시 전체 row hydrate + Realtime 채널 구독 (idempotent).
+- `toggleSharedTrackLike()` / `toggleSharedPlaylistLike()`: 옵티미스틱 로컬 mutation → upsert/delete → 실패 시 롤백.
+- UUID 가드 (dev-admin / synthetic id 의 400 회피).
+- Realtime postgres_changes 핸들러가 캐시 패치 + `notify()`.
+
+**Phase 2 — 핀된 트랙** (`supabase/migrations/0002_shared_pins.sql`)
+- `pinned_tracks(id uuid pk, building_id, track_id, user_id, ...denormalized track meta..., pinned_at)` — `(building_id, track_id, user_id)` UNIQUE.
+- 트랙 메타데이터 denormalised 저장 → 읽기 시 join 불필요, iTunes API 다운에도 안전.
+- 같은 RLS / Realtime 패턴.
+
+**Bridge** (`buildingPlaylist.ts`)
+- `setSharedLikeBridge(trackFn, playlistFn)` / `setSharedPinBridge(pinFn, unpinFn)` — `main.tsx` 에서 와이어링, 리프 모듈은 서버 모듈을 직접 import 안 함.
+- `toggleLike` / `togglePlaylistLike` / `pinTrack` / `unpinTrack` 모두 로컬 store 업데이트 후 서버 mirror.
+- `mergeSharedLikesIntoStore(getTrackLikers, getPlaylistLikers)` — 서버 캐시를 entry.tracks[i].likedBy 배열에 union → UI 코드 변경 0줄.
+- `mergeSharedPinsIntoStore(remoteBuildings, getRemotePins)` — 각 빌딩의 entry.tracks를 (server ∪ local) deduped union으로 교체 → 다른 사용자 플레이리스트 자동 노출.
+
+**검증** (anon 키로 REST API 직접 호출)
+- ✅ SELECT (anon RLS read): HTTP 200, `[]`
+- ✅ INSERT (anon, fake user_id): HTTP 401 + `42501 row-level security policy`
+- ✅ Realtime publication 양 테이블 등록 확인
+
+## 13.4 크로스-탭 라이브 동기화
+
+같은 사이트를 여러 탭에 열어둔 사용자 시나리오. localStorage 자체는 cross-tab `storage` 이벤트를 broadcast하지만 zustand `persist` 와 buildingPlaylist 자체 store 모두 청취하지 않아 편집이 다른 탭에 즉시 반영 안 됨.
+
+**수정** (모듈 레벨 `window.addEventListener('storage', ...)`)
+- `useAuthStore.ts` — `key === 'vibloc-auth'` → `useAuthStore.persist.rehydrate()`
+- `lib/music/buildingPlaylist.ts` — `key === STORAGE_KEY` → `loadFromStorage() + notify()`
+- `useDarkMode.ts` — `key === 'vibloc.darkMode'` → `setState({ darkMode })`
+- `lib/app/i18n.ts` — `key === 'vibloc.lang'` → `setState({ lang })`
+
+결과: 한 탭에서 사진 / 이름 / 커버 / 다크 / 언어 변경 → 다른 모든 탭 즉시 반영, 새로고침 불필요.
+
+## 13.5 데이터 보존 가드 (`pinTrack` / `unpinTrack` / `setDescription`)
+
+**버그**: 세 함수가 빌딩 entry를 새로 만들 때 `{ tracks, description }`만 손으로 복사 → `taggerPlaylistCovers`, `taggerPlaylistNames`, `taggerNotes`, `playlistLikedBy` 가 트랙 추가/제거나 설명 변경 시 모두 날아감.
+
+**수정**: 세 writer 모두 `...entry` 스프레드 후 필요한 필드만 덮어씀. `unpinTrack`의 자동 삭제 가드도 `description`만 보던 것에서 `hasCovers / hasNames / hasLikes`까지 확장 → 마지막 트랙 unpin 후에도 커버/이름이 남아 있으면 entry 보존.
+
+## 13.6 추천 엔진 — 다양성·인기·anti-repeat
+
+**캐시 + Sync peek** (`recommendForBuilding` / `peekRecommendation` / `invalidateRecommendation`)
+- 빌딩 클릭마다 4개 외부 API (Wikidata · iTunes · 영화 · 랜드마크) 매번 새로 호출하던 문제. `Map<area|buildingId|limit, {value, at}>` 10분 TTL, 64 LRU evict.
+- `peekRecommendation()` 동기 조회 → `useState` 초기값으로 사용 → 캐시 히트 시 로딩 스피너 자체 안 뜸.
+- 새로고침 버튼이 `invalidateRecommendation()` 호출 → 강제 재요청.
+
+**다양성 + 인기 보장 + anti-repeat**
+- RSS top 25 → 50 (풀 2배 확장). `rssCandidates` `limit*2` → `limit*3`.
+- `chartToppers` (top 5 by score before shuffle) `RecommendationResult` 에 첨부.
+- `pickWithOverlapLimit`이 1슬롯을 chartToppers top 3 중 랜덤 1곡으로 예약 (장르 cap 우회) → 모든 패널에 최소 1개 차트 인기곡.
+- 장르 cap `ceil(limit/2)` (5 결과 중 같은 장르 ≤ 2~3) → "전부 K-pop" 패턴 차단.
+- `sessionShownTracks: Set<trackId>` — 세션 내 노출된 모든 트랙 추적, candidate sort 시 미노출 우선 → 새로고침 = 진짜 새 곡.
+
+## 13.7 검색 결과 스크롤
+
+- `AddTrackComposer` 결과 영역 전체를 `maxHeight: 360, overflowY: auto` 컨테이너로 감쌈. 입력창은 컨테이너 바깥 → 스크롤 중 sticky 유지.
+- 음악 검색 결과 cap 6 → 25.
+- `SearchBar` (건물) 드롭다운 maxHeight 280 → `min(360px, 50vh)`.
+
+## 13.8 맵 기본값 + 도시 정렬
+
+- `App.tsx` `?area=` 파라미터 없을 때 fallback `shinjuku` → **`manhattan`** (랜딩 인트로 시네마틱 zoom-in과 일치).
+- `CITY_AREAS` 객체 키 순서: `manhattan, la, itaewon, gangnam, shinjuku, shibuya` (US → KR → JP).
+- 좌측 사이드바 Cities, 헤더 CityDropdown, useBuildingResolver 모두 `Object.keys(CITY_AREAS)` 사용 → 자동 적용.
+- 랜딩 칩 strip의 `CITIES` 배열도 동일 순서.
+
+## 13.9 사이드바 정렬
+
+- 좌측 `FixedToolSidebar` 닫기 버튼이 row 아이콘과 6px 어긋남 (header padding 16, row 24). header padding-left 16 → 24, 버튼 28×28 → 24×24, glyph 15 → 16. 광학 중심 x = 36 통일.
+- 우측 `FixedQueueSidebar` ProfileRow 아바타 padding-left 8 → 12. 검색바 / MY PLAYLIST eyebrow / PopularRow 아트워크와 같은 x = 24 축에 정렬.
+
+## 13.10 다크 ↔ 라이브 상호 배타 + 다크 포그 완화
+
+**상호 배타** (`App.tsx`)
+- `handleDarkModeToggle`: 다크 ON 진입 시 라이브 ON이면 → `setLiveTimeEnabled(false)` + sun reset + weather clear → 다크 ON.
+- `handleLiveTimeToggle(true)`: 다크 ON이면 → `setDarkMode(false)` 후 라이브 ON → 깨끗한 상태에서 자동 sun cycle 시작.
+
+**다크 포그** (`PlateauScene.tsx`)
+- near 400 → **900** (+125%), far 2000 → **3400** (+70%), exponent 1.8 → **1.4**. mid-range 빌딩 가독성 회복.
+
+## 13.11 우측 레일 Up Next 톤 분리
+
+레일 본체 `rgba(255,255,255,0.98)` 와 동일해 떠 있는 패널 분간 어려움 → token `paper` (#faf9f6) 0.96 알파 + ink 0.14 hairline + 그림자 강화 → "lifted card" 느낌. 다크: rgba(20,20,24,0.96) → rgba(28,28,32,0.96) 한 단계 elevation up.
+
+## 13.12 3D 빌딩 EQ 셰이더 — 다중 폴리시
+
+**라이브 식별감** (`getTopTaggers` overlay)
+- PinnedTrack에 `taggerName`/`taggerAvatarUrl`이 pin time에 박혀 저장되어 사용자 닉네임 변경 후에도 옛 이름이 남던 문제. 그룹 빌드 마지막에 `_getUserIdentity()` 라이브 값으로 본인 그룹의 `taggerName`/`taggerAvatarUrl` 오버레이.
+
+**EQ 매핑 적응형**
+- 컬럼당 단일 막대, 빌딩 0층부터 `dynamicRange = wMaxFloors`까지 (옥상 도달 가능).
+- 빌딩 높이별 응답 곡선: ≤8층 `pow(x, 0.75)` / 9-30층 `pow(x, 0.85)` / >30층 `pow(x, 0.95)`.
+- `barTop = max(dynamicFloors, max(2, wMaxFloors * 0.10))` — 모든 컬럼이 항상 최소 10% 또는 2층 이상 lit (음량 무관 visible foundation).
+
+**컬럼 변동성**
+- Neighbor-mix: 자기 밴드 70% + 양옆 각 15% → 죽은 밴드 없음.
+- Motion floor: `mixedEnergy = max(mixedEnergy, 0.06 * sin(uTime * speed + phase))` → 밴드 0이어도 컬럼 sine wobble.
+- Per-column pulse: `mixedEnergy *= (0.92 + 0.08 * sine)` — 8% 미세 변조로 옆 컬럼끼리 desync, 음악 박자는 그대로 유지.
+
+**볼륨 → 시각 보정** (`PreviewPlayer.tsx`)
+- `VISUAL_VOL_CEILING = 0.3` — 볼륨 ≤ 0.3 변화 없음, 그 이상은 `min(1, 0.3/userVolume)` 만큼 시각 신호 축소. 들리는 음량은 그대로, EQ 모양만 "낮은 볼륨의 다채로운 wave" 유지.
+
+**선택 빌딩 효과 통일 (다크 ↔ 라이트)**
+- `selGlow` 색감 청색 틴트 (`vec3(0.65, 0.82, 1.0)`) 제거 → 양 모드 동일 청백색 (`vec3(0.92, 0.96, 1.0)`).
+- 본체 발광 / 림 라이트 강도 라이트와 동일 (0.06 / 0.40).
+- Night blink 셰이더 비트 + 전역 spectral blink 모두 선택 빌딩에서 비활성 (`* (1.0 - vIsSelected)`) → 선택 빌딩은 라이트 모드와 같은 차분한 면.
+
+**Spectral blinks (전역)**
+- 다크 모드 + 음악 재생 중 (`uAudioActive * uDarkMode`) → 모든 빌딩의 OFF 창문 ~8% 가 베이스 envelope (`uBeatLevel`) 기반으로 산발적으로 깜빡임. 선택 빌딩 제외. 도시에 살아있는 펄스감 부여.
+
+## 13.13 성능 — 미세 진동 제거
+
+**`notify()` microtask 코얼레싱** (`buildingPlaylist.ts`)
+- 한 번의 pinTrack이 (로컬 mutation + 서버 mirror + Realtime echo + sharedPins refold) 4번의 notify cascade 유발. 각 listener가 `getTopTaggers` (O(전체 트랙수)) 재실행.
+- `queueMicrotask`로 dedup → 같은 frame N번 notify → 1번 broadcast. `getTopTaggers` 호출 1/4로 감소.
+
+---
+
+## 오늘 (2026-05-07) 커밋 요약
+
+**40+ 커밋** — 일부 발췌:
+
+| 분류 | 커밋 |
+|---|---|
+| 인증 / 영속 | `ee25135 fix(auth): preserve local avatar/displayName across token refreshes`, `6ae862b feat(auth): persist displayName edits to Supabase`, `e5ff0a5 fix(search): scrollable result wells` |
+| 데이터 / 인프라 | `4d2bdb7 feat(likes): shared multi-user likes via Supabase + realtime`, `71f351b feat(playlists): shared multi-user pinned tracks`, `7271b9e feat(state): cross-tab live sync` |
+| 추천 / UX | `a66ef31 feat(recs): wider, fresher, anti-repeat picks`, `756cd0f perf(playlist,recs): cache + microtask-coalesce notify`, `c014617 feat(map): default to Manhattan + reorder cities` |
+| 시각화 | `cbc850d fix(eq): reduce column pulse 0.55..1 -> 0.92..1 so beats sync`, `1c76d25 feat(eq): guaranteed foundation`, `1e4f6dc tune(scene): unify selected-building look in dark mode`, `a2dacec feat(eq): global spectral blinks on every dark-mode building` |
+
+라이브 검증: vibloc26.com / vibloc-3oeurbl9e... Vercel 자동 배포 매 푸시마다 정상 빌드 확인.
+
+---
+
+**문서 마지막 수정**: 2026-05-07
+**총 라인**: ~750 (13.x 섹션 13개 추가)
+**다음 업데이트**: Supabase Storage 버킷 기반 커버 이미지 server-side hosting (Phase 3) + Wave 분석 / 시각화 PVR 추가
