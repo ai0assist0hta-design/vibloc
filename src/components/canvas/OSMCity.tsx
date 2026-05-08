@@ -806,7 +806,12 @@ if (spectrumActive > 0.001) {
   // 5-floor cottage: baseline 1, range 4 — visible motion up
   // to four floors instead of "always full".
   float baseline = max(1.0, floor(wMaxFloors * 0.18));
-  float dynamicRange = wMaxFloors - baseline;
+  // Cap the bar's top at 85 % of the building's height so even on a
+  // peak the EQ never fills all the way to the roof — the top floors
+  // stay quiet, giving the silhouette a visible "head room" cue
+  // (matches Apple Music's mini visualiser convention).
+  float ceiling = max(baseline + 1.0, floor(wMaxFloors * 0.85));
+  float dynamicRange = ceiling - baseline;
   // Curve eased from pow(1.6) → pow(0.85). The 1.6 squash was
   // designed for the pre-AGC saturating signal; combined with the
   // newer volume-compensation upstream it left mid-range bands
