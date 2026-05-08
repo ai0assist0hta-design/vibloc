@@ -805,67 +805,38 @@ if (spectrumActive > 0.001) {
   // Mid-rise (15 floors): baseline 2, range 13.
   // 5-floor cottage: baseline 1, range 4 — visible motion up
   // to four floors instead of "always full".
-  // Section split — for stepped / setback buildings (Empire State,
-  // Chrysler, etc.) a single bar from ground to roof reads as one
-  // long stripe across geometry breaks. Splitting the height into
-  // SECTION_COUNT independent sub-bars lets each "block" of the
-  // silhouette breathe on its own, and the per-section band shift
-  // means the three bars never mirror each other (one section may
-  // be peaking on bass while another is quiet on highs).
-  // Tall (60-floor) → 3 sections of 20 floors each, each with its
-  // own baseline / ceiling / dynamic range.
-  // Short (≤8 floors) → 1 section (skip the split entirely so the
-  // baseline logic doesn't crush the visible motion to 0).
-  float sectionCount = wMaxFloors >= 12.0 ? 3.0 : (wMaxFloors >= 6.0 ? 2.0 : 1.0);
-  float floorsPerSection = wMaxFloors / sectionCount;
-  float sectionIdx = floor(min(wFloorIdx / floorsPerSection, sectionCount - 1.0));
-  float localFloor = wFloorIdx - sectionIdx * floorsPerSection;
-
-  // Bar grounds at the BOTTOM of each section (no fixed baseline) —
-  // user wants the signal to rise from the literal floor of the
-  // section so motion always reads. baseline 0 + dynamic range up
-  // to the per-section ceiling.
+  // Single bar per column — one continuous EQ from the building's
+  // ground floor up to a height-adaptive ceiling. No vertical
+  // section split (was creating 1-3 sub-bars). Heights are mapped
+  // by total building floors instead of per-section floor count.
   //
-  // Ceiling scales with building height so every silhouette gets a
-  // pleasing head room ratio:
+  // Ceiling fraction adapts to building height so every silhouette
+  // gets pleasing head room:
   //   • short (≤ 8 floors): 92 % — bars need most of the height to
   //     register visually
   //   • mid   (9-30 floors): 85 % — Apple-Music-style head room
   //   • tall  (> 30 floors): 78 % — extra head room so peaks don't
   //     visually crowd the roof of a skyscraper
-  float ceilingFrac = floorsPerSection <= 8.0
+  float ceilingFrac = wMaxFloors <= 8.0
     ? 0.92
-    : (floorsPerSection >= 30.0 ? 0.78 : 0.85);
-  float baseline = 0.0;
-  float ceiling = max(2.0, floor(floorsPerSection * ceilingFrac));
+    : (wMaxFloors >= 30.0 ? 0.78 : 0.85);
+  float ceiling = max(2.0, floor(wMaxFloors * ceilingFrac));
   float dynamicRange = ceiling;
 
-  // Per-section band shift — section 0 keeps its own band, section 1
-  // pulls from a band 7 indices away, section 2 from 14 away. The
-  // three sections therefore animate to different parts of the
-  // spectrum and never lock into the same motion.
-  float sectionBand = mod(bandIdx + sectionIdx * 7.0, 32.0);
-  float sectionBandU = (sectionBand + 0.5) / 32.0;
-  float bandEnergyMain = texture2D(uSpectrumTex, vec2(sectionBandU, 0.5)).r;
-  // Per-column NEIGHBOR-MIX (around the section-shifted band) so a
-  // dead-silent band still gets motion from neighbors.
-  float bandEnergyN1 = texture2D(uSpectrumTex, vec2((mod(sectionBand + 1.0, 32.0) + 0.5) / 32.0, 0.5)).r;
-  float bandEnergyP1 = texture2D(uSpectrumTex, vec2((mod(sectionBand + 31.0, 32.0) + 0.5) / 32.0, 0.5)).r;
-  float mixedEnergy = bandEnergyMain * 0.7 + (bandEnergyN1 + bandEnergyP1) * 0.15;
+  // Per-column NEIGHBOR-MIX so a dead-silent band still gets some
+  // motion from its neighbors and no column ever freezes.
+  float bandEnergyN1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 1.0, 32.0) + 0.5) / 32.0, 0.5)).r;
+  float bandEnergyP1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 31.0, 32.0) + 0.5) / 32.0, 0.5)).r;
+  float mixedEnergy = bandEnergy * 0.7 + (bandEnergyN1 + bandEnergyP1) * 0.15;
 
-  // Curve pow(0.85) gently EXPANDS the mid range so quiet bands
-  // still climb a few floors. Combined with the volume-compensation
-  // upstream the wave stays animated across the whole volume range.
-  // Floor count adaptive curve — taller sections get a little more
-  // perceptual punch (slightly compressing peaks so a 50-band wave
-  // doesn't always max out the dynamic range), short sections get
-  // a slight expansion so quiet bands still climb a few visible
-  // floors instead of staying flush with the ground.
-  float curveExp = floorsPerSection <= 8.0 ? 0.75 : (floorsPerSection >= 30.0 ? 0.95 : 0.85);
+  // Floor-count adaptive curve — taller buildings get slight peak
+  // compression (so 60-floor towers don't always slam to ceiling),
+  // short ones get a slight expansion so quiet bands still climb.
+  float curveExp = wMaxFloors <= 8.0 ? 0.75 : (wMaxFloors >= 30.0 ? 0.95 : 0.85);
   float effectiveEnergy = pow(mixedEnergy, curveExp);
   float dynamicFloors = effectiveEnergy * dynamicRange;
-  float barTop = baseline + dynamicFloors;
-  float spectrumLit = step(localFloor, barTop);
+  float barTop = dynamicFloors;
+  float spectrumLit = step(wFloorIdx, barTop);
   winLit = mix(winLit, spectrumLit, spectrumActive);
 }
 float topFade = smoothstep(50.0, 100.0, wFloorY);
