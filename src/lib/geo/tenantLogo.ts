@@ -165,17 +165,27 @@ export function getTenantLogoUrl(
   return null;
 }
 
-/** Category → emoji glyph for fallback avatars */
-export const CATEGORY_GLYPH: Record<string, string> = {
-  food: '🍽',
-  shop: '🛍',
-  hotel: '🏨',
-  office: '🏢',
-  entertainment: '🎭',
-  medical: '🏥',
-  education: '🎓',
-  religious: '⛩',
-  government: '🏛',
-  residential: '🏠',
-  other: '📍',
+import {
+  UtensilsCrossed, ShoppingBag, Hotel, Building2, Theater,
+  Stethoscope, GraduationCap, Church, Landmark, Home, MapPin,
+  type LucideIcon,
+} from 'lucide-react';
+
+/** Category → Lucide icon component for fallback tenant tiles.
+ *  Rendered in white on the tile's category-colored background by
+ *  the parent. Lucide is the de-facto modern icon set used by
+ *  shadcn/ui, Vercel dashboards, etc. — clean line-art, MIT-licensed,
+ *  tree-shaken so each used icon costs only a few hundred bytes. */
+export const CATEGORY_ICON: Record<string, LucideIcon> = {
+  food:          UtensilsCrossed,
+  shop:          ShoppingBag,
+  hotel:         Hotel,
+  office:        Building2,
+  entertainment: Theater,
+  medical:       Stethoscope,
+  education:     GraduationCap,
+  religious:     Church,
+  government:    Landmark,
+  residential:   Home,
+  other:         MapPin,
 };

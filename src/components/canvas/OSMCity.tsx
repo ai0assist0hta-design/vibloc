@@ -21,6 +21,11 @@ import {
   MeshLambertMaterial,
   InstancedMesh,
   Color,
+  DataTexture,
+  RedFormat,
+  UnsignedByteType,
+  NearestFilter,
+  ClampToEdgeWrapping,
 } from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Text, Billboard } from '@react-three/drei';
@@ -43,6 +48,7 @@ import {
 } from '../../lib/geo/osmLoader';
 import { Quadtree } from '../../lib/geo/quadtree';
 import { findLandmarkShape, type LandmarkShape } from '../../lib/geo/landmarks';
+import { getBeatLevel, getSpectrumData, getGenreRGB, getIsPlaying, tickGenrePremix } from '../ui/music/PreviewPlayer';
 
 // --- Building facade normal map: clean geometric grid ---
 
@@ -107,11 +113,18 @@ function groundHeightAt(x: number, z: number, hm: HeightMap): number {
   return h00 * (1 - tx) * (1 - tz) + h10 * tx * (1 - tz) + h01 * (1 - tx) * tz + h11 * tx * tz;
 }
 
-// Shared shader ref for per-frame uniform updates (uTime)
-let _buildingShader: any = null;
+// Shared shader ref for per-frame uniform updates (uTime). Three.js
+// onBeforeCompile hands us back the WebGLProgramParametersWithUniforms
+// shape — we only ever touch `.uniforms[uName].value`, so a
+// structural type covers it without pulling the full Three.js
+// program type.
+type ShaderRef = {
+  uniforms: Record<string, { value: unknown }>;
+};
+let _buildingShader: ShaderRef | null = null;
 // Ghost-pass shader (drawn on top with depthWrite=false). Same uniforms
 // as the opaque pass but only the ring fragments are kept.
-let _ghostShader: any = null;
+let _ghostShader: ShaderRef | null = null;
 
 // --- Building click detection ---
 // Point-in-polygon (ray casting)
@@ -359,7 +372,11 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
           const landmarkGeo = buildLandmarkGeo(fp, building.height, landmark);
           if (landmarkGeo) {
             geo = landmarkGeo;
-            console.log(`[Landmark] ${building.name} → custom silhouette (${building.height}m)`);
+            // DEV-only diagnostic — too noisy for prod (LOD reissues
+            // each landmark per zoom level → 8–24× duplicate logs).
+            if (import.meta.env.DEV) {
+              if (import.meta.env.DEV) console.log(`[Landmark] ${building.name} → custom silhouette (${building.height}m)`);
+            }
           } else {
             // Fallback to standard extrusion
             const shape = new Shape();
@@ -422,13 +439,24 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
           cArr[v * 2 + 1] = bcz;
         }
         geo.setAttribute('aBuildingCenterXZ', new Float32BufferAttribute(cArr, 2));
+        // Per-building height — lets the focus-ring shader compare each
+        // neighbour to the selected building's height. Used by the
+        // skyscraper-mode rule: when the selected building is tall, we
+        // only fade neighbours that are similar-or-taller, so smaller
+        // surrounding context stays visible.
+        const hArr = new Float32Array(vCount);
+        hArr.fill(building.height);
+        geo.setAttribute('aBuildingHeight', new Float32BufferAttribute(hArr, 1));
         // Per-building residential flag (0=commercial, 1=residential)
         const resArr = new Float32Array(vCount);
         resArr.fill(building.isResidential ?? 0);
         geo.setAttribute('aIsResidential', new Float32BufferAttribute(resArr, 1));
         geos.push(geo);
         buildingIndices.push(bi);
-      } catch { /* skip */ }
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn(`[city] geometry build failed for building ${bi}`, e);
+        /* skip — bad triangulation, don't crash the whole batch */
+      }
     }
 
     if (geos.length === 0) return null;
@@ -456,10 +484,32 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
     const merged = BufferGeometryUtils.mergeGeometries(geos, false);
     for (const g of geos) g.dispose();
     if (droppedNoise > 0) {
-      console.log(`[MergedBuildings] noise pre-filter dropped ${droppedNoise} of ${buildings.length} polygons`);
+      if (import.meta.env.DEV) console.log(`[MergedBuildings] noise pre-filter dropped ${droppedNoise} of ${buildings.length} polygons`);
     }
     return merged;
   }, [buildings, hm]);
+
+  // 32×1 R8 DataTexture carrying the music spectrum each frame.
+  // Created once, kept stable across re-renders so the shader's
+  // uniform reference doesn't change. Per-frame upload happens in
+  // the useFrame hook below (`uniforms.uSpectrumTex.value` already
+  // points here; we just mutate `image.data` and flag dirty).
+  const spectrumTextureRef = useRef<DataTexture>(
+    (() => {
+      const tex = new DataTexture(
+        new Uint8Array(32),
+        32, 1,
+        RedFormat,
+        UnsignedByteType,
+      );
+      tex.magFilter = NearestFilter;
+      tex.minFilter = NearestFilter;
+      tex.wrapS = ClampToEdgeWrapping;
+      tex.wrapT = ClampToEdgeWrapping;
+      tex.needsUpdate = true;
+      return tex;
+    })(),
+  );
 
   // Matte building material — flat, no reflections, no normal map
   const frostMat = useMemo(() => {
@@ -492,6 +542,33 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
     mat.onBeforeCompile = (shader) => {
       shader.uniforms.uDarkMode = { value: darkMode ? 1.0 : 0.0 };
       shader.uniforms.uTime = { value: 0.0 };
+      // Music-reactive beat envelope (legacy single-band signal —
+      // currently unused in shader logic, kept for potential rim-
+      // glow modulation downstream). Bass kick-only, decays τ=250ms.
+      shader.uniforms.uBeatLevel = { value: 0.0 };
+      // 32-band spectrum DataTexture (R8, 32×1) — selected building's
+      // facade renders as an EQ analyzer driven by this. Each window
+      // column maps via `mod 32` to one band; lit floor count = band
+      // energy. Updated every frame in useFrame from
+      // PreviewPlayer.getSpectrumData(). Texture instance owned by
+      // the component and shared across all rebuilds via the ref.
+      shader.uniforms.uSpectrumTex = { value: spectrumTextureRef.current };
+      // Genre tint for the EQ bars — base hue derived from the
+      // currently-playing track's genre via PreviewPlayer.getGenreRGB().
+      // Default white (no tint) so unknown-genre tracks fall back to
+      // a neutral analyzer. Bars use brightness gradient from this
+      // hue (low floors dim → top floors HDR-bright) so the
+      // height-readout stays clear while the building reads as
+      // "playing jazz" / "playing pop" etc. at a glance.
+      shader.uniforms.uGenreColor = { value: [1.0, 1.0, 1.0] };
+      // 1 while a preview is actively playing, 0 while paused / idle.
+      // Multiplied into spectrumActive so the selected building goes
+      // fully calm (no baseline EQ glow at the foot) the moment audio
+      // stops. Without this, the genre-tinted baseline floors stayed
+      // lit indefinitely whenever the user clicked a building, even
+      // before they hit play — visible as the pink/purple bottom in
+      // the screenshot.
+      shader.uniforms.uAudioActive = { value: 0.0 };
       // Focus / isolation mode — per-vertex ID equality test.
       // - uSelectedBuildingId : float index of the currently focused building
       //   (-1 = none). Every vertex carries `aBuildingId` so the fragment
@@ -508,6 +585,13 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
       // their normal opacity so the rest of the city stays as context.
       shader.uniforms.uFocusCenterXZ = { value: [0, 0] };
       shader.uniforms.uFocusRadius = { value: 0.0 };
+      // Skyscraper-mode: only fade neighbours whose own height is at
+      // least uHeightFilterMin × uSelectedHeight. With min = 0 this
+      // disables the filter (everything in the ring fades, original
+      // behaviour). With min ≈ 0.85 only similar-or-taller towers
+      // around a skyscraper fade — short surrounding context stays.
+      shader.uniforms.uSelectedHeight = { value: 0.0 };
+      shader.uniforms.uHeightFilterMin = { value: 0.0 };
       _buildingShader = shader;
 
       // Inject varyings
@@ -517,9 +601,11 @@ function MergedBuildings({ buildings, hm, darkMode = false, selectedBuilding = n
 attribute float aBuildingId;
 attribute vec2 aBuildingCenterXZ;
 attribute float aIsResidential;
+attribute float aBuildingHeight;
 varying float vBuildingId;
 varying vec2 vBuildingCenterXZ;
 varying float vIsResidential;
+varying float vBuildingHeight;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;`
       );
@@ -529,6 +615,7 @@ varying vec3 vWorldNormal;`
 vBuildingId = aBuildingId;
 vBuildingCenterXZ = aBuildingCenterXZ;
 vIsResidential = aIsResidential;
+vBuildingHeight = aBuildingHeight;
 vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
 vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);`
       );
@@ -538,13 +625,20 @@ vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);`
         `#include <common>
 uniform float uDarkMode;
 uniform float uTime;
+uniform float uBeatLevel;
+uniform sampler2D uSpectrumTex;
+uniform vec3 uGenreColor;
+uniform float uAudioActive;
 uniform float uSelectedBuildingId;
 uniform float uFocusActive;
 uniform vec2 uFocusCenterXZ;
 uniform float uFocusRadius;
+uniform float uSelectedHeight;
+uniform float uHeightFilterMin;
 varying float vBuildingId;
 varying vec2 vBuildingCenterXZ;
 varying float vIsResidential;
+varying float vBuildingHeight;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 
@@ -668,6 +762,123 @@ vec3 dayWindow = gl_FragColor.rgb * recessDarken;
 // Night: warm light from inside
 float occupancy = mix(0.55, 0.85, hash21(wBuildingCell + 5.0));
 float winLit = step(1.0 - occupancy, winHash);
+
+// EQ spectrum visualization (selected building only). Each window
+// column is mapped to a frequency band; the lit floor count in
+// that column equals the band energy at that moment. 32 bands,
+// log-spaced 30 Hz – 13 kHz, sampled from a 32×1 R8 DataTexture
+// updated every frame from PreviewPlayer.getSpectrumData().
+//
+// Layout: column index → band via mod 32. Floor 0 (ground) is the
+// "always-on" baseline; bars climb upward. We add a 1-floor peak-
+// hold cap so bar tops don't flicker.
+float vIsSelected = step(abs(vBuildingId - uSelectedBuildingId), 0.5);
+// Only render EQ bars when (a) this building is the focused one,
+// (b) focus is fully animated in, AND (c) audio is actually playing.
+// Audio-paused multiplier collapses every spectrum branch below to
+// zero so the building reads as a calm, unlit facade in standby.
+float spectrumActive = vIsSelected * uFocusActive * uAudioActive;
+// Per-building max floor count from this building's actual height
+// (vBuildingHeight) and its own floor-height style (wFloorH). Without
+// this, a 5-floor low-rise would try to draw a 22-floor bar and look
+// broken; a 60-floor skyscraper would only ever fill 1/3. Now each
+// building's bar climbs to its own roof.
+float wMaxFloors = max(2.0, floor(vBuildingHeight / wFloorH));
+if (spectrumActive > 0.001) {
+  float bandIdx = mod(wColIdx + 64.0, 32.0);  // +64 = avoid negative
+  float bandU = (bandIdx + 0.5) / 32.0;
+  float bandEnergy = texture2D(uSpectrumTex, vec2(bandU, 0.5)).r;
+  // Building-proportional bar mapping. Two zones:
+  //   • BASELINE — small fraction (~18 %, min 1 floor) always
+  //     lit so the building never looks dead. Was 30 % which
+  //     consumed too much of small buildings (a 5-floor cottage
+  //     had baseline 2 + dynamic range 3 — virtually any signal
+  //     filled it).
+  //   • DYNAMIC RANGE — linear mapping bandEnergy → bar top.
+  //     No pow(0.7) expansion (made small buildings saturate at
+  //     the slightest hit). No 1.15 headroom multiplier (caused
+  //     short buildings to clamp-overshoot, leaving only the top
+  //     floor's step boundary blinking). Roof now only reached
+  //     when bandEnergy hits a true peak (≈ 1.0 post-AGC).
+  // Tall tower (60 floors): baseline ≈ 11, range 49 — bars
+  // breathe across most of the height.
+  // Mid-rise (15 floors): baseline 2, range 13.
+  // 5-floor cottage: baseline 1, range 4 — visible motion up
+  // to four floors instead of "always full".
+  // Single bar per column — one continuous EQ from the building's
+  // ground floor all the way up to (and including) the roof on a
+  // peak. No head-room cap; the bar can fully fill the silhouette.
+  float dynamicRange = wMaxFloors;
+
+  // Per-column NEIGHBOR-MIX so a dead-silent band still gets some
+  // motion from its neighbors and no column ever freezes.
+  float bandEnergyN1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 1.0, 32.0) + 0.5) / 32.0, 0.5)).r;
+  float bandEnergyP1 = texture2D(uSpectrumTex, vec2((mod(bandIdx + 31.0, 32.0) + 0.5) / 32.0, 0.5)).r;
+  float mixedEnergy = bandEnergy * 0.7 + (bandEnergyN1 + bandEnergyP1) * 0.15;
+  // MOTION FLOOR — even bands that happen to be near-silent get a
+  // gentle, slow sine wobble so no column ever sits at a constant
+  // height. Each column has its own random phase + frequency
+  // perturbation so neighbouring columns don't wave in unison.
+  float colPhase = hash21(vec2(wColIdx + 0.13, vBuildingId * 0.137)) * 6.2831;
+  float colSpeed = 1.2 + hash21(vec2(wColIdx + 7.0, vBuildingId * 0.31)) * 1.6;
+  float wobble = 0.5 + 0.5 * sin(uTime * colSpeed + colPhase);
+  float motionFloor = 0.06 * wobble;
+  mixedEnergy = max(mixedEnergy, motionFloor);
+
+  // PER-COLUMN PULSE — kept subtle so the music-driven motion stays
+  // dominant. Was 0.55..1.0 multiplier (45 % modulation) which over-
+  // rode the beat — bars seemed to wave on their own clock instead
+  // of with the song. Now 0.92..1.0 (8 % only): just enough to
+  // desync neighbouring columns visually without masking the beat.
+  float colPhase2 = hash21(vec2(wColIdx + 5.3, vBuildingId * 0.21)) * 6.2831;
+  float colSpeed2 = 1.4 + hash21(vec2(wColIdx + 11.7, vBuildingId * 0.41)) * 1.8;
+  float pulse = 0.92 + 0.08 * (0.5 + 0.5 * sin(uTime * colSpeed2 + colPhase2));
+  mixedEnergy *= pulse;
+
+  // Floor-count adaptive curve — taller buildings get slight peak
+  // compression (so 60-floor towers don't always slam to ceiling),
+  // short ones get a slight expansion so quiet bands still climb.
+  float curveExp = wMaxFloors <= 8.0 ? 0.75 : (wMaxFloors >= 30.0 ? 0.95 : 0.85);
+  float effectiveEnergy = pow(mixedEnergy, curveExp);
+  float dynamicFloors = effectiveEnergy * dynamicRange;
+  // Guaranteed foundation — every column shows at least
+  // max(2, 10 % of building height) floors lit from the ground up,
+  // regardless of band energy or playback volume. The visualiser
+  // therefore always reads as "rising from the floor" instead of
+  // disappearing entirely on a quiet band.
+  float barFloor = max(2.0, floor(wMaxFloors * 0.10));
+  float barTop = max(dynamicFloors, barFloor);
+  float spectrumLit = step(wFloorIdx, barTop);
+  winLit = mix(winLit, spectrumLit, spectrumActive);
+
+}
+
+// Global SPECTRAL BLINKS — applied to OFF windows across the WHOLE
+// dark-mode skyline whenever audio is playing. ~8 % of off-windows
+// per building participate, each with its own random blink rate +
+// phase, with a beat-driven boost so flickers cluster on bass hits.
+// Looks like scattered apartment lights flicking on and off — gives
+// the dark city a subtle living pulse instead of a wall of black.
+// (Inspired by the way light-mode shadowed facades show a handful
+// of interior windows through the darkness.)
+float blinkActive = uAudioActive * uDarkMode;
+if (blinkActive > 0.001) {
+  float partHash = hash21(winCell + wBuildingCell * 47.3);
+  float partGate = step(0.92, partHash);
+  float blinkPhase = partHash * 6.2831;
+  float blinkRate = 0.5 + partHash * 1.2;
+  // Beat-driven trigger threshold — kicks fire more flickers, calm
+  // sections show only the occasional one. uBeatLevel is the global
+  // bass envelope (0..1) the rest of the scene already consumes.
+  float musicBoost = 0.15 + 0.30 * uBeatLevel;
+  float blinkWave2 = sin(uTime * blinkRate + blinkPhase) * 0.5 + 0.5;
+  float blinkOn = step(1.0 - musicBoost, blinkWave2);
+  // Skip the selected building — its facade should read as a calm
+  // light-mode-like surface, not also flicker on top of the selection
+  // halo + EQ bars.
+  float spectralBlink = partGate * blinkOn * (1.0 - winLit) * blinkActive * (1.0 - vIsSelected);
+  winLit = max(winLit, spectralBlink);
+}
 float topFade = smoothstep(50.0, 100.0, wFloorY);
 winLit *= mix(1.0, step(0.35, hash21(wBuildingCell + 99.0)), topFade);
 
@@ -677,9 +888,39 @@ vec3 coolNight = vec3(0.88, 0.92, 1.0);
 vec3 nightLight = mix(warmNight, coolNight, colorTemp);
 nightLight *= mix(0.85, 1.15, hash21(winCell * 3.1 + wBuildingCell));
 
-// Night blink
+// Genre-tinted EQ bars for the selected building. The base hue is
+// the playing track's genre color (jazz=blue, pop=pink, etc.); each
+// floor's brightness scales with its position within the bar — dim
+// at the floor where the bar tops out, brightest at the foot,
+// reversed to keep ground floors most legible. We push top floors
+// into HDR (>1) so they bloom under postprocessing — that's the
+// "peak" cue that the VU green/yellow/red gradient used to give.
+if (spectrumActive > 0.001) {
+  float bandIdx2 = mod(wColIdx + 64.0, 32.0);
+  float energy2 = texture2D(uSpectrumTex, vec2((bandIdx2 + 0.5) / 32.0, 0.5)).r;
+  // Mirror the lit-mask geometry exactly so the colour gradient is
+  // anchored to the visible bar (baseline + dynamic range). Same
+  // simplified linear mapping as above — no pow, no 1.15 headroom
+  // — so colour stays in lockstep with which floors are actually lit.
+  float baseline2 = max(1.0, floor(wMaxFloors * 0.18));
+  float dynamicRange2 = wMaxFloors - baseline2;
+  // Same pow(1.6) squash as the lit-mask above so colour gradient
+  // stays anchored to the actual bar position.
+  float barTop2 = baseline2 + pow(energy2, 1.6) * dynamicRange2;
+  float floorWithinBar = clamp(wFloorIdx / max(barTop2, 1.0), 0.0, 1.0);
+  // Brightness ramp 0.55 -> 1.6 from base to peak. >1 lands in HDR
+  // so Bloom picks up the bar tips. Slightly wider range so
+  // baseline floors still read as genuinely lit.
+  float bright = mix(0.55, 1.6, floorWithinBar);
+  vec3 genreTint = uGenreColor * bright;
+  nightLight = mix(nightLight, genreTint, spectrumActive);
+}
+
+// Night blink — dark-mode window shimmer. Disabled on the selected
+// building so its facade reads as a calm, light-mode-like silhouette
+// instead of also shimmering on top of the selection halo + EQ.
 float blinkChance = hash21(winCell * 5.3 + wBuildingCell * 2.1);
-float isBlinking = step(0.72, blinkChance) * uDarkMode;
+float isBlinking = step(0.72, blinkChance) * uDarkMode * (1.0 - vIsSelected);
 float blinkSpeed = mix(0.03, 0.12, hash21(winCell * 7.1 + wBuildingCell));
 float blinkPhase = hash21(winCell * 11.3 + wBuildingCell) * 6.2832;
 float blinkWave = sin(uTime * blinkSpeed * 6.2832 + blinkPhase);
@@ -703,6 +944,27 @@ dayWindow += dayGlow;
 
 // Composite: day = carved recess + sparse glow on shadow side, night = full glow
 vec3 windowColor = mix(dayWindow, nightWindow, uDarkMode);
+
+// EQ override (mode-aware) — selected building's facade renders the
+// genre-tinted bars regardless of uDarkMode.
+//   • Bug fix: previous version multiplied by winLit at the
+//     composite step, which collapsed unlit windows to BLACK on
+//     light-mode facades (visible black square holes). Now we ONLY
+//     paint lit windows with the EQ tint and let unlit windows
+//     fall through to the base facade color.
+//   • Light vs dark contrast: dark mode uses HDR (×2.5) for Bloom
+//     bar-tip glow; light mode drops to SDR ×1.4 + an additional
+//     0.78× darken so the genre color reads as a *saturated patch*
+//     against the white facade (poster-on-wall pattern) instead of
+//     blowing out to white. Net: light-mode bars look slightly
+//     deeper than dark-mode for equal perceptual visibility.
+if (spectrumActive > 0.001) {
+  float eqBoost = mix(1.4, 2.5, uDarkMode);
+  float lightDarken = mix(0.78, 1.0, uDarkMode);
+  vec3 eqLit = nightLight * eqBoost * lightDarken * mix(0.3, 1.0, edgeShadow2);
+  windowColor = mix(windowColor, eqLit, winLit * spectrumActive);
+}
+
 gl_FragColor.rgb = mix(gl_FragColor.rgb, windowColor, wWindowMask * wFacadeMask);
 
 // viewDir/fresnel for selection glow below
@@ -710,6 +972,14 @@ vec3 viewDir = normalize(cameraPosition - vWorldPos);
 float fresnel = 1.0 - max(dot(viewDir, vWorldNormal), 0.0);
 
 // ====== Focus / isolation (per-vertex ID + radius discard) ======
+// Opaque pass: every in-ring non-selected fragment is discarded so
+// the ghost pass can paint it at variable alpha. Previously a
+// height gate kept short buildings opaque around a skyscraper —
+// that was too binary (short = invisible-to-isolation). The new
+// design discards everyone in the ring and the ghost pass alone
+// decides how much each building fades by height ratio (see
+// ghostMat). Result: short buildings now lightly fade instead of
+// staying fully opaque, preserving context without dominating.
 float insideFocus = step(abs(vBuildingId - uSelectedBuildingId), 0.5);
 float dxz = distance(vBuildingCenterXZ, uFocusCenterXZ);
 float inRing = (uFocusRadius > 0.0)
@@ -719,10 +989,12 @@ float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
 if (ghostMask > 0.5) discard;
 
 // ====== Selection glow ======
+// Same halo color + intensity in both modes — user wants the dark-mode
+// selection to feel identical to light-mode (no blue tint shift).
 float selFocus = insideFocus * uFocusActive;
 if (selFocus > 0.001) {
   float selBreath = 0.78 + 0.22 * (sin(uTime * 1.6) * 0.5 + 0.5);
-  vec3 selGlow = mix(vec3(0.92, 0.96, 1.0), vec3(0.65, 0.82, 1.0), uDarkMode);
+  vec3 selGlow = vec3(0.92, 0.96, 1.0);
   gl_FragColor.rgb += selGlow * 0.06 * selBreath * selFocus;
   float selRim = pow(fresnel, 2.0);
   gl_FragColor.rgb += selGlow * selRim * 0.40 * selBreath * selFocus * wFacadeMask;
@@ -754,6 +1026,8 @@ if (selFocus > 0.001) {
       shader.uniforms.uFocusActive = { value: 0.0 };
       shader.uniforms.uFocusCenterXZ = { value: [0, 0] };
       shader.uniforms.uFocusRadius = { value: 0.0 };
+      shader.uniforms.uSelectedHeight = { value: 0.0 };
+      shader.uniforms.uHeightFilterMin = { value: 0.0 };
       _ghostShader = shader;
 
       shader.vertexShader = shader.vertexShader.replace(
@@ -761,14 +1035,17 @@ if (selFocus > 0.001) {
         `#include <common>
 attribute float aBuildingId;
 attribute vec2 aBuildingCenterXZ;
+attribute float aBuildingHeight;
 varying float vBuildingId;
-varying vec2 vBuildingCenterG;`
+varying vec2 vBuildingCenterG;
+varying float vBuildingHeightG;`
       );
       shader.vertexShader = shader.vertexShader.replace(
         '#include <worldpos_vertex>',
         `#include <worldpos_vertex>
 vBuildingId = aBuildingId;
-vBuildingCenterG = aBuildingCenterXZ;`
+vBuildingCenterG = aBuildingCenterXZ;
+vBuildingHeightG = aBuildingHeight;`
       );
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -778,8 +1055,11 @@ uniform float uSelectedBuildingId;
 uniform float uFocusActive;
 uniform vec2 uFocusCenterXZ;
 uniform float uFocusRadius;
+uniform float uSelectedHeight;
+uniform float uHeightFilterMin;
 varying float vBuildingId;
-varying vec2 vBuildingCenterG;`
+varying vec2 vBuildingCenterG;
+varying float vBuildingHeightG;`
       );
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <dithering_fragment>',
@@ -789,6 +1069,18 @@ float dxz = distance(vBuildingCenterG, uFocusCenterXZ);
 float inRing = (uFocusRadius > 0.0) ? step(dxz, uFocusRadius) : 0.0;
 float ghostMask = (1.0 - insideFocus) * inRing * step(0.5, uFocusActive);
 if (ghostMask < 0.5) discard;
+// Graduated alpha (skyscraper mode only). Tall peers (height >=
+// uHeightFilterMin × selected) keep the base opacity 0.28 → heavy
+// fade. Short neighbours stay more visible — alpha boosted up to
+// ~2.5× (≈ 0.70) at 40 % of selected height. Smooth ramp between.
+// In normal mode (uHeightFilterMin = 0) every neighbour gets the
+// base 0.28 — same heavy fade as before.
+float alphaScale = 1.0;
+if (uHeightFilterMin > 0.0 && uSelectedHeight > 0.0) {
+  float heightRatio = vBuildingHeightG / uSelectedHeight;
+  alphaScale = mix(2.5, 1.0, smoothstep(0.4, uHeightFilterMin, heightRatio));
+}
+gl_FragColor.a *= alphaScale;
 #include <dithering_fragment>`
       );
     };
@@ -832,6 +1124,47 @@ if (ghostMask < 0.5) discard;
   useFrame(({ clock }, dt) => {
     if (!_buildingShader) return;
     _buildingShader.uniforms.uTime.value = clock.getElapsedTime();
+    // Beat envelope (legacy single-band) — kept for downstream use
+    // (rim glow etc.). Spectrum texture below is what actually
+    // drives the EQ window visualization.
+    _buildingShader.uniforms.uBeatLevel.value = getBeatLevel();
+    // Upload the 32-band spectrum from PreviewPlayer into the
+    // DataTexture. The shader samples this each fragment to decide
+    // how many floors of each window column are lit. Three.js
+    // requires `needsUpdate = true` after mutating the image data.
+    {
+      const tex = spectrumTextureRef.current;
+      const dst = tex.image.data as Uint8Array;
+      const src = getSpectrumData();
+      dst.set(src);
+      tex.needsUpdate = true;
+    }
+    // Step the cross-track genre envelope BEFORE reading the color
+    // — this updates the smoothed `_genreRGB` in PreviewPlayer based
+    // on (a) the lerp toward target and (b) the pre-mix toward the
+    // queued next track during the last 5 s of the current preview.
+    tickGenrePremix(dt);
+    // Genre tint — RGB triple for the EQ bars. Mutate the existing
+    // uniform array in place so we don't allocate a new one per
+    // frame (Three.js detects array mutations via reference + the
+    // shader's auto-uniform uploader).
+    {
+      const dst = _buildingShader.uniforms.uGenreColor.value as number[];
+      const src = getGenreRGB();
+      dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2];
+    }
+    // Audio-active envelope — exponentially approaches 1 while a
+    // preview is playing, 0 while paused / idle. Smooth fade ≈ 200ms
+    // (tau 0.10) so the EQ bars don't snap on/off the moment the
+    // user toggles play, and so a brief network hiccup that flips
+    // isPlaying off for one frame doesn't black-out the facade.
+    {
+      const u = _buildingShader.uniforms.uAudioActive as { value: number };
+      const target = getIsPlaying() ? 1.0 : 0.0;
+      const tauAudio = 0.10;
+      const ka = 1 - Math.exp(-dt / tauAudio);
+      u.value = u.value + (target - u.value) * ka;
+    }
 
     // Exponential approach toward target (frame-rate independent).
     // 1 - exp(-dt / tau): tau≈0.12 s gives ~250ms perceived settle time.
@@ -843,21 +1176,33 @@ if (ghostMask < 0.5) discard;
     }
     _buildingShader.uniforms.uFocusActive.value = focusActiveRef.current;
     _buildingShader.uniforms.uSelectedBuildingId.value = selectedBuildingId;
-    // Push the selected building's centre + a 120 m ghost-ring radius.
-    // 120 m ≈ a tight half-block ring around the selection — close
-    // enough that only the immediate neighbours fade, distant context
-    // stays opaque.
+    // Push the selected building's centre + ghost-ring radius.
+    //   • Default      : 120 m ring, fade EVERY neighbour inside it.
+    //   • Skyscraper   : 200 m ring, fade ONLY similar-or-taller
+    //     neighbours (heightFilterMin = 0.85). Short surrounding
+    //     buildings stay opaque so the user keeps spatial context
+    //     when isolating a tall tower from its peer cluster.
+    // Skyscraper threshold: 80 m ≈ ~22 floors. This roughly matches
+    // the panel's "skyscraper" tag heuristic without requiring us to
+    // pass the full tag list down to the renderer.
     let radius = 0.0;
     let cx = 0, cz = 0;
+    let selectedHeight = 0.0;
+    let heightFilterMin = 0.0;
     if (selectedBuildingId >= 0 && selectedBuildingId < buildings.length) {
-      const center = buildings[selectedBuildingId].center;
-      cx = center[0]; cz = center[1];
-      radius = 120.0;
+      const sel = buildings[selectedBuildingId];
+      cx = sel.center[0]; cz = sel.center[1];
+      selectedHeight = sel.height;
+      const isSkyscraper = sel.height >= 80;
+      radius = isSkyscraper ? 200.0 : 120.0;
+      heightFilterMin = isSkyscraper ? 0.85 : 0.0;
     }
     {
       const c = _buildingShader.uniforms.uFocusCenterXZ.value as number[];
       c[0] = cx; c[1] = cz;
       _buildingShader.uniforms.uFocusRadius.value = radius;
+      _buildingShader.uniforms.uSelectedHeight.value = selectedHeight;
+      _buildingShader.uniforms.uHeightFilterMin.value = heightFilterMin;
     }
     if (_ghostShader) {
       _ghostShader.uniforms.uFocusActive.value = focusActiveRef.current;
@@ -865,6 +1210,8 @@ if (ghostMask < 0.5) discard;
       const gc = _ghostShader.uniforms.uFocusCenterXZ.value as number[];
       gc[0] = cx; gc[1] = cz;
       _ghostShader.uniforms.uFocusRadius.value = radius;
+      _ghostShader.uniforms.uSelectedHeight.value = selectedHeight;
+      _ghostShader.uniforms.uHeightFilterMin.value = heightFilterMin;
     }
   });
 
@@ -1597,7 +1944,7 @@ function DotPoles({ districts, heights, darkMode = false }: { districts: OSMDist
 
 // Single label with distance-based fog
 function FogLabel({ district, height, darkMode = false }: { district: OSMDistrict; height: number; darkMode?: boolean }) {
-  const groupRef = useRef<any>(null);
+  const groupRef = useRef<import('three').Group | null>(null);
   const { camera } = useThree();
 
   useFrame(() => {

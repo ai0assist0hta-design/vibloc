@@ -24,14 +24,19 @@
  */
 
 import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import {
   recommendForBuilding,
+  invalidateRecommendation,
+  peekRecommendation,
   type RecommendationResult,
 } from '../../../lib/music/recommendEngine';
 import type { BuildingTag, CityAreaKey } from '../../../lib/geo/osmLoader';
 import { TrackRow } from './TrackRow';
 import { usePlaylist } from '../../../lib/music/buildingPlaylist';
+import { SECTION_HEADER } from '../../../lib/ui/tokens';
 import { useT } from '../../../lib/app/i18n';
+import { showToast } from '../../../lib/ui/toast';
 
 type Props = {
   area: CityAreaKey;
@@ -67,24 +72,28 @@ export function RecommendedList({
   divider,
 }: Props) {
   const t = useT();
-  const [data, setData] = useState<RecommendationResult | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Synchronous cache peek seeds the initial state so revisiting a
+  // building (within the 10 min TTL) renders instantly with no
+  // loading spinner. Cold hits still show the spinner via the effect
+  // below.
+  const [data, setData] = useState<RecommendationResult | null>(
+    () => peekRecommendation(area, buildingId),
+  );
+  const [loading, setLoading] = useState(() => peekRecommendation(area, buildingId) === null);
   const [refreshKey, setRefreshKey] = useState(0);
-  // Progressive disclosure (LogRocket 2024 / aiuxdesign.guide):
-  // surface the #1 Top Pick the moment a building is selected so the
-  // section never reads as empty, then offer "Show 4 more" to reveal
-  // the rest. The iTunes call is cached so always-fetch is cheap.
-  // Resets to collapsed-extras on every building change.
-  const [showAll, setShowAll] = useState(false);
-  useEffect(() => {
-    setShowAll(false);
-  }, [buildingId]);
-  // Top Pick is always visible — the section never fully collapses.
-  const open = true;
+  // Show-all-by-default per request: progressive-disclosure removed,
+  // every recommended track is rendered immediately.
   const playlist = usePlaylist(buildingId);
 
   useEffect(() => {
     const ctrl = new AbortController();
+    const cached = peekRecommendation(area, buildingId);
+    if (cached) {
+      // Hot path — paint the cached result immediately, no spinner.
+      setData(cached);
+      setLoading(false);
+      return () => ctrl.abort();
+    }
     setLoading(true);
     setData(null);
     recommendForBuilding({ area, lat, lon, buildingName, buildingId, buildingTags, signal: ctrl.signal })
@@ -107,35 +116,38 @@ export function RecommendedList({
   return (
     <div
       style={{
-        marginTop: 4,
-        paddingTop: 12,
-        borderTop: `1px solid ${divider}`,
+        // Inter-section spacing handled by parent FixedQueueSidebar
+        // (gap 16). marginTop: 20 was double-counting that gap; left
+        // RecommendedList sitting 36 px below MY PLAYLIST while every
+        // other section pair was 16 px apart.
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
       }}
     >
       {/* Static section header — Top Pick is always visible per
-          progressive-disclosure pattern. Refresh re-rolls the picks. */}
+          progressive-disclosure pattern. Refresh re-rolls the picks.
+          Right padding 6 px so the ⟳ button's right edge aligns
+          with every TrackRow's trailing action below — both end at
+          panel-right − 22 ( = body padding 16 + this 6 ). Removes
+          the misalignment where the refresh button sat 6 px right
+          of the +/✓/✕ column under it. */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          gap: 6,
+          gap: 8,
+          paddingRight: 12,
         }}
       >
         <span
           style={{
-            fontSize: 9.5,
-            fontWeight: 800,
-            letterSpacing: 0.8,
-            textTransform: 'uppercase',
-            color: text3,
-            fontFamily: "'IBM Plex Mono', monospace",
+            ...SECTION_HEADER,
+            color: text2,
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
             minWidth: 0,
             flex: 1,
             textAlign: 'left',
@@ -146,108 +158,81 @@ export function RecommendedList({
         <button
           type="button"
           onClick={() => {
-            if (!loading) setRefreshKey((k) => k + 1);
+            // Invalidate the cached pick so the next run re-fans-out
+            // to all four sources instead of returning the same list.
+            if (!loading) {
+              invalidateRecommendation(area, buildingId);
+              setRefreshKey((k) => k + 1);
+            }
           }}
           aria-label="Refresh recommendations"
           title={t('music.refreshVibe')}
           style={{
+            // Icon-only button: no border, no fill — pure glyph that
+            // matches the row trailing actions (TrackRow + button).
+            // The 28×28 hit area lines up with the action column so
+            // the refresh icon sits on the same right-edge axis.
             background: 'transparent',
-            border: `1px solid ${divider}`,
-            borderRadius: 8,
-            padding: '2px 8px',
-            fontSize: 10,
-            fontWeight: 700,
+            border: 'none',
+            borderRadius: '50%',
+            padding: 0,
+            width: 32, height: 32,
             color: text2,
             cursor: loading ? 'wait' : 'pointer',
-            fontFamily: "'IBM Plex Mono', monospace",
             display: 'inline-flex',
             alignItems: 'center',
+            justifyContent: 'center',
             userSelect: 'none',
+            transition: 'background 120ms ease, color 120ms ease, transform 600ms ease',
+            transform: loading ? 'rotate(360deg)' : 'rotate(0deg)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(14,14,26,0.06)';
+            e.currentTarget.style.color = text;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = text2;
           }}
         >
-          ⟳
+          <RefreshCw size={16} strokeWidth={2.2} />
         </button>
       </div>
 
       {loading && (
-        <div style={{ fontSize: 11, color: text3, padding: '4px 0' }}>
+        <div style={{ fontSize: 12, color: text3, padding: '4px 0' }}>
           {t('music.loadingPlaylist')}
         </div>
       )}
 
       {!loading && data && data.tracks.length === 0 && (
-        <div style={{ fontSize: 11, color: text3, padding: '4px 0' }}>
+        <div style={{ fontSize: 12, color: text3, padding: '4px 0' }}>
           {t('music.noPreview')}
         </div>
       )}
 
-      {!loading && data && (() => {
-        const visible = showAll ? data.tracks : data.tracks.slice(0, 1);
-        const hidden = data.tracks.length - visible.length;
+      {!loading && data && data.tracks.map((tr) => {
+        const pinned = playlist.isPinned(tr.id);
         return (
-          <>
-            {visible.map((t) => {
-              const pinned = playlist.isPinned(t.id);
-              return (
-                <TrackRow
-                  key={t.id}
-                  track={t}
-                  text={text}
-                  text2={text2}
-                  divider={divider}
-                  rightAction={pinned ? 'pinned' : 'add'}
-                  onRightAction={() =>
-                    pinned ? playlist.unpin(t.id) : playlist.pin(t)
-                  }
-                />
-              );
-            })}
-            {hidden > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowAll(true)}
-                style={{
-                  background: 'transparent',
-                  border: `1px dashed ${divider}`,
-                  borderRadius: 10,
-                  padding: '6px 10px',
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  color: text2,
-                  cursor: 'pointer',
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  letterSpacing: 0.4,
-                  textTransform: 'uppercase',
-                  alignSelf: 'flex-start',
-                }}
-              >
-                {t('music.showMore')} ({hidden}) ▾
-              </button>
-            )}
-            {showAll && data.tracks.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setShowAll(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: text3,
-                  cursor: 'pointer',
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  letterSpacing: 0.4,
-                  textTransform: 'uppercase',
-                  alignSelf: 'flex-start',
-                  padding: 0,
-                }}
-              >
-                {t('music.showLess')} ▴
-              </button>
-            )}
-          </>
+          <TrackRow
+            key={tr.id}
+            track={tr}
+            text={text}
+            text2={text2}
+            divider={divider}
+            rightAction={pinned ? 'pinned' : 'add'}
+            // Already-pinned tap → quiet toast instead of unpin so a
+            // single-click accidental removal can't happen on a
+            // discovery surface (AI 추천곡). The user can still unpin
+            // explicitly from MY PLAYLIST detail.
+            onRightAction={() =>
+              pinned
+                ? showToast(t('track.toast.alreadyAdded'))
+                : playlist.pin(tr)
+            }
+          />
         );
-      })()}
+      })}
     </div>
   );
 }

@@ -102,25 +102,78 @@ export function metersToLatLon(
   return { lat, lon };
 }
 
-/** Reverse geocode via Nominatim (OSM free API) */
-export async function reverseGeocode(lat: number, lon: number): Promise<{ name: string; address: string } | null> {
+/**
+ * Reverse-geocode via Nominatim (OSM free API). Returns the address
+ * formatted in Google's locale-aware order:
+ *
+ *   - en  →  "{road} {house_number}, {neighbourhood}, {suburb}"
+ *   - ko  →  "{suburb} {neighbourhood} {road} {house_number}"
+ *   - ja  →  "{prefecture}{city}{ward}{neighbourhood}{road}"
+ *
+ * Pass the user's UI language so the tile keeps that language even
+ * when Nominatim's primary metadata for the tile is in another
+ * script (a Korean address rendered in English for an English user
+ * and vice versa).
+ */
+export async function reverseGeocode(
+  lat: number,
+  lon: number,
+  lang: 'en' | 'ko' | 'ja' = 'en',
+): Promise<{ name: string; address: string } | null> {
   try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=en,ja,ko`;
+    // Nominatim respects `accept-language` and returns localized
+    // names when the OSM tags carry them. We send the user's lang
+    // first, then fall through to the others as a graceful fallback
+    // when the tile is missing that language's tags.
+    const langChain = ({
+      en: 'en,ja,ko',
+      ja: 'ja,en,ko',
+      ko: 'ko,en,ja',
+    } as const)[lang];
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=${langChain}`;
     const res = await fetch(url, {
       headers: { 'User-Agent': 'VIBLOC/1.0' },
     });
     if (!res.ok) return null;
     const data = await res.json();
     const name = data.name || '';
-    const addr = data.address || {};
-    // Build readable address
-    const parts: string[] = [];
-    if (addr.road) parts.push(addr.road);
-    if (addr.house_number) parts.push(addr.house_number);
-    if (!addr.road && addr.neighbourhood) parts.push(addr.neighbourhood);
-    if (addr.suburb) parts.push(addr.suburb);
-    if (addr.quarter) parts.push(addr.quarter);
-    const address = parts.join(', ') || data.display_name?.split(',').slice(0, 3).join(', ') || '';
+    const a = data.address || {};
+
+    // Locale-aware ordering. Google's formatted_address uses different
+    // conventions per country; we mirror the most common conventions
+    // for each of VIBLOC's 3 supported locales.
+    let address = '';
+    if (lang === 'ko') {
+      // 큰 단위 → 작은 단위, 공백 구분 (한국 주소 표기 규칙)
+      const parts = [
+        a.suburb || a.city_district,
+        a.neighbourhood || a.quarter,
+        a.road,
+        a.house_number,
+      ].filter(Boolean);
+      address = parts.join(' ');
+    } else if (lang === 'ja') {
+      // 都道府県市区町村丁目 — no separator (日本語住所)
+      const parts = [
+        a.suburb || a.city_district,
+        a.quarter || a.neighbourhood,
+        a.road,
+        a.house_number,
+      ].filter(Boolean);
+      address = parts.join('');
+    } else {
+      // English / fallback — Western "street, area" order with commas.
+      const parts: string[] = [];
+      if (a.road) parts.push(a.road);
+      if (a.house_number) parts.push(a.house_number);
+      if (!a.road && a.neighbourhood) parts.push(a.neighbourhood);
+      if (a.suburb) parts.push(a.suburb);
+      if (a.quarter) parts.push(a.quarter);
+      address = parts.join(', ');
+    }
+    if (!address) {
+      address = data.display_name?.split(',').slice(0, 3).join(', ') || '';
+    }
     return { name, address };
   } catch {
     return null;
@@ -923,7 +976,7 @@ function parseOverpassData(
       for (let i = 0; i < buildings.length; i++) if (!drop[i]) filtered.push(buildings[i]);
       buildings.length = 0;
       for (const b of filtered) buildings.push(b);
-      console.log(`[osmLoader] envelope dedup: dropped ${dropped} block-level outlines`);
+      if (import.meta.env.DEV) console.log(`[osmLoader] envelope dedup: dropped ${dropped} block-level outlines`);
     }
   }
 
@@ -1004,13 +1057,16 @@ function parseOverpassData(
   return buildings;
 }
 
+// Order matters — `Object.keys(CITY_AREAS)` drives the left-rail
+// Cities list and the landing-page chip strip. US → KR → JP per
+// product direction (Manhattan is now the default landing shot).
 export const CITY_AREAS = {
-  shinjuku: { file: '/data/shinjuku.json', refLat: 35.690, refLon: 139.700, label: '新宿 Shinjuku' },
-  shibuya: { file: '/data/shibuya.json', refLat: 35.659, refLon: 139.701, label: '渋谷 Shibuya' },
+  manhattan: { file: '/data/manhattan.json', refLat: 40.7565, refLon: -73.983, label: 'Manhattan' },
+  la: { file: '/data/la.json', refLat: 34.050, refLon: -118.250, label: 'Los Angeles' },
   itaewon: { file: '/data/itaewon.json', refLat: 37.536, refLon: 126.995, label: '이태원 Itaewon' },
   gangnam: { file: '/data/gangnam.json', refLat: 37.499, refLon: 127.029, label: '강남 Gangnam' },
-  manhattan: { file: '/data/manhattan.json', refLat: 40.7565, refLon: -73.983, label: '🗽 Manhattan' },
-  la: { file: '/data/la.json', refLat: 34.050, refLon: -118.250, label: '🌴 Los Angeles' },
+  shinjuku: { file: '/data/shinjuku.json', refLat: 35.690, refLon: 139.700, label: '新宿 Shinjuku' },
+  shibuya: { file: '/data/shibuya.json', refLat: 35.659, refLon: 139.701, label: '渋谷 Shibuya' },
 } as const;
 
 export type CityAreaKey = keyof typeof CITY_AREAS;
@@ -1357,12 +1413,18 @@ function extractPOITags(tags: Record<string, string>): BuildingTag[] {
   const shop = tags.shop;
   if (shop && SKIP_SHOPS.has(shop)) return result;
   if (shop) {
+    // SHOP_LABEL_OVERRIDE only renames the label ("Bakery" stays
+    // "Bakery", "clothes" → "Clothing Shop"). The CATEGORY must come
+    // from SHOP_MAP — otherwise food places that happen to be tagged
+    // shop=bakery / shop=coffee / shop=tea / shop=confectionery get
+    // mis-iconed as ShoppingBag instead of UtensilsCrossed.
     const override = SHOP_LABEL_OVERRIDE[shop];
+    const mapped = SHOP_MAP[shop];
     if (override) {
-      result.push({ label: override, category: 'shop', name: poiName, brandWikidata, website });
-    } else if (SHOP_MAP[shop]) {
-      const s = SHOP_MAP[shop];
-      result.push({ label: s.label, category: s.category, name: poiName, brandWikidata, website });
+      const category = mapped?.category ?? 'shop';
+      result.push({ label: override, category, name: poiName, brandWikidata, website });
+    } else if (mapped) {
+      result.push({ label: mapped.label, category: mapped.category, name: poiName, brandWikidata, website });
     } else {
       result.push({ label: 'Shop', category: 'shop', name: poiName, brandWikidata, website });
     }
@@ -1734,7 +1796,7 @@ function verifyBuildingNamesAgainstTenants(buildings: OSMBuilding[]): void {
   }
 
   const totalFixed = fixedByTenant + fixedByBlocklist;
-  if (totalFixed > 0 || protectedCount > 0) {
+  if (import.meta.env.DEV && (totalFixed > 0 || protectedCount > 0)) {
     console.log(
       `[VIBLOC] verifyBuildingNamesAgainstTenants: corrected ${totalFixed} mis-named ` +
         `(tenant: ${fixedByTenant}, brand blocklist: ${fixedByBlocklist}), ` +
@@ -1961,10 +2023,12 @@ function enrichBuildingsWithWikidata(
     }
   }
 
-  console.log(
-    `[VIBLOC] Wikidata: ${matched}/${wikiItems.length} items matched to buildings` +
-    (rejectedFar ? ` (${rejectedFar} dropped — P625 too far from any building)` : '')
-  );
+  if (import.meta.env.DEV) {
+    console.log(
+      `[VIBLOC] Wikidata: ${matched}/${wikiItems.length} items matched to buildings` +
+      (rejectedFar ? ` (${rejectedFar} dropped — P625 too far from any building)` : '')
+    );
+  }
   return idToBuilding;
 }
 
@@ -2124,7 +2188,7 @@ function enrichBuildingsWithWikiInfobox(
     }
   }
 
-  console.log(`[VIBLOC] Wiki infobox: enriched ${updated} buildings (+${tenantsAdded} tenants, ${addressesFixed} addresses verified)`);
+  if (import.meta.env.DEV) console.log(`[VIBLOC] Wiki infobox: enriched ${updated} buildings (+${tenantsAdded} tenants, ${addressesFixed} addresses verified)`);
 }
 
 /** Infer a tag for buildings that have none — based on size, height, and context */
@@ -2180,7 +2244,7 @@ function inferBuildingTags(buildings: OSMBuilding[]): void {
     inferred++;
   }
 
-  console.log(`[VIBLOC] Inferred tags for ${inferred} buildings without data`);
+  if (import.meta.env.DEV) console.log(`[VIBLOC] Inferred tags for ${inferred} buildings without data`);
 }
 
 /**
@@ -2285,7 +2349,7 @@ function inferApartmentComplexNames(buildings: OSMBuilding[]): void {
     }
   }
 
-  if (renamed || propagated) {
+  if (import.meta.env.DEV && (renamed || propagated)) {
     console.log(
       `[VIBLOC] Apartment complex: ${renamed} titles normalized, ${propagated} unnamed siblings inherited complex name`
     );
@@ -2346,10 +2410,10 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
     if (poiRes.ok) {
       const poiData = await poiRes.json();
       const pois = parsePOINodes(poiData.elements || []);
-      console.log(`[VIBLOC] ${area}: ${pois.length} POIs loaded, matching to ${buildings.length} buildings...`);
+      if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${pois.length} POIs loaded, matching to ${buildings.length} buildings...`);
       enrichBuildingsWithPOIs(buildings, pois, config.refLat, config.refLon);
       const enriched = buildings.filter(b => b.tags.length > 0).length;
-      console.log(`[VIBLOC] ${area}: ${enriched} buildings have tags after POI enrichment`);
+      if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${enriched} buildings have tags after POI enrichment`);
       // Cross-reference building display names against attached tenant POIs
       // and strip mis-attributed names from large buildings.
       verifyBuildingNamesAgainstTenants(buildings);
@@ -2368,7 +2432,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
       const items: WikidataItem[] = (wikiData.items || []).filter(
         (w: WikidataItem) => w.lat && w.lon && w.name && !WIKI_SKIP_TYPES.has(w.type)
       );
-      console.log(`[VIBLOC] ${area}: ${items.length} Wikidata items loaded`);
+      if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${items.length} Wikidata items loaded`);
       wikiIdMap = enrichBuildingsWithWikidata(buildings, items, config.refLat, config.refLon);
     }
   } catch (e) {
@@ -2382,7 +2446,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
     if (enrichRes.ok) {
       const enrichData = await enrichRes.json();
       const items: WikiEnrichedItem[] = enrichData.items || [];
-      console.log(`[VIBLOC] ${area}: ${items.length} Wikipedia-enriched items loaded`);
+      if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${items.length} Wikipedia-enriched items loaded`);
       enrichBuildingsWithWikiInfobox(wikiIdMap, items, area);
     }
   } catch (e) {
@@ -2463,7 +2527,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
           }
         }
         if (fused > 0) {
-          console.log(`[VIBLOC] ${area}: ${fused} addresses fused from OSM addr-point nodes`);
+          if (import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${fused} addresses fused from OSM addr-point nodes`);
         }
       }
     }
@@ -2488,7 +2552,7 @@ export async function fetchOSMBuildings(area: CityAreaKey): Promise<OSMBuilding[
           count++;
         }
       }
-      if (count > 0) console.log(`[VIBLOC] ${area}: ${count} addresses set from manual overrides`);
+      if (count > 0 && import.meta.env.DEV) console.log(`[VIBLOC] ${area}: ${count} addresses set from manual overrides`);
     }
   } catch (e) {
     console.warn(`[VIBLOC] Could not load address overrides:`, e);

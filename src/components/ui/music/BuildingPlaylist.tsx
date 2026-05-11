@@ -24,15 +24,21 @@
  */
 
 import { useEffect, useState } from 'react';
-import { usePlaylist } from '../../../lib/music/buildingPlaylist';
-import { TrackRow } from './TrackRow';
+import { Plus } from 'lucide-react';
+import {
+  usePlaylist,
+  getTaggerPlaylistName,
+  getTaggerPlaylistCover,
+} from '../../../lib/music/buildingPlaylist';
+import { PlaylistCover } from './PlaylistCover';
 import type { CityVibe } from '../../../lib/music/trackTypes';
+import type { GenreKey } from '../../../types';
 import { GENRE_COLORS } from '../../../data/genres';
 import { getFamily } from '../../../lib/music/genreFamily';
 import { useT } from '../../../lib/app/i18n';
-
-const DESCRIPTION_MIN_TRACKS = 2;
-const DESCRIPTION_MAX_LEN = 140;
+import { useAuthStore } from '../../../features/auth/useAuthStore';
+import { contrastColor } from '../../../lib/ui/contrastColor';
+import { FONT, SECTION_HEADER } from '../../../lib/ui/tokens';
 
 type Props = {
   buildingId: string;
@@ -43,18 +49,10 @@ type Props = {
   text2: string;
   text3: string;
   divider: string;
+  darkMode?: boolean;
+  /** Open my-playlist detail (full track list + name editor). */
+  onOpenDetail?: (taggerId: string) => void;
 };
-
-/** Deterministic 0..1 hash from a building id — used to fabricate a
- *  stable "N travelers tagged" count without state. */
-function seedFromId(id: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 1000) / 1000;
-}
 
 export function BuildingPlaylist({
   buildingId,
@@ -63,24 +61,82 @@ export function BuildingPlaylist({
   text2,
   text3,
   divider,
+  darkMode = false,
+  onOpenDetail,
 }: Props) {
+  const mode = darkMode ? 'dark' : 'light';
   const t = useT();
   const playlist = usePlaylist(buildingId);
-  // Local draft state so typing isn't gated by every store re-render.
-  // Synced from store on building change OR external mutation.
-  const [draftDesc, setDraftDesc] = useState(playlist.description);
-  useEffect(() => {
-    setDraftDesc(playlist.description);
-  }, [buildingId, playlist.description]);
+  // "started" = user clicked the CTA but hasn't pinned anything yet.
+  // While true we replace the CTA with a dashed placeholder slot
+  // pointing down at the search field — visual confirmation that
+  // their click landed AND a preview of what will fill this space.
+  // Reset whenever the building changes so the next building's empty
+  // state starts from the CTA again.
+  const [started, setStarted] = useState(false);
+  useEffect(() => { setStarted(false); }, [buildingId]);
+  const user = useAuthStore((s) => s.user);
+  const myId = user?.id ?? 'anonymous';
+  const myName = user?.displayName || user?.email || 'Me';
 
-  const showDescription = playlist.tracks.length >= DESCRIPTION_MIN_TRACKS;
+  // Bug fix (2026-05-04): this section is "MY PLAYLIST", so every
+  // count / empty-check / genre tally must be scoped to MY pins
+  // only. Previously we used `playlist.tracks` (the building-wide
+  // list) which meant another curator's single pin would mask my
+  // empty state, inflate the section header count, and steal genre
+  // statistics. The store keeps one row per (track, tagger) pair —
+  // filter by taggerId === me.
+  const myTracks = playlist.tracks.filter(
+    (tr) => (tr.taggerId ?? 'anonymous') === myId,
+  );
+
+  // Summary computation — top genre family + custom playlist name.
+  // Same compact pattern as TopTaggerCard rows so the right panel
+  // reads as a single design system, not two competing layouts.
+  const trackCount = myTracks.length;
+  const customName = getTaggerPlaylistName(buildingId, myId);
+  const headline = customName || myName;
+
+  let topGenreLabel = '';
+  let topGenreColor = '';
+  if (trackCount > 0) {
+    const counts = new Map<GenreKey, number>();
+    for (const tr of myTracks) {
+      counts.set(tr.genre, (counts.get(tr.genre) ?? 0) + 1);
+    }
+    const [top] = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    if (top) {
+      const key = top[0];
+      const fam = getFamily(key);
+      topGenreLabel = (GENRE_COLORS[key]?.label ?? '').split('/')[0].trim()
+        || fam.label;
+      topGenreColor = contrastColor(fam.color, mode);
+    }
+  }
+
+  const initial = headline.trim().charAt(0).toUpperCase() || '?';
+  let h = 0;
+  for (let i = 0; i < myId.length; i++) h = (h * 31 + myId.charCodeAt(i)) >>> 0;
+  const avatarHue = h % 360;
+
+  // Cover sources for the summary tile — same chain PlaylistCover
+  // uses everywhere else (custom upload → 2×2 mosaic of pinned-track
+  // artwork → single image → monogram). Sourcing it here keeps the
+  // right-rail MY PLAYLIST card synced with whatever cover the user
+  // picked in PlaylistDetailView (or the rank cards on the right).
+  const myCustomCover = getTaggerPlaylistCover(buildingId, myId);
+  const myArtworkUrls = myTracks
+    .map((tr) => tr.artworkUrl)
+    .filter((u): u is string => !!u);
 
   return (
     <div
       style={{
-        marginTop: 4,
-        paddingTop: 12,
-        borderTop: `1px solid ${divider}`,
+        // Inter-section spacing comes from FixedQueueSidebar's parent
+        // gap (SPACE[4] = 16), so each section starts with a clean 0
+        // top margin. Was marginTop:20 → +20 over the parent gap, so
+        // MY PLAYLIST sat 36 px from PopularTrackCard while every
+        // other section pair sat 16 px apart.
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
@@ -88,143 +144,188 @@ export function BuildingPlaylist({
     >
       <div
         style={{
-          fontSize: 9.5,
-          fontWeight: 800,
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-          color: text3,
-          fontFamily: "'IBM Plex Mono', monospace",
+          // Shared SECTION_HEADER token — same eyebrow spec across
+          // TopTaggerCard / PopularTrackCard / MY PLAYLIST so the
+          // rail reads as one design system.
+          ...SECTION_HEADER,
+          color: text2,
+          marginBottom: 8,
         }}
       >
-        {t('music.myPlaylist')} {playlist.tracks.length > 0 && `(${playlist.tracks.length})`}
+        {t('music.myPlaylist')}
       </div>
 
-      {playlist.tracks.length === 0 && (() => {
-        // Curator-seeded social proof (UI/UX research #4 + Letterboxd
-        // pattern B.4): an empty playlist now shows a fabricated but
-        // deterministic "travelers tagged X here" line plus the city
-        // vibe's top-3 genre family chips, so the slot never feels
-        // empty. The number is derived from the building id so the
-        // same building always reports the same count.
-        const seed = seedFromId(buildingId);
-        const travelers = 4 + Math.floor(seed * 28); // 4..31
-        const topGenres = (cityVibe?.topGenres ?? []).slice(0, 3);
-        return (
-          <div
-            style={{
-              border: `1px dashed ${divider}`,
-              borderRadius: 10,
-              padding: '12px 14px',
-              fontSize: 11,
-              color: text2,
-              fontFamily: "'IBM Plex Mono', monospace",
-              lineHeight: 1.5,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span aria-hidden="true">🎧</span>
-              <span>
-                <strong style={{ color: text }}>{travelers}</strong> {t('music.travelersVibe')}
-              </span>
-            </div>
-            {topGenres.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                {topGenres.map((g) => {
-                  const fam = getFamily(g);
-                  const short = GENRE_COLORS[g].label.split('/')[0].trim();
-                  return (
-                    <span
-                      key={g}
-                      title={`${short} · ${fam.label}`}
-                      style={{
-                        padding: '3px 9px',
-                        borderRadius: 999,
-                        background: fam.color + '22',
-                        color: fam.color,
-                        fontSize: 10,
-                        fontWeight: 700,
-                        letterSpacing: 0.4,
-                        textTransform: 'uppercase',
-                        border: `1px solid ${fam.color}44`,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 5,
-                      }}
-                    >
-                      <span aria-hidden="true" style={{ fontSize: 9 }}>{fam.glyph}</span>
-                      {short}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-            <div style={{ fontSize: 10, color: text3, marginTop: 2 }}>
-              {t('music.tagTrackHint')}
-            </div>
-          </div>
-        );
-      })()}
+      {trackCount === 0 && !started && (
+        // Empty state — quiet hint copy in place of the previous
+        // "Start my playlist" CTA pill. The AddTrackComposer search
+        // input sits above this section already, so a button that
+        // also pointed there was a redundant second affordance.
+        // Replacing it with a single line of body text removes the
+        // visual repetition while still telling the user what to do
+        // ("곡을 추가해서 첫 플레이리스트를 만드세요").
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            paddingTop: 8,
+            paddingBottom: 4,
+            color: text2,
+            fontSize: 12,
+            lineHeight: 1.45,
+            letterSpacing: '-0.01em',
+            textAlign: 'center',
+          }}
+        >
+          {t('music.emptyHint')}
+        </div>
+      )}
 
-      {playlist.tracks.map((t) => (
-        <TrackRow
-          key={t.id}
-          track={t}
-          text={text}
-          text2={text2}
-          divider={divider}
-          rightAction="remove"
-          onRightAction={() => playlist.unpin(t.id)}
-        />
-      ))}
-
-      {showDescription && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-          <textarea
-            value={draftDesc}
-            onChange={(e) => {
-              const v = e.target.value.slice(0, DESCRIPTION_MAX_LEN);
-              setDraftDesc(v);
-            }}
-            onBlur={() => {
-              if (draftDesc !== playlist.description) {
-                playlist.setDescription(draftDesc);
-              }
-            }}
-            placeholder="describe this playlist… (e.g. 'late-night Itaewon walk')"
-            aria-label="Playlist description"
-            maxLength={DESCRIPTION_MAX_LEN}
-            rows={2}
+      {/* Post-CTA placeholder slot — confirms the click landed AND
+          previews where the first pinned track will sit. Spec is
+          IDENTICAL to the summary card below (28×28 leading thumb,
+          gap 10, padding 6/6, radius 6) so the row aligns cleanly
+          with TopTaggerCard rank rows + the eventual summary card.
+          Only the dashed border + muted ink mark it as a "ghost". */}
+      {trackCount === 0 && started && (
+        // Post-CTA placeholder — silent. The hint copy + arrow were
+        // removed because the search composer actually sits ABOVE
+        // this section in the rail (AddTrackComposer renders first,
+        // BuildingPlaylist comes later), so a "↓ 아래 검색창에서…"
+        // line was both directionally wrong and redundant chrome.
+        // The dashed slot alone communicates "your first track will
+        // land here". Visible width matches the future summary row.
+        <div
+          aria-hidden="true"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '8px 12px 8px 12px',
+            borderRadius: 8,
+            background: 'transparent',
+          }}
+        >
+          <span
             style={{
-              width: '100%',
-              boxSizing: 'border-box',
-              background: 'transparent',
-              border: `1px solid ${divider}`,
-              borderRadius: 8,
-              padding: '8px 10px',
-              fontSize: 11,
-              lineHeight: 1.5,
-              color: text,
-              fontFamily: "'IBM Plex Mono', monospace",
-              resize: 'none',
-              outline: 'none',
-            }}
-          />
-          <div
-            style={{
-              fontSize: 9,
+              // 36×36 / radius 4 — same thumb size as every other
+              // right-rail row (TrackRow, PopularRow, RankRow's
+              // PlaylistCover). Was 28×28 / radius 8 — visually
+              // smaller than the playlist rows directly below.
+              width: 36, height: 36, borderRadius: 4,
+              border: `1.5px dashed ${divider}`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               color: text3,
-              fontFamily: "'IBM Plex Mono', monospace",
-              textAlign: 'right',
-              letterSpacing: 0.4,
+              flexShrink: 0,
             }}
           >
-            {draftDesc.length}/{DESCRIPTION_MAX_LEN}
+            <Plus size={16} strokeWidth={2.4} />
+          </span>
+          <span style={{
+            flex: 1, height: 12,
+            borderRadius: 4,
+            background: divider,
+            opacity: 0.5,
+          }} />
+        </div>
+      )}
+
+      {/* Summary card — same visual family as TopTaggerCard rows so
+          MY PLAYLIST and other people's playlists feel parallel. The
+          full track list is one click away via onOpenDetail. */}
+      {trackCount > 0 && (
+        <div
+          role={onOpenDetail ? 'button' : undefined}
+          tabIndex={onOpenDetail ? 0 : undefined}
+          onClick={onOpenDetail ? () => onOpenDetail(myId) : undefined}
+          onKeyDown={(e) => {
+            if (!onOpenDetail) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onOpenDetail(myId);
+            }
+          }}
+          aria-label={onOpenDetail ? `Open my playlist (${trackCount} tracks)` : undefined}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '8px 12px 8px 12px', borderRadius: 8,
+            background: 'transparent',
+            cursor: onOpenDetail ? 'pointer' : 'default',
+            transition: 'background 150ms ease',
+            outline: 'none',
+          }}
+          onMouseEnter={(e) => {
+            if (onOpenDetail) e.currentTarget.style.background = 'rgba(14,14,26,0.05)';
+          }}
+          onMouseLeave={(e) => {
+            if (onOpenDetail) e.currentTarget.style.background = 'transparent';
+          }}
+        >
+          {/* Cover tile — shared `PlaylistCover` so the MY PLAYLIST
+              row syncs with whatever cover the user uploaded in
+              PlaylistDetailView (or the seed/mosaic fallback). When no
+              custom cover and no track artwork exist (cold start) we
+              fall back to a deterministic-hue monogram below — keeps
+              the empty state from rendering as a generic grey square. */}
+          {(myCustomCover || myArtworkUrls.length > 0) ? (
+            <PlaylistCover
+              customUrl={myCustomCover}
+              artworkUrls={myArtworkUrls}
+              fallbackText={headline}
+              size={36}
+              radius={4}
+              divider={divider}
+              text2={text2}
+              style={{ flexShrink: 0 }}
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              style={{
+                width: 36, height: 36, borderRadius: 4,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: `hsl(${avatarHue}, 55%, 70%)`,
+                color: '#0e0e1a',
+                fontFamily: FONT.ui,
+                fontSize: 12, fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >{initial}</span>
+          )}
+
+          {/* Headline + secondary line */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span
+              style={{
+                fontSize: 12, fontWeight: 600, color: text,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                lineHeight: 1.2,
+              }}
+              title={headline}
+            >
+              {headline}
+            </span>
+            <span
+              style={{
+                fontSize: 12, fontWeight: 500,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                letterSpacing: 0.2,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              {/* Top-genre label removed — was a chromatic chip
+                  ("DANCE", "POP" etc.) that broke the rail's
+                  monochrome system. The summary now reads as a
+                  quiet `N songs` caption matching every other rail
+                  metadata line. */}
+              <span style={{ color: text3 }}>
+                {(trackCount === 1
+                  ? t('detail.songCount_one')
+                  : t('detail.songCount')
+                ).replace('{n}', String(trackCount))}
+              </span>
+            </span>
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -23,3 +23,17 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Vite cache
+.vite/
+
+# Private working notes (kept locally, never pushed)
+/CLAUDE.md
+/TODAY-*.md
+/docs/business/
+/docs/개발현황-총정리.md
+/docs/디렉토리구조.md
+/bun.lock
+
+# `today/` is tracked again — daily dev journal shared with the team
+.vercel

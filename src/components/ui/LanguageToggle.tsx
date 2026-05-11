@@ -48,10 +48,10 @@ export function LanguageToggle({ darkMode = false }: Props) {
               borderRadius: 8,
               border: 'none',
               background: active
-                ? (darkMode ? 'rgba(255,255,255,0.18)' : 'rgba(26,26,46,0.10)')
+                ? (darkMode ? 'rgba(255,255,255,0.18)' : 'rgba(14,14,26,0.10)')
                 : 'transparent',
-              color: darkMode ? '#e0e0e8' : '#1a1a2e',
-              fontFamily: "'IBM Plex Mono', monospace",
+              color: darkMode ? '#e0e0e8' : '#0e0e1a',
+              fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
               fontSize: 11,
               fontWeight: active ? 800 : 500,
               cursor: 'pointer',

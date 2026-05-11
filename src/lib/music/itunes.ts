@@ -30,6 +30,7 @@ import type { RecommendedTrack } from './trackTypes';
 import { normalizeGenre } from './normalizeGenre';
 
 const SEARCH_ENDPOINT = 'https://itunes.apple.com/search';
+const LOOKUP_ENDPOINT = 'https://itunes.apple.com/lookup';
 const RSS_ENDPOINT = 'https://rss.applemarketingtools.com/api/v2';
 
 /** ISO 3166-1 alpha-2 — matches the existing AREA_COUNTRY map in App.tsx. */
@@ -69,20 +70,27 @@ type ItunesRawResult = {
   trackId: number;
   trackName?: string;
   artistName?: string;
+  collectionId?: number;
   collectionName?: string;
   artworkUrl100?: string;
   previewUrl?: string;
   primaryGenreName?: string;
   trackViewUrl?: string;
+  trackCount?: number;
+  releaseDate?: string;
   wrapperType?: string;
   kind?: string;
 };
 
 function toRecommendedTrack(r: ItunesRawResult): RecommendedTrack | null {
   if (!r.trackName || !r.artistName) return null;
-  // Apple's default artwork URL is 100 px. The 600 px variant is just
-  // a string substitution and the CDN serves it for free — sharper on
-  // retina without an extra request.
+  // Apple's default artwork URL is 100 px. The CDN serves any
+  // {N}x{N}bb variant for free via plain string substitution.
+  // 600 px is the safe / sharp tradeoff: covers @2x retina up to a
+  // 300-px display tile (every surface in VIBLOC except the hero,
+  // which the browser will upsample slightly), and ALWAYS exists
+  // — `1200x1200bb` and especially `3000x3000bb` 404 on a non-zero
+  // tail of older / compilation releases.
   const art = (r.artworkUrl100 || '').replace('100x100bb', '600x600bb');
   return {
     id: String(r.trackId),
@@ -93,6 +101,10 @@ function toRecommendedTrack(r: ItunesRawResult): RecommendedTrack | null {
     primaryGenreName: r.primaryGenreName || '',
     genre: normalizeGenre(r.primaryGenreName || ''),
     trackViewUrl: r.trackViewUrl || '',
+    collectionId: r.collectionId,
+    collectionName: r.collectionName,
+    trackCount: r.trackCount,
+    releaseDate: r.releaseDate,
   };
 }
 
@@ -139,6 +151,58 @@ export async function searchTrack(
     return tracks;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Resolve a single track by its iTunes trackId. This is the *only*
+ * 100 % deterministic path — no scoring, no ambiguity. The same id
+ * is what `music.apple.com/.../song/{id}` displays, so the artwork
+ * we get back is byte-for-byte the cover Apple shows for that song.
+ *
+ * Returns null on network failure or unknown id.
+ */
+export async function lookupTrackId(
+  trackId: string | number,
+  countryOrSignal?: CountryCode | AbortSignal,
+  maybeSignal?: AbortSignal,
+): Promise<RecommendedTrack | null> {
+  // Backwards-compat overload: previous signature was
+  // `lookupTrackId(id, signal?)`. New signature accepts an optional
+  // country code in slot 2 so JP / KR-only releases (e.g. Miki
+  // Matsubara's Pocket Park, Vaundy's strobo) actually resolve.
+  let country: CountryCode | undefined;
+  let signal: AbortSignal | undefined;
+  if (typeof countryOrSignal === 'string') {
+    country = countryOrSignal;
+    signal = maybeSignal;
+  } else {
+    signal = countryOrSignal;
+  }
+
+  const idStr = String(trackId).trim();
+  if (!idStr || !/^\d{6,12}$/.test(idStr)) return null;
+
+  const cacheKey = `lookup|${idStr}|${country ?? ''}`;
+  const cached = cacheGet<RecommendedTrack | null>(cacheKey);
+  if (cached !== null && cached !== undefined) return cached;
+
+  const params = new URLSearchParams({ id: idStr, entity: 'song' });
+  if (country) params.set('country', country.toLowerCase());
+
+  try {
+    const res = await fetch(
+      `${LOOKUP_ENDPOINT}?${params.toString()}`,
+      { signal, credentials: 'omit' },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { results?: ItunesRawResult[] };
+    const first = (data.results || []).map(toRecommendedTrack)
+      .find((t): t is RecommendedTrack => t !== null) || null;
+    cacheSet(cacheKey, first);
+    return first;
+  } catch {
+    return null;
   }
 }
 
@@ -203,7 +267,7 @@ export async function topSongsByCountry(
       id: it.id,
       name: it.name,
       artistName: it.artistName,
-      artworkUrl: (it.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
+      artworkUrl: (it.artworkUrl100 || '').replace('100x100bb', '1200x1200bb'),
       primaryGenreName: it.genres?.[0]?.name || '',
     }));
     cacheSet(cacheKey, items);

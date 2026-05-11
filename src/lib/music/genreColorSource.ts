@@ -21,9 +21,11 @@
  *     each top result's `artworkUrl100`, upscales the URL to 300×300
  *     (free CDN substitution), draws it into an offscreen canvas, and
  *     extracts a dominant saturated hue via 12-bin hue histogram.
- *  3. Result is cached to localStorage under `vibloc.genreColors.v1`
+ *  3. Result is cached to localStorage under `vibloc.genreColors.v3`
  *     with a 7-day TTL so subsequent sessions hydrate synchronously
- *     before React mounts (no flash).
+ *     before React mounts (no flash). The cache key was bumped from
+ *     v1 → v3 when the hue-spread fallback landed (see CACHE_KEY
+ *     comment below).
  *
  * Failure mode: every step is wrapped in try/catch and resolves to
  * `null` on failure. Callers fall back to the static HIG palette in

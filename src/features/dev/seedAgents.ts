@@ -1,0 +1,516 @@
+/**
+ * Demo data seeder — populates building playlists with fake "agent"
+ * taggers so the right-panel UI (TopTaggerCard, PopularTrackCard,
+ * tagger cards in BuildingPlaylist) has data to render before any
+ * real user has tagged anything.
+ *
+ * Behavior
+ * --------
+ *   • Runs ONCE per browser session (dev mode only).
+ *   • Reads existing `vibloc.playlists.v1`; only seeds buildings that
+ *     have no entry yet → never overwrites real user pins.
+ *   • Deterministic: same `buildingId` → same agents/tracks/likes.
+ *     This means the demo content stays stable across reloads.
+ *
+ * Why this lives outside `buildingPlaylist.ts`
+ * --------------------------------------------
+ * The store module is the production-runtime contract. Demo data
+ * generation is a dev-only concern, so it lives here and writes
+ * straight to the same localStorage key, then dispatches a 'storage'
+ * event so any mounted hooks pick it up.
+ */
+
+import type { BuildingPlaylistEntry, PinnedTrack } from '../../lib/music/buildingPlaylist';
+import { reloadFromStorage } from '../../lib/music/buildingPlaylist';
+import type { RecommendedTrack } from '../../lib/music/trackTypes';
+// Build-time-baked covers. Every entry was resolved by
+// scripts/bakeSeedCovers.mjs against four sources in priority:
+// iTunes lookup-by-id (storefront-aware) → iTunes search (scored) →
+// Deezer → MusicBrainz + Cover Art Archive. Keys are
+// "{normalized artist}|{normalized title}". When mk() finds a match
+// it ships the byte-correct cover URL on the FIRST paint — no
+// runtime API call needed for those tracks. Re-bake any time the
+// seed table changes:  node scripts/bakeSeedCovers.mjs
+import bakedCovers from './seedCovers.json' with { type: 'json' };
+
+type BakedCover = {
+  url: string;
+  previewUrl?: string;
+  trackViewUrl?: string;
+  source: 'itunes-id' | 'itunes-search' | 'deezer' | 'musicbrainz';
+  pickedTitle?: string;
+  pickedCollection?: string;
+};
+const BAKED: Record<string, BakedCover> = bakedCovers as Record<string, BakedCover>;
+
+function normalizeForBakedKey(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/\([^)]*\)/g,' ').replace(/\[[^\]]*\]/g,' ')
+    .replace(/\bfeat\.?\b.*$/i,' ').replace(/[^\p{L}\p{N}]+/gu,' ')
+    .trim().replace(/\s+/g,' ');
+}
+
+const STORAGE_KEY = 'vibloc.playlists.v1';
+const SEED_VERSION_KEY = 'vibloc.demo.seedVersion';
+// v12 = verified-trackId pool. Every numeric id in TRACK_POOL was
+// re-checked against the live iTunes Search API; ~36 of 54 seeds
+// now carry the byte-exact Apple Music trackId so their covers and
+// deep links are guaranteed identical to what music.apple.com
+// shows. The remaining text-id seeds resolve at runtime via the
+// storefront-aware scorer + MusicBrainz fallback.
+// v17 = mosaic / custom playlist covers. Default = 2×2 mosaic of
+// the playlist's top track artworks (Apple/Spotify "smart cover"
+// style); five personas carry a custom photo override via
+// customCoverUrl. Bumping forces re-seed so existing buildings
+// re-attach taggerCustomCoverUrl on each pinned track.
+const SEED_VERSION = 'v17-mosaic-covers';
+const MAX_SEED_BUILDINGS = 40;
+
+type Country = 'JP' | 'KR' | 'US';
+
+type Agent = {
+  id: string;
+  name: string;
+  /** Curator-chosen avatar URL. ALWAYS null for seed agents. */
+  avatarUrl: string | null;
+  /** Where this curator is "from" — drives which buildings they
+   *  show up on. JP agents on Tokyo buildings, KR agents on Seoul,
+   *  US agents on NYC/LA. We sprinkle a small fraction of off-locale
+   *  curators into each building so cities still feel cosmopolitan. */
+  homeCountry: Country;
+  /** Custom playlist NAME — appears as the headline. */
+  playlistName: string;
+  /** Genre lean — filters TRACK_POOL by `genre`. */
+  taste: RecommendedTrack['genre'][];
+  /** Persona vibe tag. Used by buildVibeFor() to weight agents
+   *  toward matching building shapes (`office` → "lo-fi commute"
+   *  curators, `late-night` → club / drive curators, etc.) */
+  vibe: 'office' | 'cafe' | 'late-night' | 'sunset' | 'hangout';
+  /** Optional custom playlist cover override — full-bleed photo
+   *  shown in place of the default 2×2 mosaic of track artworks.
+   *  Drop the file in `public/playlist-covers/` and reference it
+   *  with the relative path (e.g. `/playlist-covers/omar.jpg`). */
+  customCoverUrl?: string;
+  /** Legacy free-text note (UI no longer renders it). */
+  note: string;
+};
+
+/** Demo curators — each one is a small persona with a distinct city,
+ *  time-of-day, and taste profile. Playlist names follow the
+ *  "{First}'s playlist" pattern (mirrors how iOS Music defaults
+ *  user-created libraries) so the cards read as personal collections
+ *  instead of editorial blurbs. The persona's vibe / taste keeps
+ *  driving track selection — only the headline string changed. */
+const AGENTS: Agent[] = [
+  // ── KR curators (Seoul: Itaewon, Gangnam, Hongdae) ──
+  { id: 'agent-luna', name: 'Luna Park', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'late-night',
+    playlistName: "Luna's playlist",
+    taste: ['rnb', 'jazz', 'singer'],
+    note: 'late-night songs from walking these blocks.' },
+  { id: 'agent-min', name: 'Min Seo', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'sunset',
+    playlistName: "Min's playlist",
+    taste: ['rnb', 'kpop', 'singer'],
+    note: 'k-r&b heavy. for slow walks down side alleys.' },
+  { id: 'agent-yuna', name: 'Yuna Choi', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'late-night',
+    playlistName: "Yuna's playlist",
+    taste: ['kpop', 'rnb', 'pop'],
+    note: 'one-hour set — leaving the first round, heading to the second.' },
+  { id: 'agent-jaehyun', name: 'Jaehyun Park', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'office',
+    playlistName: "Jaehyun's playlist",
+    taste: ['kpop', 'pop', 'electronic'],
+    note: '회식 전 카페 셋.' },
+  { id: 'agent-haeun', name: 'Haeun Lee', avatarUrl: null,
+    homeCountry: 'KR', vibe: 'cafe',
+    playlistName: "Haeun's playlist",
+    taste: ['singer', 'jazz', 'alternative'],
+    note: 'soft acoustic set.' },
+
+  // ── JP curators (Shinjuku, Shibuya) ──
+  { id: 'agent-jiro', name: 'Jiro Tanaka', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'late-night',
+    playlistName: "Jiro's playlist",
+    taste: ['electronic', 'jpop', 'soundtrack'],
+    note: 'coffee + ambient bass + neon reflections.' },
+  { id: 'agent-rio', name: 'Rio Suzuki', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'office',
+    playlistName: "Rio's playlist",
+    taste: ['hiphop', 'electronic', 'jpop'],
+    note: 'my daily train-ride set.' },
+  { id: 'agent-sora', name: 'Sora Hinata', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'cafe',
+    playlistName: "Sora's playlist",
+    taste: ['jpop', 'pop', 'singer'],
+    customCoverUrl: '/playlist-covers/penguin-selfie.jpg',
+    note: 'brunch-cafe playlist.' },
+  { id: 'agent-mei', name: 'Mei Watanabe', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'cafe',
+    playlistName: "Mei's playlist",
+    taste: ['jpop', 'jazz', 'singer'],
+    customCoverUrl: '/playlist-covers/jiji-cat.jpg',
+    note: 'rainy sunday at the listening bar.' },
+  { id: 'agent-haru', name: 'Haru Mori', avatarUrl: null,
+    homeCountry: 'JP', vibe: 'sunset',
+    playlistName: "Haru's playlist",
+    taste: ['jpop', 'pop', 'electronic'],
+    note: 'city pop revival cuts.' },
+
+  // ── US curators (Manhattan, LA) ──
+  { id: 'agent-kai', name: 'Kai Roberts', avatarUrl: null,
+    homeCountry: 'US', vibe: 'sunset',
+    playlistName: "Kai's playlist",
+    taste: ['hiphop', 'rnb', 'pop'],
+    customCoverUrl: '/playlist-covers/horse-motion.jpg',
+    note: 'BK summer set.' },
+  { id: 'agent-omar', name: 'Omar Hassan', avatarUrl: null,
+    homeCountry: 'US', vibe: 'late-night',
+    playlistName: "Omar's playlist",
+    taste: ['hiphop', 'rnb', 'electronic'],
+    customCoverUrl: '/playlist-covers/teddy-cool.jpg',
+    note: 'after-hours uptown taxi loop.' },
+  { id: 'agent-leo', name: 'Leo Vasquez', avatarUrl: null,
+    homeCountry: 'US', vibe: 'hangout',
+    playlistName: "Leo's playlist",
+    taste: ['alternative', 'latin', 'pop'],
+    note: 'LA eastside, windows down.' },
+  { id: 'agent-ava', name: 'Ava Chen', avatarUrl: null,
+    homeCountry: 'US', vibe: 'sunset',
+    playlistName: "Ava's playlist",
+    taste: ['alternative', 'pop', 'singer'],
+    note: 'indie + dream pop.' },
+  { id: 'agent-ezra', name: 'Ezra Maeda', avatarUrl: null,
+    homeCountry: 'US', vibe: 'late-night',
+    playlistName: "Ezra's playlist",
+    taste: ['electronic', 'pop', 'rock'],
+    customCoverUrl: '/playlist-covers/unknown-silhouette.jpg',
+    note: 'synthwave heavy.' },
+  { id: 'agent-noa', name: 'Noa Kim', avatarUrl: null,
+    homeCountry: 'US', vibe: 'cafe',
+    playlistName: "Noa's playlist",
+    taste: ['jazz', 'singer', 'rnb'],
+    note: 'lo-fi + jazz + warm vocals.' },
+  { id: 'agent-hugo', name: 'Hugo Vrai', avatarUrl: null,
+    homeCountry: 'US', vibe: 'hangout',
+    playlistName: "Hugo's playlist",
+    taste: ['electronic', 'jpop', 'pop'],
+    note: 'french touch + city pop crossover.' },
+];
+
+// (Removed `dicebear()` and `avatarFor()` 2026-04-27. Seeded agents
+//  no longer carry an avatar URL — the playlist's top-track album
+//  cover is now the default thumbnail per user direction.)
+
+/** Country → preferred genre families for track selection. Used by
+ *  the seeder to bias each city's playlists toward locally relevant
+ *  music (Tokyo → J-Pop / Anime / Soundtrack, Seoul → K-Pop / R&B,
+ *  US → Hip-Hop / Pop / Latin). Other genres still appear via
+ *  cross-locale curators, just less dominantly. */
+const COUNTRY_TRACK_PREFERENCE: Record<Country, Set<RecommendedTrack['genre']>> = {
+  JP: new Set<RecommendedTrack['genre']>(['jpop', 'soundtrack', 'electronic', 'jazz', 'singer']),
+  KR: new Set<RecommendedTrack['genre']>(['kpop', 'rnb', 'hiphop', 'pop', 'singer']),
+  US: new Set<RecommendedTrack['genre']>(['pop', 'hiphop', 'rnb', 'alternative', 'latin', 'electronic']),
+};
+
+/** Real-ish iTunes track stubs. previewUrl left empty so the play
+ *  button shows but stays disabled — keeps the UI honest. Artwork
+ *  uses iTunes' public CDN (still hot-linkable). */
+// Every numeric `id` is a verified iTunes trackId pointing at the
+// canonical studio-album / single release of the song. Manually
+// audited via scripts/auditSeedCovers.mjs (2026-04-28): each pick
+// rejects DJ mixes, "Today's Hits" comps, "Boiler Room" sets, and
+// any deluxe / "(feat. Different Artist) - Single" derivative that
+// would render the wrong cover. Tracks marked FIXME below couldn't
+// be auto-resolved (rate limit / no high-confidence match) and
+// resolve at runtime via the storefront-aware scorer + MusicBrainz
+// fallback.
+const TRACK_POOL: RecommendedTrack[] = [
+  // ── Pop ──
+  mk('1488408568', 'Blinding Lights',         'The Weeknd',         'pop',    'Pop'),                       // Blinding Lights - Single
+  mk('1445949267', 'Sunflower',               'Post Malone',        'pop',    'Pop'),                       // Spider-Verse OST
+  mk('1615585008', 'As It Was',               'Harry Styles',       'pop',    'Pop'),                       // Harry's House
+  mk('1776741889', 'Glimpse of Us',           'Joji',               'pop',    'Pop'),                       // Glimpse of Us - Single
+  mk('1851338830', 'Snowman',                 'Sia',                'pop',    'Pop'),                       // Snowman (feat. Belinda) - Single
+  mk('1674691586', 'Flowers',                 'Miley Cyrus',        'pop',    'Pop'),                       // Endless Summer Vacation
+  mk('1736995100', 'vampire',                 'Olivia Rodrigo',     'pop',    'Pop'),                       // GUTS (spilled)
+  // ── K-Pop ──
+  // Dynamite original studio single is the right target — earlier audit
+  // pick (1596543966) was a DJ Mix compilation; reverted to the BTS
+  // single's id which lookup verifies as the real "Dynamite (DayTime)".
+  mk('1597024424', 'Dynamite',                'BTS',                'kpop',   'K-Pop'),                     // Dynamite (DayTime Version) - Single
+  mk('1762365714', 'Cupid',                   'FIFTY FIFTY',        'kpop',   'K-Pop'),                     // The Beginning: Cupid - Single
+  mk('1677260541', 'Kitsch',                  'IVE',                'kpop',   'K-Pop'),                     // Kitsch - Single
+  mk('1639416903', 'After LIKE',              'IVE',                'kpop',   'K-Pop'),                     // After LIKE - Single
+  mk('1681823696', 'Haegeum',                 'Agust D',            'kpop',   'K-Pop'),                     // D-DAY (verified via lookup)
+  mk('1692686518', 'Super Shy',               'NewJeans',           'kpop',   'K-Pop'),                     // NewJeans 'Super Shy' - Single
+  mk('1657231962', 'Ditto',                   'NewJeans',           'kpop',   'K-Pop'),                     // OMG / Ditto
+  // ── J-Pop ──
+  mk('1541673399', 'Plastic Love',            'Mariya Takeuchi',    'jpop',   'J-Pop'),                     // VARIETY (verified)
+  mk('1535215576', 'Stay With Me',            'Miki Matsubara',     'jpop',   'J-Pop'),                     // Pocket Park (verified)
+  mk('1537460612', 'Lemon',                   'Kenshi Yonezu',      'jpop',   'J-Pop'),                     // STRAY SHEEP
+  mk('1648108988', 'Subtitle',                'Official髭男dism',    'jpop',   'J-Pop'),                     // Subtitle - Single
+  mk('j-mixed',    'Mixed Nuts',              'Official髭男dism',    'jpop',   'J-Pop'),                     // FIXME runtime fallback
+  mk('1679278167', 'アイドル',                 'YOASOBI',            'jpop',   'J-Pop'),                     // アイドル - Single
+  mk('1706832137', '怪獣の花唄',                'Vaundy',             'jpop',   'J-Pop'),                     // strobo
+  // ── R&B / Soul ──
+  mk('1440857782', 'Late Night Tales',        'Yebba',              'rnb',    'R&B/Soul'),                  // FIXME runtime fallback
+  mk('1799080775', 'Get You',                 'Daniel Caesar',      'rnb',    'R&B/Soul'),                  // Freudian
+  mk('1146195714', 'Pink + White',            'Frank Ocean',        'rnb',    'R&B/Soul'),                  // Blonde
+  mk('1658650499', 'Snooze',                  'SZA',                'rnb',    'R&B/Soul'),                  // SOS
+  mk('1440892167', 'Passionfruit',            'Drake',              'rnb',    'R&B/Soul'),                  // More Life
+  mk('1531532767', 'Essence',                 'WizKid',             'rnb',    'R&B/Soul'),                  // Made In Lagos
+  // ── Hip-Hop / Rap ──
+  mk('1577414972', 'Industry Baby',           'Lil Nas X',          'hiphop', 'Hip-Hop/Rap'),               // INDUSTRY BABY - Single
+  mk('1406109863', 'God\'s Plan',             'Drake',              'hiphop', 'Hip-Hop/Rap'),               // Scorpion
+  mk('1440841730', 'Hotline Bling',           'Drake',              'hiphop', 'Hip-Hop/Rap'),               // Views
+  mk('h-flowers',  'No Idea',                 'Don Toliver',        'hiphop', 'Hip-Hop/Rap'),               // FIXME runtime (audit pick was DJ Chopped & Screwed remix)
+  mk('1653012565', 'Rich Flex',               'Drake & 21 Savage',  'hiphop', 'Hip-Hop/Rap'),               // Her Loss
+  // ── Alternative ──
+  mk('1508562516', 'Heat Waves',              'Glass Animals',      'alternative', 'Alternative'),         // Dreamland
+  mk('534798882',  'Take a Walk',             'Passion Pit',        'alternative', 'Alternative'),         // Gossamer
+  mk('1435258133', 'Coffee',                  'beabadoobee',        'alternative', 'Alternative'),         // Coffee - Single
+  mk('1697335814', 'My Love Mine All Mine',   'Mitski',             'alternative', 'Alternative'),         // The Land Is Inhospitable...
+  mk('1821547087', 'Sofia',                   'Clairo',             'alternative', 'Alternative'),         // Immunity
+  // ── Electronic ──
+  mk('1440857785', 'Lo-fi Beats',             'Idealism',           'electronic', 'Electronic'),           // FIXME runtime fallback
+  mk('e-strobe',   'Strobe',                  'Deadmau5',           'electronic', 'Electronic'),           // FIXME runtime (audit pick was Extended Mixes deluxe)
+  mk('696886431',  'Around the World',        'Daft Punk',          'electronic', 'Electronic'),           // Homework
+  mk('697195462',  'One More Time',           'Daft Punk',          'electronic', 'Electronic'),           // Discovery
+  mk('617154362',  'Instant Crush',           'Daft Punk',          'electronic', 'Electronic'),           // Random Access Memories
+  // ── Jazz ──
+  mk('268443097',  'So What',                 'Miles Davis',        'jazz',   'Jazz'),                     // Kind of Blue
+  mk('268443200',  'All Blues',               'Miles Davis',        'jazz',   'Jazz'),                     // Kind of Blue
+  mk('298728241',  'Take Five',               'Dave Brubeck',       'jazz',   'Jazz'),                     // We're All Together Again
+  // ── Singer / Songwriter ──
+  mk('1649434293', 'Anti-Hero',               'Taylor Swift',       'singer', 'Singer/Songwriter'),         // Midnights (NOT 3am Edition)
+  mk('1369380479', 'lovely',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),         // lovely - Single
+  mk('1739659137', 'Skinny',                  'Billie Eilish',      'singer', 'Singer/Songwriter'),         // HIT ME HARD AND SOFT
+  // ── Latin ──
+  // Audit pick for "Tusa" was a Boiler Room DJ Mix — kept the original
+  // single id 1507252551 (it's the actual Karol G / Nicki Minaj single).
+  mk('1507252551', 'Tusa',                    'Karol G & Nicki Minaj', 'latin', 'Latin'),                  // Tusa - Single
+  mk('1445025224', 'Despacito',               'Luis Fonsi',         'latin',  'Latin'),                     // Despacito - Single
+  // ── Soundtrack / Cinema ──
+  mk('o-mononoke', 'もののけ姫',                '久石譲',              'soundtrack', 'Soundtrack'),            // FIXME runtime fallback
+  mk('o-rain',     'Comptine d\'un autre été','Yann Tiersen',        'soundtrack', 'Soundtrack'),            // FIXME runtime fallback
+  // ── Rock ──
+  mk('1440806768', 'Bohemian Rhapsody',       'Queen',              'rock',   'Rock'),                      // A Night at the Opera
+  mk('rk-radiohd', 'Creep',                   'Radiohead',          'rock',   'Rock'),                      // FIXME runtime fallback
+];
+
+function mk(
+  id: string, trackName: string, artistName: string,
+  genre: RecommendedTrack['genre'], primaryGenreName: string,
+): RecommendedTrack {
+  // First check the build-time baked cover map. ~50 of 52 seeds
+  // ship with a real Apple / Deezer / Cover-Art-Archive URL frozen
+  // into seedCovers.json so the first paint already has the right
+  // image — no runtime network call needed. Falls back to a sharp
+  // picsum placeholder for the few seeds the baker couldn't resolve
+  // (those still get retried by the runtime enricher).
+  const bakedKey = `${normalizeForBakedKey(artistName)}|${normalizeForBakedKey(trackName)}`;
+  const baked = BAKED[bakedKey];
+  return {
+    id, trackName, artistName,
+    artworkUrl: baked?.url || `https://picsum.photos/seed/${id}/600/600`,
+    previewUrl: baked?.previewUrl || '',
+    primaryGenreName,
+    genre,
+    trackViewUrl: baked?.trackViewUrl || '',
+  };
+}
+
+/** FNV-1a 32-bit hash → number; used to make seeding deterministic. */
+function hash(s: string, salt = 0): number {
+  let h = 2166136261 ^ salt;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+type BuildingShape = {
+  id: string;
+  height: number;
+  tagCategories: string[];
+};
+
+/** Infer a vibe weight per agent for a given building. Skyscrapers
+ *  (>120m) skew to office / commute curators; low retail/restaurant
+ *  blocks skew to cafe / sunset / hangout; entertainment-heavy
+ *  buildings skew late-night. Returns a multiplier in roughly
+ *  [0.5, 2.0] applied during agent ranking. */
+function vibeWeightFor(agent: Agent, b: BuildingShape): number {
+  const tags = new Set(b.tagCategories);
+  const tall = b.height >= 120;
+  const mid = b.height >= 40 && b.height < 120;
+  const isFood = tags.has('food');
+  const isShop = tags.has('shop');
+  const isHotel = tags.has('hotel');
+  const isOffice = tags.has('office') || tall;
+  const isEnt = tags.has('entertainment');
+  switch (agent.vibe) {
+    case 'office':     return isOffice ? 1.8 : (mid ? 1.0 : 0.6);
+    case 'cafe':       return isFood ? 1.6 : (isShop || isHotel ? 1.1 : 0.7);
+    case 'late-night': return isEnt ? 1.8 : (isFood ? 1.2 : tall ? 0.9 : 0.7);
+    case 'sunset':     return isHotel ? 1.5 : (mid ? 1.1 : 0.9);
+    case 'hangout':    return isShop || isFood ? 1.3 : 0.9;
+    default:           return 1.0;
+  }
+}
+
+function buildEntryFor(
+  building: BuildingShape,
+  country: Country | undefined,
+): BuildingPlaylistEntry {
+  // Filter agents by locale: 70% of slots reserved for in-country
+  // curators, the rest sprinkled from off-locale agents so the
+  // panel still feels cosmopolitan. When country is unknown, use
+  // the full pool.
+  const local = country ? AGENTS.filter((a) => a.homeCountry === country) : AGENTS;
+  const foreign = country ? AGENTS.filter((a) => a.homeCountry !== country) : [];
+
+  // Score every candidate by vibe match × stable per-building hash
+  // so the same building always picks the same lineup.
+  const scored = (agents: Agent[]) => agents
+    .map((a) => ({
+      agent: a,
+      score: vibeWeightFor(a, building) +
+             // Per-building deterministic jitter so two same-vibe
+             // agents don't always rank in the same order across
+             // every building. Range ≈ 0..0.6.
+             ((hash(building.id + a.id, 7) % 60) / 100),
+    }))
+    .sort((x, y) => y.score - x.score);
+
+  const localRanked = scored(local).map((r) => r.agent);
+  const foreignRanked = scored(foreign).map((r) => r.agent);
+
+  // 2–5 agents per building. Take from local first, top-up with
+  // foreign so cosmopolitan buildings still get a sprinkle.
+  const agentCount = 2 + (hash(building.id, 1) % 4);
+  const localTake = Math.max(1, Math.ceil(agentCount * 0.7));
+  const chosen: Agent[] = [
+    ...localRanked.slice(0, localTake),
+    ...foreignRanked.slice(0, agentCount - localTake),
+  ].slice(0, agentCount);
+
+  const tracks: PinnedTrack[] = [];
+  const taggerNotes: Record<string, string> = {};
+  const taggerPlaylistNames: Record<string, string> = {};
+  const playlistLikedBy: Record<string, string[]> = {};
+  const baseTime = Date.now() - hash(building.id, 3) % (1000 * 60 * 60 * 24 * 14);
+  const usedIds = new Set<string>();
+
+  chosen.forEach((agent, ai) => {
+    // Country-aware track pool: bias toward in-country genres so
+    // Tokyo buildings serve more J-Pop, Seoul → K-Pop, etc.
+    const countryGenres = COUNTRY_TRACK_PREFERENCE[country ?? 'US'] ?? new Set();
+    const tasteSet = new Set(agent.taste);
+    const tastePool = TRACK_POOL.filter((t) => tasteSet.has(t.genre));
+    const localBias = TRACK_POOL.filter((t) => countryGenres.has(t.genre));
+    // Composed pool: prefer (taste ∩ country) → taste → country → all
+    const tasteAndLocal = tastePool.filter((t) => countryGenres.has(t.genre));
+    const pool =
+      tasteAndLocal.length >= 4 ? tasteAndLocal :
+      tastePool.length >= 3     ? tastePool :
+      localBias.length >= 3     ? localBias :
+      TRACK_POOL;
+
+    const trackCount = 3 + (hash(building.id, 10 + ai) % 4);
+    const startTrack = hash(building.id, 20 + ai) % pool.length;
+    for (let i = 0; i < trackCount; i++) {
+      const track = pool[(startTrack + i * 2) % pool.length];
+      if (usedIds.has(`${agent.id}|${track.id}`)) continue;
+      usedIds.add(`${agent.id}|${track.id}`);
+      const likes = hash(building.id, 100 + ai * 10 + i) % 24;
+      tracks.push({
+        ...track,
+        pinnedAt: baseTime - i * 1000 * 60 * 30 - ai * 1000 * 60 * 60 * 6,
+        taggerId: agent.id,
+        taggerName: agent.name,
+        taggerAvatarUrl: agent.avatarUrl,
+        taggerCustomCoverUrl: agent.customCoverUrl ?? null,
+        likes,
+        likedBy: Array.from({ length: likes }, (_, k) => `seed-liker-${k}`),
+      });
+    }
+    taggerNotes[agent.id] = agent.note;
+    taggerPlaylistNames[agent.id] = agent.playlistName;
+    const plLikes = hash(building.id, 200 + ai) % 25;
+    playlistLikedBy[agent.id] = Array.from({ length: plLikes }, (_, k) => `seed-pl-liker-${k}`);
+  });
+
+  return {
+    tracks,
+    description: '',
+    taggerNotes,
+    taggerPlaylistNames,
+    playlistLikedBy,
+  };
+}
+
+/** Public entry point — call with the list of building shapes
+ *  currently loaded for the area + the area's country code.
+ *  Idempotent and never overwrites existing data. */
+export function seedBuildingPlaylists(
+  buildings: BuildingShape[],
+  country?: Country,
+): void {
+  if (typeof window === 'undefined') return;
+  if (buildings.length === 0) return;
+
+  let raw: string | null = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch { return; }
+  let store: Record<string, BuildingPlaylistEntry> = {};
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, BuildingPlaylistEntry>;
+      if (parsed && typeof parsed === 'object') store = parsed;
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn('[seed] localStorage corrupted, will overwrite', e);
+      /* overwrite */
+    }
+  }
+
+  // Bump-on-version: when the seed schema changes (e.g. we added
+  // playlistLikedBy), wipe ONLY the entries that were generated by us
+  // (detected by agent-* taggerId namespace) and re-seed. Real user
+  // pins (different taggerId) are preserved.
+  let storedVersion: string | null = null;
+  try { storedVersion = localStorage.getItem(SEED_VERSION_KEY); } catch { /* ignore */ }
+  if (storedVersion !== SEED_VERSION) {
+    for (const [bid, entry] of Object.entries(store)) {
+      const allSeeded = entry.tracks.length > 0
+        && entry.tracks.every((t) => (t.taggerId ?? '').startsWith('agent-'));
+      if (allSeeded) delete store[bid];
+    }
+    try { localStorage.setItem(SEED_VERSION_KEY, SEED_VERSION); } catch { /* ignore */ }
+  }
+
+  let added = 0;
+  for (const b of buildings) {
+    if (added >= MAX_SEED_BUILDINGS) break;
+    if (store[b.id] && store[b.id].tracks?.length > 0) continue; // skip real data
+    store[b.id] = buildEntryFor(b, country);
+    added += 1;
+  }
+  if (added === 0) return;
+
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); } catch { return; }
+
+  // Trigger same-tab listeners (the playlist module subscribes via its
+  // own listener Set, but it only fires from in-process mutations.
+  // Dispatching a StorageEvent doesn't re-fire in same tab; instead we
+  // reload the store by invoking the public reset hook below.)
+  reloadStore();
+}
+
+/** Force the in-memory store to re-read from localStorage and notify
+ *  any subscribers (TopTaggerCard / PopularTrackCard / BuildingPlaylist). */
+function reloadStore(): void {
+  reloadFromStorage();
+}

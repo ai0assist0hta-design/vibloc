@@ -285,13 +285,20 @@ export function StreetViewBox({
     position: 'relative' as const,
   };
 
+  // Loaded states fade in from below so the swap from shimmer → real
+  // content reads as a soft arrival rather than an abrupt cut.
+  const loadedWrap = {
+    ...wrap,
+    animation: 'vibloc-fade-in 320ms cubic-bezier(0.22,1,0.36,1) both',
+  };
+
   // Commons photo branch — used only when SV would have shown an
   // indoor / subway pano. We render a plain `<img>` (no iframe, no JS
   // execution from Commons) with no-referrer so we don't leak the
   // VIBLOC host to upload.wikimedia.org.
   if (stage.kind === 'photo') {
     return (
-      <div style={wrap}>
+      <div style={loadedWrap}>
         <img
           src={stage.src}
           alt={stage.title}
@@ -312,7 +319,7 @@ export function StreetViewBox({
   // Stage 1 — Google Street View embed (real outdoor pano).
   if (stage.kind === 'sv') {
     return (
-      <div style={wrap}>
+      <div style={loadedWrap}>
         <iframe
           src={stage.url}
           title="Street View"
@@ -330,13 +337,72 @@ export function StreetViewBox({
     );
   }
 
-  // Loading state — render an empty placeholder of the same size
-  // instead of the OSM map. Showing the map first then snapping to
-  // Street View was visually jarring ("띡띡 바껴서 자연스럽지가 않아"),
-  // so we keep the box neutral until the SV iframe is ready.
+  // Loading state — animated shimmer skeleton with three pulsing dots
+  // and a subtle "Loading Street View" label. Fills the few seconds
+  // between the user clicking "Open Street View" and the iframe
+  // becoming interactive, so the panel never reads as empty/dead.
+  // Animations are defined globally in index.css (vibloc-shimmer /
+  // vibloc-pulse-dot / vibloc-fade-in) so we don't pay per-mount style
+  // injection cost.
   void mapLat;
   void mapLon;
+  const shimmerBase = darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+  const shimmerHi   = darkMode ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
+  const dot         = darkMode ? '#ffffff' : '#0e0e1a';
   return (
-    <div style={{ ...wrap, height }} />
+    <div
+      style={{
+        ...wrap,
+        height,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 14,
+        // Skeleton: a 4-stop horizontal gradient that scrolls left→right
+        // forever via the shared keyframe. 200% width gives a
+        // long-tail sweep so the highlight doesn't snap.
+        background: `linear-gradient(
+          90deg,
+          ${shimmerBase} 0%,
+          ${shimmerHi}  20%,
+          ${shimmerBase} 40%,
+          ${shimmerBase} 100%
+        )`,
+        backgroundSize: '200% 100%',
+        animation: 'vibloc-shimmer 1.6s linear infinite, vibloc-fade-in 240ms cubic-bezier(0.22,1,0.36,1) both',
+      }}
+      aria-busy="true"
+      aria-label="Loading Street View"
+    >
+      {/* Three pulsing dots — staggered so the row reads as motion */}
+      <div style={{ display: 'flex', gap: 6 }} aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: dot,
+              opacity: 0.5,
+              animation: `vibloc-pulse-dot 1.1s ease-in-out ${i * 160}ms infinite`,
+            }}
+          />
+        ))}
+      </div>
+      <div
+        style={{
+          fontFamily: "'SF Mono', ui-monospace, 'IBM Plex Mono', Menlo, monospace",
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: 1.4,
+          textTransform: 'uppercase',
+          color: darkMode ? 'rgba(255,255,255,0.55)' : 'rgba(14,14,26,0.55)',
+        }}
+      >
+        Loading Street View
+      </div>
+    </div>
   );
 }

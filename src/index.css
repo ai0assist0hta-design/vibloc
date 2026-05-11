@@ -18,3 +18,240 @@ body.map-active,
 body.map-active #root {
   overflow: hidden;
 }
+
+/* ── Shared motion utilities ──
+   Used by skeleton loaders (Street View while iframe loads, etc.).
+   Same easing language as the floating panel: cubic-bezier(0.22,1,0.36,1)
+   for "soft arrival", linear for steady-state shimmers. */
+@keyframes vibloc-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes vibloc-pulse-dot {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.1);  }
+}
+@keyframes vibloc-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   A11y baseline — global focus + reduced-motion (added 2026-04-28)
+   ───────────────────────────────────────────────────────────────── */
+
+/* WCAG 2.4.7 Focus Visible — every interactive element gets the
+   same 2 px outline when keyboard-focused. The outline-offset keeps
+   it from clipping inside dense rows / pill buttons. Mouse focus
+   stays invisible because :focus-visible filters it out per UA. */
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Dark-mode focus uses a brighter shade so contrast stays ≥ 3:1 on
+   the dark backdrops the floating panels use. */
+@media (prefers-color-scheme: dark) {
+  :focus-visible {
+    outline-color: #818cf8;
+  }
+}
+
+/* WCAG 2.3.3 Animation from Interactions — when the OS reports
+   "reduce motion", strip every transition / animation system-wide.
+   Components that need to react can additionally check the matchMedia
+   value in JS (NowPlayingBar does) — this rule is the safety net. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Slim transparent scrollbars (added 2026-04-29)
+   ─────────────────────────────────────────────────────────────────
+   The default Chromium scrollbar inside the floating panels was
+   wide + had a white track that broke the panel's blurred-glass
+   look (visible in screenshots). Replace with a 6 px ink-tinted
+   thumb on a transparent track so the scroll affordance survives
+   without a hard white stripe behind it.
+
+   Firefox: scrollbar-width: thin + scrollbar-color (no track color
+   support, so we use 'transparent' for the track).
+   WebKit / Blink: ::-webkit-scrollbar pseudo selectors.
+   ───────────────────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 26, 46, 0.22) transparent;
+}
+@media (prefers-color-scheme: dark) {
+  * { scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(26, 26, 46, 0.22);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(26, 26, 46, 0.40); }
+@media (prefers-color-scheme: dark) {
+  *::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.22); }
+  *::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.40); }
+}
+*::-webkit-scrollbar-corner { background: transparent; }
+
+/* ─────────────────────────────────────────────────────────────────
+   Hide the PAGE-level scrollbar (html / body / #root)
+   ─────────────────────────────────────────────────────────────────
+   The 11 px gutter on the right was visually confusing (read as
+   "right side cut off" against the dark hero). Page still scrolls
+   via wheel / trackpad / keyboard / touch — only the visible bar is
+   removed. Inner panel scrollbars (FixedQueueSidebar, recommendation
+   list, etc.) keep their 6 px ink-tinted thumb so users still get a
+   scroll affordance inside dense components.
+   ───────────────────────────────────────────────────────────────── */
+html,
+body,
+#root {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE / Edge legacy */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;               /* WebKit / Blink */
+}
+
+/* Volume slider thumb override (NowPlayingBar VolumeControl).
+   ─────────────────────────────────────────────────────────────────
+   Native <input type="range"> renders the thumb in the OS accent
+   color (often blue). Per user request the volume thumb should be
+   small + plain white instead — overriding both WebKit and Gecko
+   pseudo-elements so the look is consistent across Chrome, Safari,
+   Firefox.
+   ───────────────────────────────────────────────────────────────── */
+.vibloc-vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.vibloc-vol-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.vibloc-vol-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.vibloc-vol-slider::-moz-range-thumb:hover { transform: scale(1.15); }
+
+/* ─── MarqueeText: continuous left-flowing ticker ──────────────────
+   For overflowing single-line text (track titles, artist names).
+   When the text doesn't fit, the component renders TWO copies of
+   the string side-by-side with a `--mq-gap` between them, then
+   animates the wrapper by exactly `--mq-cycle` (one text width +
+   one gap). At 100 % the second copy is precisely where the first
+   copy started → seamless infinite loop.
+
+     --mq-cycle    = -(textWidth + gap) px
+     --mq-duration = seconds, scaled by text width so the visible
+                     speed is constant (~30 px/s by default; set
+                     via the `speedPxPerSec` prop).
+     --mq-gap      = px between the two text copies.
+
+   Pattern reference: iOS Lock-screen NowPlaying title scroller,
+   classic FM radio ticker. */
+.vibloc-mq {
+  text-overflow: ellipsis;
+}
+/* Marquee runs only on intent — hover (mouse) or active toggle
+   (click). Touch devices land on the click toggle since they have
+   no hover state. */
+.vibloc-mq.is-overflow:hover > .vibloc-mq-track,
+.vibloc-mq.is-overflow.is-active > .vibloc-mq-track {
+  animation: vibloc-mq-flow var(--mq-duration, 6s) linear infinite;
+}
+@keyframes vibloc-mq-flow {
+  from { transform: translateX(0); }
+  to   { transform: translateX(var(--mq-cycle, 0)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vibloc-mq.is-overflow:hover > .vibloc-mq-track,
+  .vibloc-mq.is-overflow.is-active > .vibloc-mq-track {
+    animation: none;
+    transform: translateX(0);
+  }
+}
+
+/* Card-scoped marquee — hovering the parent card flows every
+   overflowing label inside. Lets the title + top-track text in a
+   playlist card scroll on a single hover gesture instead of needing
+   the cursor on each label individually. Compose by adding the
+   class to the card root (e.g. `vbk-card-mq` on the playlist card
+   <Link>). */
+.vbk-card-mq:hover .vibloc-mq.is-overflow > .vibloc-mq-track {
+  animation: vibloc-mq-flow var(--mq-duration, 6s) linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vbk-card-mq:hover .vibloc-mq.is-overflow > .vibloc-mq-track {
+    animation: none;
+    transform: translateX(0);
+  }
+}
+
+/* Playlist name input — placeholder reads as muted caption tone
+   (text3) so the empty state looks like instructional text, not a
+   filled-in value. Without this the inline `color: text` on the
+   input was overriding the UA placeholder color too aggressively. */
+.vbk-detail-name-input::placeholder {
+  color: rgba(14, 14, 26, 0.45);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* ── Keyboard focus ring (a11y) ──────────────────────────────────
+   Many of VIBLOC's pill / icon buttons set `outline: none` to opt
+   out of the UA's chunky default focus halo. Without a replacement,
+   keyboard users lose every focus indicator on the right rail and
+   the playlist detail view (WCAG 2.4.7).
+
+   This rule restores a tonal 2-px ring on `:focus-visible` ONLY —
+   i.e. the user navigated here with the keyboard. Mouse clicks
+   stay clean (no focus halo on click), matching macOS native
+   behavior.
+
+   Rules are scoped by element so we don't accidentally outline
+   the search input (which has its own border on focus) or the
+   3D canvas. */
+button:focus-visible,
+[role="button"]:focus-visible,
+[role="listitem"]:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(14, 14, 26, 0.55);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(14, 14, 26, 0.55);
+  outline-offset: 0;
+}

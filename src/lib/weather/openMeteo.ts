@@ -41,7 +41,7 @@ const CACHE_PREFIX = 'vibloc.weather.v1.';
 /**
  * Six visual buckets the UI cares about. Wind is intentionally a
  * separate flag rather than a category so a windy-but-clear day
- * still shows ☀ rather than collapsing into 💨.
+ * still shows CLR rather than collapsing into WIND.
  */
 export type WeatherCategory =
   | 'clear'
@@ -64,6 +64,13 @@ export type WeatherSnapshot = {
   code: number;
   /** Wind speed in km/h. */
   windKmh: number;
+  /** Precipitation rate in mm/h (sum of rain + snow + showers in the
+   *  past hour, per Open-Meteo's `current.precipitation` field).
+   *  Drives the rain particle density / fall speed in WeatherFX so a
+   *  drizzle reads visually different from a downpour.
+   *  Reference scale: <0.5 mm/h drizzle, 0.5–2.5 light, 2.5–10 mod,
+   *  10+ heavy, 20+ torrential. */
+  precipitationMm: number;
   /** Wall-clock fetch timestamp (ms epoch). */
   fetchedAt: number;
 };
@@ -164,6 +171,7 @@ export async function fetchCurrentWeather(
         weather_code?: number;
         temperature_2m?: number;
         wind_speed_10m?: number;
+        precipitation?: number;
       };
     };
     const cur = data.current;
@@ -172,12 +180,17 @@ export async function fetchCurrentWeather(
     const code = cur.weather_code;
     const tempC = typeof cur.temperature_2m === 'number' ? cur.temperature_2m : 0;
     const windKmh = typeof cur.wind_speed_10m === 'number' ? cur.wind_speed_10m : 0;
+    const precipitationMm =
+      typeof cur.precipitation === 'number' && Number.isFinite(cur.precipitation)
+        ? Math.max(0, cur.precipitation)
+        : 0;
     const snap: WeatherSnapshot = {
       category: categorize(code),
       windy: windKmh >= 25,
       tempC,
       code,
       windKmh,
+      precipitationMm,
       fetchedAt: Date.now(),
     };
     writeCache(lat, lon, snap);
@@ -187,21 +200,8 @@ export async function fetchCurrentWeather(
   }
 }
 
-/**
- * Pure helper: pick the emoji for a weather snapshot. Kept here so
- * the UI never has to know about WMO codes or category strings.
- */
-export function weatherEmoji(snap: WeatherSnapshot): string {
-  switch (snap.category) {
-    case 'clear':   return snap.windy ? '\u{1F324}\u{FE0F}' : '\u2600\u{FE0F}';     // 🌤 / ☀
-    case 'cloudy':  return '\u2601\u{FE0F}';                                         // ☁
-    case 'rain':    return '\u{1F327}\u{FE0F}';                                      // 🌧
-    case 'snow':    return '\u2744\u{FE0F}';                                         // ❄
-    case 'thunder': return '\u26C8\u{FE0F}';                                         // ⛈
-    case 'fog':     return '\u{1F32B}\u{FE0F}';                                      // 🌫
-    default:        return '\u2601\u{FE0F}';
-  }
-}
+// (removed `weatherEmoji` 2026-04-27 — UI now renders Lucide icons
+//  directly via `weatherIcon` in components/ui/TimeSlider.tsx.)
 
 /**
  * Human-readable label, used as the tooltip on the indicator. Kept
