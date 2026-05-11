@@ -165,18 +165,36 @@ export async function recommendForBuilding(opts: {
 
   // Run all special-source algorithms in parallel — none of them
   // block the local picks, and we only consume up to 2 tracks from
-  // whichever one wins, so we don't need a high threshold anymore.
+  // whichever one wins. Each special source wrapped in a hard timeout
+  // (4 s) so a slow / unreachable Wikidata or iTunes endpoint never
+  // hangs the whole panel on an infinite loading spinner. The local
+  // city-vibe pool is given a slightly longer leash (6 s) since it
+  // MUST resolve for the panel to have anything to show; on its own
+  // timeout we fall through to its empty-tracks state.
+  const withTimeout = <T>(p: Promise<T>, ms: number, fallback: T): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+    ]);
   const [filming, wikiSong, landmark, local] = await Promise.all([
-    tryFilmingLocation(lat, lon, vibe.country, limit, signal),
-    tryWikidataSong(lat, lon, vibe.country, limit, signal),
+    withTimeout(tryFilmingLocation(lat, lon, vibe.country, limit, signal), 4000, null),
+    withTimeout(tryWikidataSong(lat, lon, vibe.country, limit, signal), 4000, null),
     isProperLandmarkName(buildingName)
-      ? tryNamedLandmark(buildingName as string, vibe.country, limit, signal)
+      ? withTimeout(
+          tryNamedLandmark(buildingName as string, vibe.country, limit, signal),
+          4000,
+          null,
+        )
       : Promise.resolve(null),
     // Pull a wider local pool than `limit` so the overlap guard has
     // room to skip already-used tracks without starving the result.
     // The building's tenant vibe is folded in here as keyword search
     // seeds + genre boosts on top of the city's base profile.
-    cityVibeAlgorithm(area, limit * 4, signal, buildingVibe),
+    withTimeout(
+      cityVibeAlgorithm(area, limit * 4, signal, buildingVibe),
+      6000,
+      { vibe, tracks: [], algorithm: 'city-vibe', context: {}, chartToppers: [] } as RecommendationResult,
+    ),
   ]);
 
   // Pick the highest-priority special source that returned anything.
